@@ -1,0 +1,71 @@
+# Hisaabi
+
+**Bas bol do — hisaab khud ban jayega.**
+
+Voice-first daily expense tracker for India. Ek voice note bolo → AI saare kharche alag-alag
+entries bana deta hai. UPI/bank notifications se online kharche khud capture ho jaate hain.
+
+- 🎤 **Voice entry** — "chai bees, auto saath, sabzi ek sau chalis" → 3 entries
+- 📲 **Auto-capture** — GPay / PhonePe / Paytm / bank SMS notifications (on-device parsing, no `READ_SMS`)
+- 💬 **Telegram bot** — voice note ya text bhejo, entry ban jaayegi
+- 🧠 **Poocho kuch bhi** — "pichhle mahine Swiggy pe kitna gaya?"
+- 🌙 **Raat 9 baje summary** + safe-to-spend number
+- 📴 Offline-first, no ads, signup optional
+
+---
+
+## Repo structure
+
+```
+.
+├── index.html            # landing page (yeh abhi banaya hai)
+├── app/                  # web app — Phase 2 (abhi placeholder)
+├── assets/
+│   ├── css/site.css      # design system: tokens → primitives → sections
+│   ├── js/site.js        # theme toggle, nav, reveals, hero phone demo
+│   └── img/
+└── vercel.json           # static hosting config
+```
+
+## Local preview
+
+```bash
+npx serve .        # ya: python3 -m http.server 4173
+```
+
+Phir browser me `http://localhost:3000` kholo.
+
+## Deploy (Vercel + GitHub)
+
+1. GitHub pe repo banao aur push karo
+2. Vercel → **Add New Project** → repo import karo
+3. Framework preset: **Other** · Build command: *khaali chhodo* · Output directory: `.`
+4. Deploy. Har `git push` pe auto-deploy ho jayega.
+
+Koi build step nahi hai — plain HTML/CSS/JS.
+
+## Design system
+
+| Token | Dark | Light |
+|---|---|---|
+| `--bg` | `#0A0B0D` | `#FAF8F3` |
+| `--ink` | `#F2EFE9` | `#14150F` |
+| `--accent` | `#D6FF3D` | `#C8F225` |
+
+Fonts: **Bricolage Grotesque** (display) · **Inter Tight** (body) · **Instrument Serif** (italic accents).
+Theme `localStorage['hisaabi-theme']` me save hota hai, default OS preference se.
+
+## TODO (landing)
+
+- [ ] APK link: `index.html` me `#apkBtn` ka href GitHub Releases pe point karta hai — release banne ke baad verify karo
+- [ ] OG image (`assets/img/og.png`, 1200×630) banao aur `og:image` meta add karo
+- [ ] Domain: `hisaabi.app` ya `hisaabi.vercel.app` — canonical URL update karo
+- [ ] Privacy policy page (`/privacy`) — notification access ke liye zaroori
+
+## Roadmap
+
+Poora product plan → [`PLAN.md`](./PLAN.md)
+
+---
+
+Banaya **Vansh Kashyap** ne 🇮🇳

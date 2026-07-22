@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="hi" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hisaabi — Bas bol do, hisaab khud ban jayega</title>
+<meta name="description" content="Voice se kharcha likhne wali app. Ek voice note bolo, AI saare kharche alag-alag entries bana dega. UPI aur bank ke kharche app khud pakad leta hai. Android + Web, offline-first, koi ad nahi.">
+<meta name="theme-color" content="#0A0B0D" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAF8F3" media="(prefers-color-scheme: light)">
+<link rel="canonical" href="https://hisaabi.app/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Hisaabi — Bas bol do, hisaab khud ban jayega">
+<meta property="og:description" content="Bolo aur kharcha likh jaye. UPI/bank notifications se auto-entry. Android + Web.">
+<meta property="og:locale" content="hi_IN">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23D6FF3D'/%3E%3Ctext x='50' y='72' font-family='system-ui,sans-serif' font-size='62' font-weight='800' text-anchor='middle' fill='%2312140A'%3E%E2%82%B9%3C/text%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter+Tight:wght@400;500;600&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/site.css">
+
+<script>
+  // theme before paint — no flash
+  (function () {
+    var q = new URLSearchParams(location.search).get('theme');           // ?theme=light — preview ke liye
+    var s = q || localStorage.getItem('hisaabi-theme');
+    var t = s || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+</head>
+
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Hisaabi home">
+      <span class="brand-mark" aria-hidden="true">₹</span>Hisaabi
+    </a>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="#tarike">Kaise likhein</a>
+      <a href="#features">Features</a>
+      <a href="#kaise">Kaise chalta hai</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <button class="icon-btn" id="themeBtn" aria-label="Theme badlo" title="Theme badlo">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+    </button>
+
+    <button class="icon-btn nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+
+    <a class="btn btn-primary btn-sm btn-dl" href="#download">APK Download</a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+
+    <div class="hero-copy">
+      <span class="eyebrow reveal">Early access · Android + Web</span>
+
+      <h1 class="reveal d1">Bas <em class="serif">bol</em> do —<br>hisaab khud<br>ban jayega.</h1>
+
+      <p class="hero-sub reveal d2">
+        Chai, auto, sabzi — din bhar ke chhote kharche yaad rakhne ki zaroorat nahi.
+        Ek voice note bolo, Hisaabi saare kharche alag-alag entries bana deta hai.
+        Aur UPI ya bank ke online kharche? Wo to khud hi pakad leta hai.
+      </p>
+
+      <div class="hero-cta reveal d3">
+        <a class="btn btn-primary" href="#download">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          APK Download
+        </a>
+        <a class="btn btn-ghost" href="#tarike">Pehle demo dekho</a>
+      </div>
+
+      <p class="hero-note reveal d3">
+        Play Store pe nahi — seedha GitHub se. Android 8+ · signup optional
+      </p>
+
+      <div class="hero-facts reveal d3">
+        <div class="fact"><strong>0</strong><span>ads, tracking, spam</span></div>
+        <div class="fact"><strong>Offline</strong><span>bina net bhi chalta hai</span></div>
+        <div class="fact"><strong>Open source</strong><span>poora code GitHub pe</span></div>
+      </div>
+    </div>
+
+    <!-- phone -->
+    <div class="phone-stage reveal d2">
+      <div class="phone" role="img" aria-label="Hisaabi app ka demo: voice note se kharche entries ban rahi hain">
+        <div class="phone-screen">
+          <span class="phone-notch" aria-hidden="true"></span>
+
+          <div class="p-toast" id="pToast">
+            <span class="t-icon" aria-hidden="true">📲</span>
+            <span>
+              <span class="t-title" id="toastTitle">PhonePe</span>
+              <span class="t-sub" id="toastSub">₹240 paid to Blinkit</span>
+            </span>
+          </div>
+
+          <div class="p-top">
+            <div>
+              <div class="p-date">Aaj, 22 July</div>
+              <div class="p-total num" id="pTotal">₹0</div>
+            </div>
+            <div class="chip"><span id="pCount">0</span> entries</div>
+          </div>
+
+          <div class="p-status" id="pStatus"></div>
+
+          <div class="p-body" id="pBody"></div>
+
+          <div class="p-safe">
+            <span>
+              <span class="s-k">Safe to spend</span>
+              <span class="s-v num">₹210 <small>/din</small></span>
+            </span>
+            <span class="s-right num">₹4,200 bacha</span>
+          </div>
+
+          <div class="p-mic" id="pMic">
+            <span class="p-mic-btn" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+            </span>
+            <div class="p-mic-body">
+              <div class="p-transcript" id="pTranscript"><span class="p-hint">Dabao aur bol do…</span></div>
+              <div class="wave" aria-hidden="true">
+                <i style="animation-delay:0s"></i><i style="animation-delay:.08s"></i><i style="animation-delay:.16s"></i>
+                <i style="animation-delay:.24s"></i><i style="animation-delay:.32s"></i><i style="animation-delay:.4s"></i>
+                <i style="animation-delay:.48s"></i><i style="animation-delay:.56s"></i><i style="animation-delay:.64s"></i>
+                <i style="animation-delay:.72s"></i><i style="animation-delay:.8s"></i><i style="animation-delay:.88s"></i>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ TICKER ============ -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<!-- ============ 3 TARIKE ============ -->
+<section class="section" id="tarike">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Entry</span>
+      <h2>Kharcha likhne ke teen raste. Teeno me mehnat zero.</h2>
+      <p>Purani expense apps isliye chhoot jati hain kyunki har chai ke liye app kholna padta hai. Yahan aisa nahi hai.</p>
+    </div>
+
+    <div class="ways">
+      <article class="way reveal">
+        <span class="way-badge" aria-hidden="true">🎤</span>
+        <h3>Bol do</h3>
+        <p>Ek hi saans me paanch kharche. Hindi, English, Hinglish — jaise bolte ho waise bolo. "Do sau", "dhai sau", "sava sau" sab samajh me aata hai.</p>
+        <div class="way-demo">
+          <span class="chip">🎙️ "chai bees, auto saath, sabzi ek sau chalis"</span>
+          <span class="chip"><b>→ 3 entries</b> · ₹220 · 4 second</span>
+        </div>
+      </article>
+
+      <article class="way reveal d1">
+        <span class="way-badge" aria-hidden="true">📲</span>
+        <h3>Khud pakad lega</h3>
+        <p>GPay, PhonePe, Paytm, bank ke message — notification se seedha entry ban jati hai. Online kharche ke liye tumhe kuch karna hi nahi padta.</p>
+        <div class="way-demo">
+          <span class="chip"><span class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block"></span> PhonePe · ₹240 · Blinkit</span>
+          <span class="chip"><b>→ Review inbox</b> me, ek tap me confirm</span>
+        </div>
+      </article>
+
+      <article class="way reveal d2">
+        <span class="way-badge" aria-hidden="true">💬</span>
+        <h3>Telegram se</h3>
+        <p>App kholne ka mann nahi? Bot ko voice note ya "petrol 500" bhej do — hisaab wahin se ban jayega, app me apne aap sync ho jayega.</p>
+        <div class="way-demo">
+          <span class="chip">💬 "petrol 500 HP pump"</span>
+          <span class="chip"><b>✓ Add ho gaya</b> · Travel · ₹500</span>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BENTO FEATURES ============ -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Features</span>
+      <h2>Data andar jaye — aur kaam ka jawab bahar aaye.</h2>
+      <p>Sirf pie chart dikha dena kaafi nahi. Hisaabi wo batata hai jo asli me kaam aata hai: kitna bacha hai, aur paisa leak kahan ho raha hai.</p>
+    </div>
+
+    <div class="bento">
+
+      <div class="tile t-half accent reveal">
+        <span class="tile-k">Safe to spend</span>
+        <h3>Aaj kitna kharch kar sakte ho</h3>
+        <div class="safe-num num">₹210<small style="font-size:18px;color:var(--ink-3);font-family:var(--font-body);letter-spacing:0"> /din</small></div>
+        <div class="safe-bar" aria-hidden="true"><i></i></div>
+        <div class="safe-legend"><span>Mahine ka ₹4,200 bacha</span><span>20 din baaki</span></div>
+        <p>Budget ka sabse kaam ka number. Har subah update ho jata hai.</p>
+      </div>
+
+      <div class="tile t-half reveal d1">
+        <span class="tile-k">Poocho kuch bhi</span>
+        <h3>Apne hi kharchon se sawaal</h3>
+        <div class="qa">
+          <span class="bub you">pichhle mahine Swiggy pe kitna gaya?</span>
+          <span class="bub ai"><b>₹3,240</b> — 18 orders. Pichhle mahine se ₹900 zyada. Zyadatar raat 10 baje ke baad. 🍔</span>
+        </div>
+        <p>Excel jaisa filter lagane ki zaroorat nahi — bas pooch lo.</p>
+      </div>
+
+      <div class="tile t-third reveal">
+        <span class="tile-k">Raat 9 baje</span>
+        <h3>Ek line ka hisaab</h3>
+        <p>Din khatam, notification aaya — aur pata chal gaya kahan zyada gaya.</p>
+        <div class="notif-mock">
+          <span class="n-ico" aria-hidden="true">₹</span>
+          <span>
+            <span class="n-t">Aaj ₹340 kharch</span>
+            <span class="n-s">Hafte ke average se ₹60 zyada. Sabse bada: Zomato ₹180.</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="tile t-third reveal d1">
+        <span class="tile-k">Cash wallet</span>
+        <h3>Nakad kahan gaya, wo bhi pata</h3>
+        <p>"ATM se do hazaar nikale" bol do — cash balance ghatta rahega jaise-jaise kharch hoga. Wahi jagah hai jahan paisa chupke se udta hai.</p>
+        <span class="chip">💵 Cash me bacha: <b>₹1,180</b></span>
+      </div>
+
+      <div class="tile t-third reveal d2">
+        <span class="tile-k">Tumhara data</span>
+        <h3>Offline-first, export kabhi bhi</h3>
+        <p>Sab kuch pehle phone me save hota hai. Net aaye to sync, na aaye to bhi app poori chalti hai. CSV/JSON export ek tap me.</p>
+        <span class="chip">↓ CSV · JSON · PDF</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ STEPS ============ -->
+<section class="section" id="kaise">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Kaise chalta hai</span>
+      <h2>Setup me ek minute. Uske baad app khud sambhalti hai.</h2>
+    </div>
+
+    <div class="steps reveal">
+      <div class="step">
+        <span class="s-num">01</span>
+        <h3>APK install karo</h3>
+        <p>GitHub se seedha download. Koi signup zaroori nahi — chaho to bina account banaye hi use karo.</p>
+      </div>
+      <div class="step">
+        <span class="s-num">02</span>
+        <h3>Notification access do</h3>
+        <p>Sirf paise wale notifications padhe jate hain — aur wo bhi tumhare phone ke andar hi, kahin bheje nahi jate.</p>
+      </div>
+      <div class="step">
+        <span class="s-num">03</span>
+        <h3>Bolo, ya bhool jao</h3>
+        <p>Cash kharche raat me ek voice note me bol do. Online wale to apne aap aa hi jayenge.</p>
+      </div>
+      <div class="step">
+        <span class="s-num">04</span>
+        <h3>Raat ko dekh lo</h3>
+        <p>9 baje ek line ka summary — aaj kitna gaya, mahine me kitna bacha, kal kitna kharch kar sakte ho.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRIVACY ============ -->
+<section class="section" id="privacy">
+  <div class="wrap">
+    <div class="panel reveal">
+      <div>
+        <span class="eyebrow">Privacy</span>
+        <h2 style="margin-top:16px">Tumhara paisa. Tumhara data. Tumhare phone me.</h2>
+        <p>Paise wali app pe bharosa sabse badi cheez hai — isliye Hisaabi me shortcut nahi liya gaya. Poora code khula hua hai, khud check kar lo.</p>
+      </div>
+      <ul class="priv-list">
+        <li><span class="tick-i" aria-hidden="true">✓</span> Notification parsing <strong>100% phone ke andar</strong> — text kabhi server pe nahi jata.</li>
+        <li><span class="tick-i" aria-hidden="true">✓</span> AI ko sirf wahi text jata hai jo tumne bola ya likha. Account number, OTP, balance — kabhi nahi.</li>
+        <li><span class="tick-i" aria-hidden="true">✓</span> Bank login ya bank connection ki zaroorat hi nahi. Hum bank se kabhi connect nahi hote.</li>
+        <li><span class="tick-i" aria-hidden="true">✓</span> Account banana optional hai. Sync chahiye tabhi login karo, warna sab local.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="section" id="pricing">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">Pricing</span>
+      <h2>Rozana ka kaam free. AI wale zyada kaam Pro me.</h2>
+      <p>Auto-capture aur manual entry hamesha free rahenge — kyunki wahi roz ki aadat banate hain.</p>
+    </div>
+
+    <div class="plans">
+      <div class="plan reveal">
+        <div class="plan-name"><h3>Free</h3><span class="badge soft">Hamesha</span></div>
+        <div class="price num">₹0</div>
+        <ul>
+          <li>Unlimited manual entries</li>
+          <li>Unlimited auto-capture (UPI + bank notifications)</li>
+          <li>30 voice entries har mahine</li>
+          <li>Daily aur monthly reports</li>
+          <li>Offline mode, 1 device</li>
+        </ul>
+        <a class="btn btn-ghost" href="#download">Abhi shuru karo</a>
+        <span class="plan-note">Card ki zaroorat nahi.</span>
+      </div>
+
+      <div class="plan pro reveal d1">
+        <div class="plan-name"><h3>Pro</h3><span class="badge">Early access me free</span></div>
+        <div class="price num">₹399 <small>/ saal · ya ₹999 lifetime</small></div>
+        <ul>
+          <li>Unlimited voice entries</li>
+          <li>"Poocho kuch bhi" AI sawaal-jawaab</li>
+          <li>Budgets + safe-to-spend</li>
+          <li>Bill/receipt photo scan</li>
+          <li>Multi-device sync + ghar ka saanjha kharcha</li>
+          <li>CSV / JSON / PDF export</li>
+        </ul>
+        <a class="btn btn-primary" href="#download">Early access lo</a>
+        <span class="plan-note">Jitne log early access me aayenge, unke liye pehla saal free.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section" id="faq">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">FAQ</span>
+      <h2>Jo sabse zyada poocha jata hai.</h2>
+    </div>
+
+    <div class="faq reveal">
+      <details open>
+        <summary>Play Store pe kyun nahi hai?</summary>
+        <div class="a">Notification-access wali apps ka store review lamba chalta hai aur usme product ki speed maar khati hai. Filhal APK seedha GitHub Releases se milta hai — app khud hi update check kar leti hai. Aage jaake Play Store pe bhi aa sakta hai.</div>
+      </details>
+      <details>
+        <summary>Kya ye mere bank ka data padhta hai?</summary>
+        <div class="a">Nahi. Bank se koi connection nahi, koi net-banking login nahi. App sirf tumhare phone pe aane wale <strong>notifications ka text</strong> dekhti hai — wo bhi phone ke andar hi process hota hai. Kisi server pe kuch nahi bheja jata.</div>
+      </details>
+      <details>
+        <summary>SMS permission maangoge kya?</summary>
+        <div class="a">Bilkul nahi. Bank ke SMS ka notification bhi messages app se hi mil jata hai, isliye <code>READ_SMS</code> permission ki zaroorat hi nahi padti.</div>
+      </details>
+      <details>
+        <summary>Internet ke bina chalega?</summary>
+        <div class="a">Haan. Entries, reports, auto-capture — sab offline chalta hai. Sirf voice note ko samajhne wale AI ke liye internet chahiye; net aane pe sab sync ho jata hai.</div>
+      </details>
+      <details>
+        <summary>iPhone pe?</summary>
+        <div class="a">Web app iPhone pe bhi chalta hai (voice + manual entry, poori reports). Lekin auto-capture iOS pe technically possible hi nahi hai — wo Android-only feature rahega.</div>
+      </details>
+      <details>
+        <summary>AI galat entry bana de to?</summary>
+        <div class="a">Isliye koi bhi AI ya auto entry seedha save nahi hoti — pehle ek chhoti si confirm card dikhti hai jise ek tap me edit ya delete kar sakte ho. Galat hisaab se koi hisaab na hona behtar hai.</div>
+      </details>
+      <details>
+        <summary>Mera data export kar sakta hoon?</summary>
+        <div class="a">Haan, kabhi bhi — CSV, JSON ya PDF. Data tumhara hai, app chhodni ho to poora leke jao.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DOWNLOAD ============ -->
+<section class="section" id="download">
+  <div class="wrap">
+    <div class="download-panel reveal">
+      <span class="eyebrow">Download</span>
+      <h2>Aaj raat se hisaab shuru.</h2>
+      <p>APK download karo, install karo, aur pehla kharcha bol ke likh do. Ek minute me setup.</p>
+
+      <div class="hero-cta" style="justify-content:center">
+        <a class="btn btn-primary" id="apkBtn" href="https://github.com/Obitouchiha002/hisaabi/releases/latest" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          Android APK download
+        </a>
+        <a class="btn btn-ghost" href="/app/">Web app — jald</a>
+      </div>
+
+      <div class="dl-meta">
+        <span>Android 8.0+</span>
+        <span>~9 MB</span>
+        <span>Koi ad nahi</span>
+        <span>Signup optional</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">₹</span>Hisaabi</a>
+      <nav class="footer-links">
+        <a href="#tarike">Kaise likhein</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/Obitouchiha002" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+
+    <div class="wordmark" aria-hidden="true">Hisaabi</div>
+
+    <div class="footer-legal">
+      <span>© <span id="yr">2026</span> Hisaabi · banaya Vansh Kashyap ne 🇮🇳</span>
+      <span>Bas bol do.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/js/site.js" defer></script>
+</body>
+</html>
