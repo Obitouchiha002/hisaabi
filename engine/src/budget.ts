@@ -35,7 +35,8 @@ export function safeToSpend(input: BudgetInput): SafeToSpend {
   const daysLeft = Math.max(1, daysInMonth - dayOfMonth + 1); // aaj bhi ginte hain
 
   const left = input.monthlyBudgetPaise - input.spentThisMonthPaise - reserved;
-  const perDay = Math.floor(left / daysLeft);
+  // poore rupee me — "₹442.30 /din" kisi ke kaam ka nahi
+  const perDay = Math.floor(left / daysLeft / 100) * 100;
   const avgSoFar = Math.floor(input.spentThisMonthPaise / Math.max(1, dayOfMonth));
 
   let status: SafeToSpend['status'] = 'good';

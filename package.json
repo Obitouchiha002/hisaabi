@@ -1,0 +1,14 @@
+{
+  "name": "hisaabi",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Bas bol do — hisaab khud ban jayega. Landing + web app + engine.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "npm --prefix app run dev",
+    "test": "npm --prefix engine test",
+    "typecheck": "npm --prefix engine run typecheck && npm --prefix app run typecheck"
+  },
+  "license": "MIT"
+}

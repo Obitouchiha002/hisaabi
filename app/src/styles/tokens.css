@@ -1,0 +1,68 @@
+/* Website ka hi design system — taki app aur site ek jaisi lagein. */
+
+:root {
+  --bg:          #0A0B0D;
+  --bg-2:        #101115;
+  --surface:     #14161B;
+  --surface-2:   #191C22;
+  --line:        rgba(242, 239, 233, 0.10);
+  --line-strong: rgba(242, 239, 233, 0.20);
+  --ink:         #F2EFE9;
+  --ink-2:       #B4B0A6;
+  --ink-3:       #7C7970;
+  --accent:      #D6FF3D;
+  --accent-ink:  #12140A;
+  --good:        #6EE7A8;
+  --warn:        #FFB86B;
+  --bad:         #FF8080;
+  --shadow-md:   0 18px 40px -20px rgba(0,0,0,.85);
+  --shadow-lg:   0 60px 120px -50px rgba(0,0,0,.9);
+  --grain:       .035;
+
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+  --glow: radial-gradient(60% 60% at 50% 0%, color-mix(in srgb, var(--accent) 17%, transparent), transparent 70%);
+
+  --r-xs: 8px; --r-sm: 12px; --r-md: 18px; --r-lg: 26px; --r-xl: 34px; --r-pill: 999px;
+
+  --font-display: "Bricolage Grotesque", "Inter Tight", system-ui, sans-serif;
+  --font-body: "Inter Tight", system-ui, -apple-system, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+
+  --ease: cubic-bezier(.22, .9, .3, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --spring: linear(0, .28 4%, .78 12%, 1.02 20%, 1.06 26%, 1 40%, .99 50%, 1);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+:root[data-theme="light"] {
+  --bg:          #FAF8F3;
+  --bg-2:        #F3F0E8;
+  --surface:     #FFFFFF;
+  --surface-2:   #F6F3EC;
+  --line:        rgba(20, 21, 15, 0.10);
+  --line-strong: rgba(20, 21, 15, 0.22);
+  --ink:         #14150F;
+  --ink-2:       #55564C;
+  --ink-3:       #83847A;
+  --accent:      #C8F225;
+  --accent-ink:  #14170A;
+  --good:        #17915A;
+  --warn:        #B4661A;
+  --bad:         #C0392B;
+  --shadow-md:   0 18px 40px -24px rgba(20,21,15,.28);
+  --shadow-lg:   0 60px 110px -55px rgba(20,21,15,.35);
+  --grain:       .05;
+  --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+:root[data-accent="kesari"] { --accent: #FF8A3D; --accent-ink: #1A0B03; }
+:root[data-accent="pudina"] { --accent: #2FE3B0; --accent-ink: #04120D; }
+:root[data-accent="genda"]  { --accent: #FFC233; --accent-ink: #171003; }
+:root[data-accent="jamun"]  { --accent: #B69CFF; --accent-ink: #120B24; }
+
+:root[data-theme="light"][data-accent="kesari"] { --accent: #DD5F13; --accent-ink: #FFF6F0; }
+:root[data-theme="light"][data-accent="pudina"] { --accent: #0E8F6E; --accent-ink: #F0FBF7; }
+:root[data-theme="light"][data-accent="genda"]  { --accent: #B07908; --accent-ink: #FFF9EC; }
+:root[data-theme="light"][data-accent="jamun"]  { --accent: #6741D9; --accent-ink: #F6F2FF; }
