@@ -11,8 +11,22 @@ import type { DraftEntry, DuplicateMatch, Entry, LearnedRule, RawEvent } from '@
 
 const DB_NAME = 'hisaabi';
 const VERSION = 2;
-const OPEN_TIMEOUT_MS = 1500;
 const LS_PREFIX = 'hisaabi:';
+
+/**
+ * Cold start pe WebView bahut slow hota hai — IndexedDB khulne me kuch second
+ * lag sakte hain. Pehle 1.5s ka timeout tha; usse app fallback pe chali jati thi
+ * aur user ko khaali app dikhti thi — bilkul aisa jaise saara data ud gaya ho.
+ *
+ * Isliye: pehli baar 8 second do. Aur agar IDB pehle kabhi chal chuka hai
+ * (matlab data usi me hai), to 30 second tak intezaar karo — kyunki fallback pe
+ * jaana yahan data khone ke barabar hai. Splash thoda zyada dikhe, chalega.
+ */
+const OPEN_TIMEOUT_FIRST_MS = 8000;
+const OPEN_TIMEOUT_KNOWN_MS = 30000;
+
+/** Kaunsa storage chala tha — taki har launch pe faisla badle nahi. */
+const MODE_KEY = LS_PREFIX + 'storage';
 
 type StoreName = 'entries' | 'raw' | 'meta' | 'pending';
 
@@ -55,18 +69,40 @@ function openIdb(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+function rememberedMode(): Mode | null {
+  try {
+    const value = localStorage.getItem(MODE_KEY);
+    return value === 'idb' || value === 'ls' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function remember(value: Mode): void {
+  try { localStorage.setItem(MODE_KEY, value); } catch { /* private mode */ }
+}
+
 async function ensureMode(): Promise<Mode> {
   if (mode) return mode;
+
+  const known = rememberedMode();
+
+  // Pehle se localStorage pe hain to wahin rehna hai — data wahan hai
+  if (known === 'ls') { mode = 'ls'; return mode; }
+
   try {
+    const limit = known === 'idb' ? OPEN_TIMEOUT_KNOWN_MS : OPEN_TIMEOUT_FIRST_MS;
     await Promise.race([
       openIdb(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), OPEN_TIMEOUT_MS)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), limit)),
     ]);
     mode = 'idb';
   } catch {
     dbPromise = null;
     mode = 'ls';
   }
+
+  remember(mode);
   return mode;
 }
 

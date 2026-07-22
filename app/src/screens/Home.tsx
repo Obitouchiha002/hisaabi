@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { categoryMeta, dayRange, formatINR, type Entry } from '@engine';
 import { Amount, Icon, Sheet, useToast } from '@/components/ui';
 import { EntryEditor } from '@/components/EntryEditor';
@@ -15,6 +15,21 @@ export function Home() {
     pending, setRoute, updateEntry, removeEntry, teachCategory,
   } = store;
   const [editing, setEditing] = useState<Entry | null>(null);
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') ?? 'dark');
+
+  function toggleTheme() {
+    const next = theme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('hisaabi-theme', next);
+    setTheme(next);
+  }
+
+  async function quickAdd(line: string) {
+    const parsed = await store.engine.ingestText(line, { source: 'manual' });
+    if (!parsed.length) return;
+    await store.commitDrafts(parsed);
+    toast.show(`${parsed[0]!.title} · ${formatINR(parsed[0]!.amountPaise)} add ho gaya`);
+  }
   const [sheet, setSheet] = useState<'type' | 'voice' | 'ask' | 'settings' | null>(null);
   const toast = useToast();
 
@@ -40,9 +55,12 @@ export function Home() {
         </div>
         {pending.length > 0 && (
           <button className="icon-btn badge-btn" onClick={() => setRoute('review')} aria-label="Review inbox">
-            📥<span className="badge-dot num">{pending.length}</span>
+            {Icon.inbox}<span className="badge-dot num">{pending.length}</span>
           </button>
         )}
+        <button className="icon-btn" onClick={toggleTheme} aria-label="Theme badlo">
+          {theme === 'light' ? Icon.moon : Icon.sun}
+        </button>
         <button className="icon-btn" onClick={() => setSheet('settings')} aria-label="Settings">
           {Icon.settings}
         </button>
@@ -82,6 +100,13 @@ export function Home() {
           <div className="v num">{formatINR(budget.spentThisMonthPaise)}</div>
         </div>
       </div>
+
+      <div className="quick-row">
+        <span className="quick-k">Jaldi se</span>
+        {['chai 20', 'auto 60', 'sabzi 140', 'petrol 500'].map((q) => (
+          <button key={q} className="quick" onClick={() => void quickAdd(q)}>+ {q}</button>
+        ))}
+      </div>
       </div>
 
       <div>
@@ -91,10 +116,7 @@ export function Home() {
       </div>
 
       {recent.length === 0 ? (
-        <div className="empty">
-          <div className="big">🎤</div>
-          Mic dabao aur bol do — <br />“chai bees, auto saath”
-        </div>
+        <EmptyState />
       ) : (
         <div>
           {recent.map((e, i) => {
@@ -122,12 +144,14 @@ export function Home() {
       </div>
 
       <nav className="dock">
-        <button className="ask" onClick={() => setSheet('ask')}>
-          {Icon.spark} Poocho: is mahine kitna gaya?
-        </button>
-        <button className="icon-btn" onClick={() => setSheet('type')} aria-label="Likh ke add karo">
-          {Icon.plus}
-        </button>
+        <div className="dock-bar">
+          <button className="dock-spark" onClick={() => setSheet('ask')} aria-label="Poocho kuch bhi">
+            {Icon.spark}
+          </button>
+          <button className="dock-input" onClick={() => setSheet('type')}>
+            Kharcha likho ya poocho…
+          </button>
+        </div>
         <button className="mic-btn" onClick={() => setSheet('voice')} aria-label="Bol ke add karo">
           {Icon.mic}
         </button>
@@ -163,6 +187,40 @@ export function Home() {
       {sheet === 'settings' && <Settings onClose={() => setSheet(null)} />}
 
       {toast.node}
+    </div>
+  );
+}
+
+/* Khaali screen pe ek hi line hamesha dikhna bore karta hai —
+   isliye har kuch second baad naya ishara. */
+const EMPTY_LINES = [
+  { icon: '🎤', text: 'Mic dabao aur bol do — “chai bees, auto saath”' },
+  { icon: '✍️', text: 'Ya likh do — “sabzi ek sau chalis”' },
+  { icon: '⚡', text: 'Ek saath paanch kharche bhi bol sakte ho' },
+  { icon: '🌙', text: 'Raat 9 baje ek line me poora hisaab milega' },
+  { icon: '🔒', text: 'Sab kuch tumhare phone me hi rehta hai' },
+  { icon: '📴', text: 'Bina internet ke bhi poora chalta hai' },
+];
+
+function EmptyState() {
+  const [i, setI] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setI((n) => (n + 1) % EMPTY_LINES.length), 3600);
+    return () => clearInterval(t);
+  }, []);
+
+  const line = EMPTY_LINES[i]!;
+
+  return (
+    <div className="empty">
+      <div className="empty-rotate" key={i}>
+        <div className="big">{line.icon}</div>
+        <p>{line.text}</p>
+      </div>
+      <div className="empty-dots" aria-hidden="true">
+        {EMPTY_LINES.map((_, n) => <i key={n} data-on={n === i} />)}
+      </div>
     </div>
   );
 }
