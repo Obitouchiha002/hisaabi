@@ -7,7 +7,8 @@
  */
 
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -43,5 +44,28 @@ if (existsSync(pub)) cpSync(pub, dist, { recursive: true });
 run('npm ci --no-audit --no-fund', join(root, 'app'));
 run('npm run build', join(root, 'app'));
 cpSync(join(root, 'app', 'dist'), join(dist, 'app'), { recursive: true });
+
+// 4. landing ke css/js pe content-hash lagao.
+//    Inka naam kabhi nahi badalta, isliye bina stamp ke browser purani file
+//    pakde baith jata hai — ek baar aisa ho chuka hai, dobara nahi hona chahiye.
+const indexPath = join(dist, 'index.html');
+if (existsSync(indexPath)) {
+  const stamp = (rel) => {
+    const file = join(dist, rel);
+    return existsSync(file)
+      ? createHash('md5').update(readFileSync(file)).digest('hex').slice(0, 8)
+      : null;
+  };
+
+  let html = readFileSync(indexPath, 'utf8');
+  const cssV = stamp('assets/css/site.css');
+  const jsV = stamp('assets/js/site.js');
+
+  if (cssV) html = html.replace(/\/assets\/css\/site\.css(\?v=[a-f0-9]+)?/g, `/assets/css/site.css?v=${cssV}`);
+  if (jsV) html = html.replace(/\/assets\/js\/site\.js(\?v=[a-f0-9]+)?/g, `/assets/js/site.js?v=${jsV}`);
+
+  writeFileSync(indexPath, html);
+  console.log(`→ cache stamp: css ${cssV} · js ${jsV}`);
+}
 
 console.log('\n✓ dist/ taiyar hai — landing + /app');
