@@ -584,6 +584,63 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
   50% { transform: scale(.9); opacity: .7; }
 }
 
+/* ================= responsive =================
+   Phone pehle. Tablet aur bade screen pe do column, taki khaali jagah
+   bekaar na jaye aur list scroll kiye bina dikh jaye.                */
+
+@media (min-width: 700px) {
+  .app { max-width: 620px; }
+  .screen { padding-inline: 28px; }
+  .hero-card { padding: 26px; }
+  .stat-row { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 980px) {
+  .app[data-screen="home"] { max-width: 980px; }
+
+  .home-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .home-grid > * { min-width: 0; }
+  .home-grid .section-title { margin-top: 0; }
+
+  .hero-card .big { font-size: 60px; }
+  .stat-row { grid-template-columns: 1fr 1fr; }
+
+  /* dock ab neeche chipka hua nahi, content ke saath behta hai */
+  .dock {
+    position: sticky;
+    bottom: 20px;
+    max-width: 620px;
+    margin-inline: auto;
+  }
+
+  .sheet {
+    bottom: auto;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(560px, 92vw);
+    max-height: 84svh;
+    border-radius: var(--r-xl);
+    border-bottom: 1px solid var(--line);
+    animation-name: sheetInCenter;
+  }
+  @keyframes sheetInCenter {
+    from { opacity: 0; transform: translate(-50%, -46%) scale(.97); }
+  }
+  .sheet-grab { display: none; }
+}
+
+/* landscape phone — chhoti height me padding kam */
+@media (max-height: 560px) and (orientation: landscape) {
+  .screen { padding-block: 14px; }
+  .hello h1 { font-size: 44px; }
+  .hero-card .big { font-size: 38px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;

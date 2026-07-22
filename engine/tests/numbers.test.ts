@@ -66,6 +66,23 @@ describe('extractAmount', () => {
     expect(extractAmount(line)).toBeNull();
   });
 
+  // log jaisa bolte hain waisa likhte hain — spelling se number nahi bigadna chahiye
+  it.each([
+    ['chini biss ki', 20],
+    ['auto chalis ka', 40],
+    ['sabzi chaalees ki', 40],
+    ['doodh pachhaas ka', 50],
+    ['rickshaw assee', 80],
+    ['chawal sattar rupaye', 70],
+  ])('galat spelling bhi samajhta hai: "%s" → %i', (line, expected) => {
+    expect(extractAmount(line)?.value).toBe(expected);
+  });
+
+  it('angrezi "ten" ko hindi "teen" nahi samajhta', () => {
+    expect(extractAmount('coffee ten')?.value).toBe(10);
+    expect(extractAmount('coffee teen')?.value).toBe(3);
+  });
+
   it('par jodon me wahi shabd chalte hain', () => {
     expect(extractAmount('do sau')?.value).toBe(200);
     expect(extractAmount('char sau pachas')?.value).toBe(450);

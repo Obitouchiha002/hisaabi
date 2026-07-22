@@ -14,6 +14,26 @@ entries bana deta hai. UPI/bank notifications se online kharche khud capture ho 
 
 ---
 
+## AI dimaag (Groq / Gemini)
+
+App bina AI ke bhi poori chalti hai — rule parser "chai bees, auto saath" jaisi
+~70% lines khud handle kar leta hai. AI sirf tab bulaya jata hai jab confidence 0.6 se kam ho.
+
+**Key kabhi app me mat daalna.** `api/ai.js` ek Vercel serverless proxy hai; key wahin rehti hai:
+
+```bash
+cp .env.example .env        # local dev
+# ya Vercel → Settings → Environment Variables
+GROQ_API_KEY=...            # pehli pasand (llama-3.3-70b, sabse tez)
+GEMINI_API_KEY=...          # fallback (gemini-2.0-flash)
+```
+
+Dono khaali → `/api/ai` 503 deta hai → app chup-chaap rules pe chalti rehti hai.
+Settings me "AI dimaag" wala row batata hai ki abhi kya chal raha hai.
+
+AI ko kya diya jata hai: sirf user ka bola/likha text, wo bhi PII scrub karke.
+**Notification ka text kabhi AI ko nahi jata** — usme OTP aur balance ho sakta hai.
+
 ## Repo structure
 
 ```

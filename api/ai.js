@@ -1,0 +1,181 @@
+/**
+ * AI proxy — Vercel serverless function.
+ *
+ * API key SERVER pe rehti hai, app me kabhi nahi. Agar key app ke bundle me daali
+ * jaye to koi bhi DevTools kholke utha lega, aur bill tumhara aayega.
+ *
+ * Env vars (Vercel → Settings → Environment Variables):
+ *   GROQ_API_KEY     (pehli pasand — sabse tez)
+ *   GEMINI_API_KEY   (fallback)
+ *
+ * Dono me se ek bhi na ho to endpoint 503 deta hai, aur app chup-chaap
+ * apne rule parser pe chalti rehti hai. Kuch tootta nahi.
+ */
+
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GEMINI_MODEL = 'gemini-2.0-flash';
+
+const MAX_INPUT = 600;
+const TIMEOUT_MS = 9000;
+
+const PARSE_SYSTEM = `Tum ek Hinglish expense parser ho.
+User bolta ya likhta hai ki usne kya kharch kiya. Har kharche ko alag JSON object me todo.
+
+Rules:
+- Output SIRF JSON array ho. Koi explanation nahi, koi markdown fence nahi.
+- Har object: {"title": string, "amount": number (rupees me), "type": "expense"|"income"|"cash_in"}
+- Hindi/Hinglish numbers samjho, spelling galat ho tab bhi:
+  bees/biss = 20, chalis/chaalees = 40, pachas/pachhaas = 50, saath = 60,
+  assi = 80, sau = 100, ek sau chalis = 140, dhai sau = 250, sava sau = 125,
+  sadhe teen sau = 350, paune do sau = 175, dedh hazaar = 1500.
+- Word order koi bhi ho: "chini biss ki", "biss ki chini", "chini 20" — teeno = Chini, 20.
+- ATM se paisa nikalna "cash_in" hai (kharcha nahi). Salary/refund "income" hai.
+- Amount na mile to us hisse ko chhod do. Number kabhi invent mat karo.
+- title 1-3 shabd, jaisa user ne bola waisa hi (English me translate mat karo).
+
+Misal:
+"chai bees, auto saath, sabzi ek sau chalis"
+[{"title":"Chai","amount":20,"type":"expense"},{"title":"Auto","amount":60,"type":"expense"},{"title":"Sabzi","amount":140,"type":"expense"}]`;
+
+const ASK_SYSTEM = `Tum ek query planner ho. User apne kharchon ke baare me sawaal poochta hai.
+SIRF ek JSON QueryPlan return karo — koi number, koi jawab nahi. Total database nikalega.
+
+{"metric":"sum"|"count"|"avg"|"max"|"list",
+ "filter":{"text"?:string,"category"?:string,"type"?:"expense"|"income","paidWith"?:"cash"|"digital"},
+ "range":{"label":"today"|"yesterday"|"this_week"|"last_week"|"this_month"|"last_month"|"this_year"|"all_time"},
+ "compareToPrevious"?:boolean,
+ "groupBy"?:"category"|"merchant"|"day"}
+
+Categories: food, grocery, travel, bills, shopping, health, rent, education, fun, other, income.
+Samajh na aaye to {"metric":"sum","filter":{"type":"expense"},"range":{"label":"this_month"}}.`;
+
+export default async function handler(req, res) {
+  if (req.method === 'GET') {
+    return res.status(200).json({ ok: true, provider: pickProvider()?.name ?? null });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'POST only' });
+  }
+
+  const provider = pickProvider();
+  if (!provider) {
+    return res.status(503).json({ error: 'no_ai_configured' });
+  }
+
+  const body = typeof req.body === 'string' ? safeJson(req.body) : req.body;
+  const task = body?.task === 'ask' ? 'ask' : 'parse';
+  const text = String(body?.text ?? '').slice(0, MAX_INPUT).trim();
+  if (!text) return res.status(400).json({ error: 'empty_text' });
+
+  const system = task === 'ask' ? ASK_SYSTEM : PARSE_SYSTEM;
+  const user = buildUser(task, text, body?.context);
+
+  try {
+    const raw = await withTimeout(provider.call(system, user), TIMEOUT_MS);
+    const parsed = extractJson(raw);
+    if (!parsed) return res.status(502).json({ error: 'bad_ai_output' });
+
+    return res.status(200).json({ provider: provider.name, task, result: parsed });
+  } catch (err) {
+    // key ya upstream ka message kabhi client ko mat bhejo
+    console.error('[ai]', provider.name, err?.message);
+    return res.status(502).json({ error: 'upstream_failed' });
+  }
+}
+
+/* ---------- providers ---------- */
+
+function pickProvider() {
+  if (process.env.GROQ_API_KEY) return { name: 'groq', call: callGroq };
+  if (process.env.GEMINI_API_KEY) return { name: 'gemini', call: callGemini };
+  return null;
+}
+
+async function callGroq(system, user) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0,
+      max_tokens: 700,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: `${system}\n\nJawab ek JSON object me do: {"items": <array>} parse ke liye, ya plan object ask ke liye.` },
+        { role: 'user', content: user },
+      ],
+    }),
+  });
+
+  if (!res.ok) throw new Error(`groq ${res.status}`);
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content ?? '';
+}
+
+async function callGemini(system, user) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: user }] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 700, responseMimeType: 'application/json' },
+    }),
+  });
+
+  if (!res.ok) throw new Error(`gemini ${res.status}`);
+  const json = await res.json();
+  return json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+}
+
+/* ---------- helpers ---------- */
+
+function buildUser(task, text, context) {
+  const lines = [task === 'ask' ? `Sawaal: "${text}"` : `Text: "${text}"`];
+  if (context?.today) lines.push(`Aaj ki date: ${context.today}`);
+  if (Array.isArray(context?.knownMerchants) && context.knownMerchants.length) {
+    lines.push(`User ke common merchants: ${context.knownMerchants.slice(0, 20).join(', ')}`);
+  }
+  if (context?.tone) lines.push(context.tone);
+  return lines.join('\n');
+}
+
+/** Model kabhi-kabhi markdown fence ya extra text laga deta hai — usme se JSON khodo. */
+function extractJson(raw) {
+  const text = String(raw ?? '').trim().replace(/^```(?:json)?|```$/g, '').trim();
+  const direct = safeJson(text);
+  if (direct) return unwrap(direct);
+
+  const start = text.search(/[[{]/);
+  if (start === -1) return null;
+  const end = Math.max(text.lastIndexOf(']'), text.lastIndexOf('}'));
+  if (end <= start) return null;
+
+  return unwrap(safeJson(text.slice(start, end + 1)));
+}
+
+/** {"items":[…]} bhi chalega aur seedha […] bhi. */
+function unwrap(value) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value.items)) return value.items;
+  if (Array.isArray(value.entries)) return value.entries;
+  return value;
+}
+
+function safeJson(text) {
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}

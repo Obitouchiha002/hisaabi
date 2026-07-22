@@ -10,11 +10,13 @@ import { isDemo } from '@/lib/demo';
 export default function App() {
   return (
     <StoreProvider>
-      <div className="app">
-        <Flow />
-      </div>
+      <Flow />
     </StoreProvider>
   );
+}
+
+function Shell({ screen, children }: { screen: string; children: React.ReactNode }) {
+  return <div className="app" data-screen={screen}>{children}</div>;
 }
 
 /**
@@ -36,11 +38,16 @@ function Flow() {
   }
 
   if (!profile) {
-    return <Onboarding onDone={(p: Profile) => void saveProfile(p)} />;
+    return (
+      <Shell screen="onboarding">
+        <Onboarding onDone={(p: Profile) => void saveProfile(p)} />
+      </Shell>
+    );
   }
 
   if (!session && !authSkipped) {
     return (
+      <Shell screen="auth">
       <Auth
         profile={profile}
         onDone={(s: Session | null) => {
@@ -53,8 +60,9 @@ function Flow() {
           }
         }}
       />
+      </Shell>
     );
   }
 
-  return <Home />;
+  return <Shell screen="home"><Home /></Shell>;
 }

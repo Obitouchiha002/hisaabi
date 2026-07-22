@@ -34,7 +34,7 @@ export function categoryMeta(id: CategoryId): CategoryMeta {
 /** merchant / keyword → category. Order matters: pehla match jeetta hai. */
 const RULES: Array<[RegExp, CategoryId]> = [
   [/swiggy|zomato|dominos|domino|pizza|kfc|mcdonald|burger|subway|starbucks|cafe|coffee|chai|tea|dhaba|restaurant|hotel|biryani|khana|nashta|breakfast|lunch|dinner|samosa|juice|thali|canteen|bakery|mithai|sweets/, 'food'],
-  [/blinkit|zepto|instamart|bigbasket|dmart|d-mart|reliance fresh|more supermarket|grocery|kirana|sabzi|subzi|vegetable|fruit|doodh|milk|atta|rashan|ration|provision/, 'grocery'],
+  [/blinkit|zepto|instamart|bigbasket|dmart|d-mart|reliance fresh|more supermarket|grocery|kirana|sabzi|subzi|vegetable|fruit|doodh|milk|atta|aata|rashan|ration|provision|chini|cheeni|sugar|namak|salt|tel\b|oil|chawal|rice|\bdal\b|daal|masala|anda|ande|bread|maggi|paneer|dahi|ghee/, 'grocery'],
   [/uber|ola|rapido|auto|rickshaw|taxi|cab|petrol|diesel|fuel|hp\b|hpcl|iocl|indian oil|bharat petroleum|bpcl|irctc|redbus|abhibus|metro|bus|train|flight|indigo|vistara|toll|parking|namma yatri|yatri/, 'travel'],
   [/jio|airtel|vodafone|\bvi\b|bsnl|recharge|postpaid|prepaid|broadband|wifi|electricity|bijli|torrent power|adani electricity|tata power|gas|indane|hp gas|dth|tata sky|water bill|bill payment|insurance premium/, 'bills'],
   [/amazon|flipkart|myntra|ajio|meesho|nykaa|snapdeal|tatacliq|decathlon|lifestyle|pantaloons|westside|shopping|clothes|kapde|shoes|jute/, 'shopping'],

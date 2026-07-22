@@ -11,6 +11,14 @@
  *   dedh hazaar         → 1500
  */
 
+/** English words alag rakhe hain — inpe spelling-guess nahi lagana (warna "ten" aur "teen" tak-ra jate hain). */
+const ENGLISH_UNITS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
+  nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20,
+  thirty: 30, forty: 40, fourty: 40, fifty: 50, sixty: 60, seventy: 70,
+  eighty: 80, ninety: 90,
+};
+
 const UNITS: Record<string, number> = {
   // 1–10
   ek: 1, do: 2, teen: 3, tin: 3, char: 4, chaar: 4, panch: 5, paanch: 5,
@@ -24,12 +32,8 @@ const UNITS: Record<string, number> = {
   bees: 20, bis: 20, tees: 30, tis: 30, chalis: 40, chaalis: 40,
   pachas: 50, pachaas: 50, pachhas: 50,
   sath: 60, saath: 60, sattar: 70, satar: 70,
-  assi: 80, asi: 80, nabbe: 90, nabbey: 90, nabhe: 90,
-  // english
-  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
-  nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20,
-  thirty: 30, forty: 40, fourty: 40, fifty: 50, sixty: 60, seventy: 70,
-  eighty: 80, ninety: 90,
+  assi: 80, asi: 80, assee: 80, nabbe: 90, nabbey: 90, nabhe: 90,
+  ...ENGLISH_UNITS,
 };
 
 const SCALES: Record<string, number> = {
@@ -53,9 +57,62 @@ const SPECIALS: Record<string, number> = {
   aadha: 0.5, adha: 0.5, half: 0.5,
 };
 
-export function isNumberWord(token: string): boolean {
+/**
+ * Log jaisa bolte hain waisa hi likhte hain: "biss", "chaalees", "pachhaas", "assee".
+ * Har spelling dictionary me daalna namumkin hai, isliye har shabd ka ek
+ * canonical roop banate hain aur usse match karte hain:
+ *
+ *   bees → bis  ·  biss → bis  ·  chaalees → chalis  ·  pachhaas → pachas
+ *
+ * Do alag numbers ek hi canonical roop pe aa jayein (jaise angrezi "ten" aur hindi "teen"),
+ * to wo roop index se hata dete hain — galat number lagne se accha hai na lage.
+ */
+function canon(word: string): string {
+  return word
+    .toLowerCase()
+    .replace(/[^a-z]/g, '')
+    .replace(/(.)\1+/g, '$1')  // biss→bis, chaalees→chales, aath→ath
+    .replace(/e/g, 'i')        // bees→bis, chales→chalis
+    .replace(/o/g, 'u')
+    .replace(/w/g, 'v');       // sawa→sava
+}
+
+function buildCanonIndex(...maps: Array<Record<string, number>>): Record<string, number> {
+  const index: Record<string, number> = {};
+  const clash = new Set<string>();
+
+  for (const map of maps) {
+    for (const [word, value] of Object.entries(map)) {
+      const key = canon(word);
+      if (!key) continue;
+      if (key in index && index[key] !== value) { clash.add(key); continue; }
+      index[key] = value;
+    }
+  }
+
+  for (const key of clash) delete index[key];
+  return index;
+}
+
+const CANON_UNITS = buildCanonIndex(UNITS);
+const CANON_SCALES = buildCanonIndex(SCALES);
+const CANON_FRACTIONS = buildCanonIndex(FRACTIONS);
+const CANON_SPECIALS = buildCanonIndex(SPECIALS);
+
+function lookup(map: Record<string, number>, canonMap: Record<string, number>, token: string): number | undefined {
   const t = token.toLowerCase();
-  return t in UNITS || t in SCALES || t in FRACTIONS || t in SPECIALS;
+  if (t in map) return map[t];
+  const key = canon(t);
+  return key ? canonMap[key] : undefined;
+}
+
+export function isNumberWord(token: string): boolean {
+  return (
+    lookup(UNITS, CANON_UNITS, token) !== undefined ||
+    lookup(SCALES, CANON_SCALES, token) !== undefined ||
+    lookup(FRACTIONS, CANON_FRACTIONS, token) !== undefined ||
+    lookup(SPECIALS, CANON_SPECIALS, token) !== undefined
+  );
 }
 
 /**
@@ -71,30 +128,34 @@ export function wordsToNumber(tokens: string[]): number | null {
   for (const raw of tokens) {
     const t = raw.toLowerCase();
 
-    if (t in FRACTIONS) {
-      fraction = FRACTIONS[t]!;
+    const frac = lookup(FRACTIONS, CANON_FRACTIONS, t);
+    if (frac !== undefined) {
+      fraction = frac;
       matched = true;
       continue;
     }
 
-    if (t in SPECIALS) {
-      current = current === 0 ? SPECIALS[t]! : current + SPECIALS[t]!;
+    const special = lookup(SPECIALS, CANON_SPECIALS, t);
+    if (special !== undefined) {
+      current = current === 0 ? special : current + special;
       matched = true;
       continue;
     }
 
-    if (t in UNITS) {
-      let v = UNITS[t]!;
+    const unit = lookup(UNITS, CANON_UNITS, t);
+    if (unit !== undefined) {
+      let v = unit;
       if (fraction !== 0) { v += fraction; fraction = 0; }
       current = current === 0 ? v : current + v;
       matched = true;
       continue;
     }
 
-    if (t in SCALES) {
+    const scale = lookup(SCALES, CANON_SCALES, t);
+    if (scale !== undefined) {
       let base = current === 0 ? 1 : current;
       if (fraction !== 0) { base += fraction; fraction = 0; }
-      total += base * SCALES[t]!;
+      total += base * scale;
       current = 0;
       matched = true;
       continue;

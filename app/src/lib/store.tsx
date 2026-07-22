@@ -7,6 +7,7 @@ import { db, newId } from './db';
 import { DEFAULT_PROFILE, type Profile } from './profile';
 import { DEMO_ENTRIES, DEMO_PROFILE, isDemo } from './demo';
 import { getSession, type Session } from './auth';
+import { checkAi, remoteAi, type AiStatus } from './ai';
 
 interface Store {
   ready: boolean;
@@ -15,6 +16,7 @@ interface Store {
   entries: Entry[];
   rules: LearnedRule[];
   engine: HisaabiEngine;
+  ai: { status: AiStatus; provider: string | null };
 
   todayPaise: number;
   monthPaise: number;
@@ -37,7 +39,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [rules, setRules] = useState<LearnedRule[]>([]);
 
-  const engine = useMemo(() => new HisaabiEngine({ rules }), [rules]);
+  const [ai, setAi] = useState<{ status: AiStatus; provider: string | null }>({ status: 'checking', provider: null });
+
+  // AI ho to engine use karega (sirf jab rules ka confidence kam ho), na ho to rules hi kaafi hain
+  const engine = useMemo(
+    () => new HisaabiEngine({ rules, ai: ai.status === 'on' ? remoteAi : undefined }),
+    [rules, ai.status],
+  );
+
+  useEffect(() => { void checkAi().then(setAi); }, []);
 
   const reload = useCallback(async () => {
     if (isDemo()) {
@@ -106,7 +116,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [entries, profile]);
 
   const value: Store = {
-    ready, profile, session, entries, rules, engine,
+    ready, profile, session, entries, rules, engine, ai,
     ...derived,
     saveProfile, setSession, commitDrafts, removeEntry, reload,
   };

@@ -38,6 +38,8 @@ export function Home() {
         </button>
       </header>
 
+      <div className="home-grid">
+      <div>
       <div className="hero-card">
         <div className="k">Aaj ka kharcha</div>
         <div className="big"><Amount paise={todayPaise} /></div>
@@ -65,8 +67,14 @@ export function Home() {
             {formatINR(cashPaise !== 0 ? cashPaise : Math.max(0, budget.leftPaise))}
           </div>
         </div>
+        <div className="stat" style={{ animationDelay: '160ms' }}>
+          <div className="k">Is mahine</div>
+          <div className="v num">{formatINR(budget.spentThisMonthPaise)}</div>
+        </div>
+      </div>
       </div>
 
+      <div>
       <div className="section-title">
         <h2>{today.length ? 'Aaj ke kharche' : 'Pichhle kharche'}</h2>
         {entries.length > 0 && <span>{entries.length} total</span>}
@@ -99,6 +107,8 @@ export function Home() {
           })}
         </div>
       )}
+      </div>
+      </div>
 
       <nav className="dock">
         <button className="ask" onClick={() => setSheet('ask')}>

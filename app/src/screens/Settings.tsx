@@ -15,7 +15,7 @@ const ACCENTS = [
 ];
 
 export function Settings({ onClose }: { onClose(): void }) {
-  const { profile, session, entries, saveProfile, setSession, reload } = useStore();
+  const { profile, session, entries, ai, saveProfile, setSession, reload } = useStore();
   const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') ?? 'dark');
   const [accent, setAccent] = useState(document.documentElement.getAttribute('data-accent') ?? 'nimbu');
   const [confirmWipe, setConfirmWipe] = useState(false);
@@ -69,6 +69,23 @@ export function Settings({ onClose }: { onClose(): void }) {
                         border: accent === a.id ? '2px solid var(--ink)' : '2px solid transparent',
                       }} />
             ))}
+          </span>
+        </div>
+      </div>
+
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>AI dimaag</h2></div>
+      <div className="options">
+        <div className="option" style={{ animation: 'none' }}>
+          <span className="o-emoji">{ai.status === 'on' ? '🧠' : ai.status === 'checking' ? '⏳' : '🔌'}</span>
+          <span>
+            <span className="o-title">
+              {ai.status === 'on' ? `AI on hai · ${ai.provider}` : ai.status === 'checking' ? 'Dekh raha hoon…' : 'AI abhi off hai'}
+            </span>
+            <span className="o-sub">
+              {ai.status === 'on'
+                ? 'Ulti-seedhi lines AI samjhega. Saaf lines rules hi handle karte hain.'
+                : 'Rules se sab chal raha hai — "chai bees" jaisi lines ko AI ki zaroorat hi nahi.'}
+            </span>
           </span>
         </div>
       </div>
