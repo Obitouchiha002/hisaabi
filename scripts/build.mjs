@@ -16,6 +16,9 @@ const dist = join(root, 'dist');
 
 const LANDING = ['index.html', 'assets', 'robots.txt'];
 
+// public/ ka sab kuch waise ka waisa dist ki jad me (APK yahin se serve hoti hai)
+const PUBLIC_DIR = 'public';
+
 function run(cmd, cwd) {
   console.log(`→ ${cmd}`);
   execSync(cmd, { cwd, stdio: 'inherit' });
@@ -30,7 +33,11 @@ for (const item of LANDING) {
   if (existsSync(from)) cpSync(from, join(dist, item), { recursive: true });
 }
 
-// 2. app build karo
+// 2. public/ (APK waghairah) — root pe
+const pub = join(root, PUBLIC_DIR);
+if (existsSync(pub)) cpSync(pub, dist, { recursive: true });
+
+// 3. app build karo
 // --omit=optional yahan mat lagana: rollup ka platform binary optional dep hai,
 // uske bina `vite build` "Cannot find module @rollup/rollup-*" pe mar jata hai.
 run('npm ci --no-audit --no-fund', join(root, 'app'));

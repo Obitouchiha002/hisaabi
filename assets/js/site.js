@@ -91,35 +91,58 @@
   document.body.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  /* ---------- mobile dock: kaunsa section chal raha hai ---------- */
-  var mnav = document.getElementById('mnav');
-  if (mnav && 'IntersectionObserver' in window) {
-    var links = {};
-    mnav.querySelectorAll('a[data-sec]').forEach(function (a) { links[a.dataset.sec] = a; });
+  /* ---------- mobile app shell ----------
+     Mobile pe website ek app ki tarah chalti hai: neeche tabs, beech me screen.
+     Phone mock ek hi hai (uski animation isi DOM node pe chalti hai), isliye
+     use utha kar mobile ke home screen me daal dete hain — copy nahi banate.  */
+  var mapp = document.getElementById('mapp');
+  if (mapp) {
+    var mq = window.matchMedia('(max-width: 900px)');
+    var stage = document.querySelector('.phone-stage');
+    var deskSlot = document.querySelector('.hero-grid');
+    var mobSlot = document.getElementById('mPhoneSlot');
 
-    // dock me 5 hi hain, par section 8 — isliye har section ko sabse kareeb wale link se jodte hain
-    var MAP = {
-      top: 'top', tarike: 'tarike', features: 'features', kaise: 'features',
-      privacy: 'features', pricing: 'pricing', faq: 'pricing', download: 'download',
+    var placePhone = function () {
+      if (!stage) return;
+      var target = mq.matches ? mobSlot : deskSlot;
+      if (target && stage.parentElement !== target) target.appendChild(stage);
+    };
+    placePhone();
+    mq.addEventListener('change', placePhone);
+
+    var tabs = document.getElementById('mtabs');
+    var screens = mapp.querySelectorAll('.mscreen');
+
+    var showTab = function (go) {
+      tabs.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === go); });
+      screens.forEach(function (sc) { sc.classList.toggle('on', sc.dataset.tab === go); });
+      var open = mapp.querySelector('.mscreen.on');
+      if (open) open.scrollTop = 0;
     };
 
-    var sections = document.querySelectorAll('main > section[id], .hero');
-    var setActive = function (id) {
-      var target = MAP[id] || 'top';
-      Object.keys(links).forEach(function (key) {
-        links[key].classList.toggle('on', key === target);
-      });
-    };
+    // ?tab=price — deep link, aur screenshot lene ke liye bhi
+    var wanted = new URLSearchParams(location.search).get('tab');
+    if (wanted && mapp.querySelector('.mscreen[data-tab="' + wanted + '"]')) showTab(wanted);
 
-    var secObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (en.isIntersecting && en.intersectionRatio > 0.5) {
-          setActive(en.target.id || 'top');
-        }
-      });
-    }, { threshold: [0.5, 0.75] });
+    tabs.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-go]');
+      if (!btn) return;
 
-    sections.forEach(function (sec) { secObserver.observe(sec); });
+      showTab(btn.dataset.go);
+    });
+
+    // mobile ke apne theme/rang buttons — wahi kaam jo desktop pe hota hai
+    var mTheme = document.getElementById('mTheme');
+    if (mTheme) mTheme.addEventListener('click', function () { themeBtn.click(); });
+
+    var mPicker = document.getElementById('mPicker');
+    if (mPicker) {
+      var order = ['nimbu', 'kesari', 'pudina', 'genda', 'jamun'];
+      mPicker.addEventListener('click', function () {
+        var now = root.getAttribute('data-accent') || 'nimbu';
+        applyAccent(order[(order.indexOf(now) + 1) % order.length]);
+      });
+    }
   }
 
   document.getElementById('yr').textContent = new Date().getFullYear();

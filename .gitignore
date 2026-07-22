@@ -15,3 +15,6 @@ app/android/app/src/main/assets/capacitor*
 hisaabi-debug.apk
 *.apk
 .env*
+
+# APK website se seedha serve hoti hai, isliye ye wali repo me rahegi
+!public/hisaabi.apk

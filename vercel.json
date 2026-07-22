@@ -6,6 +6,23 @@
   "trailingSlash": false,
   "headers": [
     {
+      "source": "/hisaabi.apk",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"hisaabi.apk\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {
@@ -34,13 +51,8 @@
   ],
   "redirects": [
     {
-      "source": "/hisaabi.apk",
-      "destination": "https://github.com/Obitouchiha002/hisaabi/releases/latest/download/hisaabi.apk",
-      "permanent": false
-    },
-    {
       "source": "/apk",
-      "destination": "https://github.com/Obitouchiha002/hisaabi/releases/latest/download/hisaabi.apk",
+      "destination": "/hisaabi.apk",
       "permanent": false
     }
   ]

@@ -39,6 +39,126 @@
 
 <body>
 
+
+<!-- ============================================================
+     MOBILE APP SHELL — sirf ≤900px pe dikhta hai.
+     Ye desktop wale sections ka chhota version NAHI hai; alag likha hua hai
+     taki har screen ek baar me poori dikhe. Neeche tabs, beech me screen.
+     ============================================================ -->
+<div class="mapp" id="mapp">
+
+  <header class="mapp-top">
+    <span class="brand"><span class="brand-mark" aria-hidden="true">₹</span>Hisaabi</span>
+    <button class="icon-btn" id="mPicker" aria-label="Rang badlo"><span class="picker-dot"></span></button>
+    <button class="icon-btn" id="mTheme" aria-label="Theme badlo">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+    </button>
+  </header>
+
+  <main class="mscreens">
+
+    <!-- 1. HOME -->
+    <section class="mscreen on" data-tab="home">
+      <span class="eyebrow">Early access · Android + Web</span>
+      <h1>Bas <em class="serif">bol</em> do — hisaab khud ban jayega.</h1>
+      <p class="msub">Chai, auto, sabzi — yaad rakhne ki zaroorat nahi. Bolo, aur likh jaye.</p>
+      <div class="mphone-slot" id="mPhoneSlot"></div>
+      <a class="btn btn-primary btn-block" href="/hisaabi.apk" download>APK Download · 3.6 MB</a>
+    </section>
+
+    <!-- 2. LIKHO -->
+    <section class="mscreen" data-tab="likho">
+      <h2>Teen tarike.<br>Teeno me mehnat zero.</h2>
+      <div class="mlist">
+        <div class="mrow">
+          <span class="mrow-ico">🎤</span>
+          <span><b>Bol do</b><i>“chai bees, auto saath, sabzi ek sau chalis” → 3 entries, 4 second</i></span>
+        </div>
+        <div class="mrow">
+          <span class="mrow-ico">📲</span>
+          <span><b>Khud pakad lega</b><i>GPay, PhonePe, Paytm, bank SMS — notification se seedha entry</i></span>
+        </div>
+        <div class="mrow">
+          <span class="mrow-ico">💬</span>
+          <span><b>Telegram se</b><i>Bot ko voice note bhej do, app me sync ho jayega</i></span>
+        </div>
+      </div>
+      <p class="mfoot">Purani apps isliye chhoot jati hain kyunki har chai ke liye app kholna padta hai.</p>
+    </section>
+
+    <!-- 3. FEATURES -->
+    <section class="mscreen" data-tab="features">
+      <h2>Data andar jaye —<br>jawab bahar aaye.</h2>
+      <div class="mlist">
+        <div class="mrow accent">
+          <span class="mrow-ico">₹</span>
+          <span><b>Safe to spend</b><i>Aaj kitna kharch kar sakte ho — <strong>₹210/din</strong></i></span>
+        </div>
+        <div class="mrow">
+          <span class="mrow-ico">🧠</span>
+          <span><b>Poocho kuch bhi</b><i>“Swiggy pe kitna gaya?” → ₹3,240, 18 orders</i></span>
+        </div>
+        <div class="mrow">
+          <span class="mrow-ico">🌙</span>
+          <span><b>Raat 9 baje</b><i>Ek line ka hisaab, roz</i></span>
+        </div>
+        <div class="mrow">
+          <span class="mrow-ico">💵</span>
+          <span><b>Cash wallet</b><i>Nakad kahan gaya, wo bhi pata</i></span>
+        </div>
+        <div class="mrow">
+          <span class="mrow-ico">📴</span>
+          <span><b>Offline + export</b><i>Bina net chalti hai, data kabhi bhi le jao</i></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. PRICE -->
+    <section class="mscreen" data-tab="price">
+      <h2>Rozana ka kaam free.</h2>
+      <div class="mplans">
+        <div class="mplan">
+          <div class="mplan-top"><b>Free</b><span class="badge soft">Hamesha</span></div>
+          <div class="mprice">₹0</div>
+          <ul><li>Unlimited manual entries</li><li>Auto-capture unlimited</li><li>30 voice entries/mahina</li></ul>
+        </div>
+        <div class="mplan pro">
+          <div class="mplan-top"><b>Pro</b><span class="badge">Abhi free</span></div>
+          <div class="mprice">₹399<small>/saal</small></div>
+          <ul><li>Unlimited voice</li><li>Poocho kuch bhi</li><li>Budgets, receipt scan, export</li></ul>
+        </div>
+      </div>
+      <p class="mfoot">Auto-capture hamesha free — wahi roz ki aadat banata hai.</p>
+    </section>
+
+    <!-- 5. APP -->
+    <section class="mscreen" data-tab="app">
+      <span class="mbig-ico" aria-hidden="true">₹</span>
+      <h2>Aaj raat se hisaab shuru.</h2>
+      <p class="msub">Ek minute me setup. Play Store pe nahi — seedha yahin se.</p>
+      <div class="mchips">
+        <span>Android 8+</span><span>3.6 MB</span><span>Koi ad nahi</span><span>Signup optional</span>
+      </div>
+      <div class="mtrust">
+        <b>Tumhara data tumhare phone me</b>
+        Notification parsing 100% phone ke andar · bank login kabhi nahi · code khula hua hai
+      </div>
+      <a class="btn btn-primary btn-block" href="/hisaabi.apk" download>APK Download</a>
+      <a class="btn btn-ghost btn-block" href="/app">Web app kholo</a>
+    </section>
+
+  </main>
+
+  <nav class="mtabs" id="mtabs">
+    <button data-go="home" class="on"><span>🏠</span>Home</button>
+    <button data-go="likho"><span>✍️</span>Likho</button>
+    <button data-go="features"><span>✨</span>Features</button>
+    <button data-go="price"><span>💸</span>Price</button>
+    <button data-go="app" class="mtab-cta"><span>⬇️</span>App</button>
+  </nav>
+</div>
+
 <!-- ============ NAV ============ -->
 <header class="nav" id="nav">
   <div class="wrap">
@@ -84,15 +204,6 @@
     <a class="btn btn-primary btn-sm btn-dl" href="/hisaabi.apk" download>APK Download</a>
   </div>
 </header>
-
-<!-- Mobile/tablet ka bottom dock — website app jaisi lage, scroll dhoondhna na pade -->
-<nav class="mnav" id="mnav" aria-label="Sections">
-  <a href="#top" data-sec="top" class="on"><span>🏠</span>Home</a>
-  <a href="#tarike" data-sec="tarike"><span>✍️</span>Likho</a>
-  <a href="#features" data-sec="features"><span>✨</span>Features</a>
-  <a href="#pricing" data-sec="pricing"><span>💸</span>Price</a>
-  <a href="#download" data-sec="download" class="mnav-cta"><span>⬇️</span>App</a>
-</nav>
 
 <main id="top">
 
@@ -566,6 +677,58 @@
     </div>
   </div>
 </footer>
+
+
+<!-- ============ DOWNLOAD CARD ============ -->
+<div class="dl-modal" id="dlModal" hidden>
+  <div class="dl-backdrop" data-close></div>
+
+  <div class="dl-card" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+    <button class="dl-x" data-close aria-label="Band karo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+
+    <div class="dl-head">
+      <span class="dl-icon" aria-hidden="true">₹</span>
+      <div>
+        <h3 id="dlTitle">Hisaabi</h3>
+        <p class="dl-ver"><span id="dlVersion">v0.1.0</span> · <span id="dlSize">3.6 MB</span> · <span id="dlDate">22 Jul 2026</span></p>
+      </div>
+    </div>
+
+    <ul class="dl-facts">
+      <li><span>📱</span> Android 8.0 ya usse naya</li>
+      <li><span>🚫</span> Koi ad nahi, koi tracking nahi</li>
+      <li><span>👤</span> Signup optional — bina account ke bhi chalti hai</li>
+      <li><span>📴</span> Bina internet ke bhi kaam karti hai</li>
+    </ul>
+
+    <div class="dl-steps">
+      <p class="dl-k">Install kaise karein</p>
+      <ol>
+        <li>File download hone do (3.6 MB)</li>
+        <li>Kholte waqt <b>"Unknown sources"</b> allow karna padega — Play Store pe nahi hai isliye</li>
+        <li>App kholo → 1 minute ka setup → shuru</li>
+      </ol>
+    </div>
+
+    <details class="dl-sum">
+      <summary>SHA-256 checksum</summary>
+      <code id="dlHash">24163c3c5e0168109158e27ed8bcc207ad0104a7762db32e66f2d1542f49b7c3</code>
+      <p>Chaho to milake dekh lo ki file waisi hi hai jaisi humne banayi thi.</p>
+    </details>
+
+    <div class="dl-actions">
+      <a class="btn btn-primary" id="dlGo" href="/hisaabi.apk" download>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Download karo
+      </a>
+      <button class="btn btn-ghost" data-close>Rehne do</button>
+    </div>
+
+    <p class="dl-note">GitHub Releases se aati hai · <a href="https://github.com/Obitouchiha002/hisaabi/releases" rel="noopener">saari versions</a></p>
+  </div>
+</div>
 
 <script src="/assets/js/site.js" defer></script>
 </body>
