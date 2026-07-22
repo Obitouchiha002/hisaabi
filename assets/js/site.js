@@ -145,6 +145,75 @@
     }
   }
 
+  /* ---------- download card ----------
+     APK seedha girane ke bajaye pehle card: kya, kitna bada, install kaise.
+     Version/size/checksum GitHub se live aate hain, taki nayi release pe
+     yahan haath lagane ki zaroorat na pade.                                */
+  var dlModal = document.getElementById('dlModal');
+  if (dlModal) {
+    var RELEASE_API = 'https://api.github.com/repos/Obitouchiha002/hisaabi/releases/latest';
+    var dlGo = dlModal.querySelector('#dlGo');
+    var lastFocus = null;
+    var loaded = false;
+
+    var setText = function (id, value) {
+      var el = document.getElementById(id);
+      if (el && value) el.textContent = value;
+    };
+
+    var loadRelease = function () {
+      fetch(RELEASE_API)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rel) {
+          if (!rel) return;
+          var apk = (rel.assets || []).filter(function (a) { return /\.apk$/.test(a.name); })[0];
+          setText('dlVersion', rel.tag_name);
+          if (apk) {
+            setText('dlSize', (apk.size / 1048576).toFixed(1) + ' MB');
+            if (apk.digest) setText('dlHash', String(apk.digest).replace(/^sha256:/, ''));
+          }
+          if (rel.published_at) {
+            setText('dlDate', new Date(rel.published_at).toLocaleDateString('en-IN', {
+              day: 'numeric', month: 'short', year: 'numeric'
+            }));
+          }
+        })
+        .catch(function () { /* net na ho to HTML wali values hi theek hain */ });
+    };
+
+    var closeDl = function () {
+      dlModal.hidden = true;
+      document.body.style.overflow = '';
+      if (lastFocus) lastFocus.focus();
+    };
+
+    var openDl = function (e) {
+      if (e) e.preventDefault();
+      lastFocus = document.activeElement;
+      dlModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      if (dlGo) dlGo.focus();
+      if (!loaded) { loaded = true; loadRelease(); }
+    };
+
+    // har APK link ab card kholta hai (card ke andar wala button chhod ke)
+    document.querySelectorAll('a[href="/hisaabi.apk"], a[href="/apk"]').forEach(function (a) {
+      if (a.id === 'dlGo') return;
+      a.addEventListener('click', openDl);
+    });
+
+    dlModal.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close]')) closeDl();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !dlModal.hidden) closeDl();
+    });
+    if (dlGo) dlGo.addEventListener('click', function () { setTimeout(closeDl, 900); });
+
+    // ?dl=1 — card seedha khula hua (share ya testing ke liye)
+    if (new URLSearchParams(location.search).has('dl')) setTimeout(openDl, 60);
+  }
+
   document.getElementById('yr').textContent = new Date().getFullYear();
 
   /* ---------- 3. reveal ---------- */
