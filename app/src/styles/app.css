@@ -371,6 +371,9 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 .section-title span { font-size: 13px; color: var(--ink-3); margin-left: auto; }
 
 .entry {
+  /* button hai, isliye width khud batani padti hai — warna content jitna hi rehta hai */
+  width: 100%;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -595,6 +598,7 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 
 .rev-body {
   flex: 1;
+  width: 100%;
   min-width: 0;
   padding: 13px 14px 13px 8px;
   text-align: left;
