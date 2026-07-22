@@ -3,8 +3,9 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
-  // website root pe hai, app /app/ pe chalti hai
-  base: '/app/',
+  // Website pe app /app/ pe chalti hai; Capacitor (Android) me file:// se load hoti hai
+  // isliye wahan relative base chahiye.
+  base: process.env.CAP_BUILD ? './' : '/app/',
   plugins: [react()],
   resolve: {
     alias: {

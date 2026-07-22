@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatINR, toPaise } from '@engine';
 import { Sheet } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { db } from '@/lib/db';
 import { clearSession } from '@/lib/auth';
 import { BUDGET_OPTIONS } from '@/lib/profile';
+import { captureStatus, openCaptureSettings, type CaptureStatus } from '@/lib/capture';
 
 const ACCENTS = [
   { id: 'nimbu', color: '#D6FF3D', name: 'Nimbu' },
@@ -19,6 +20,9 @@ export function Settings({ onClose }: { onClose(): void }) {
   const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') ?? 'dark');
   const [accent, setAccent] = useState(document.documentElement.getAttribute('data-accent') ?? 'nimbu');
   const [confirmWipe, setConfirmWipe] = useState(false);
+  const [capture, setCapture] = useState<CaptureStatus>('unsupported');
+
+  useEffect(() => { void captureStatus().then(setCapture); }, []);
 
   function applyTheme(next: string) {
     document.documentElement.setAttribute('data-theme', next);
@@ -70,6 +74,31 @@ export function Settings({ onClose }: { onClose(): void }) {
                       }} />
             ))}
           </span>
+        </div>
+      </div>
+
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>Auto-capture</h2></div>
+      <div className="options">
+        <div className="option" style={{ animation: 'none' }}>
+          <span className="o-emoji">{capture === 'granted' ? '📲' : capture === 'denied' ? '🔕' : '🌐'}</span>
+          <span>
+            <span className="o-title">
+              {capture === 'granted' ? 'Chalu hai' : capture === 'denied' ? 'Permission chahiye' : 'Sirf Android app me'}
+            </span>
+            <span className="o-sub">
+              {capture === 'granted'
+                ? 'UPI/bank notifications se entries khud Review Inbox me aati hain.'
+                : capture === 'denied'
+                  ? 'Notification access do — sirf paise wale notifications padhe jate hain, wo bhi phone ke andar.'
+                  : 'Browser doosri apps ke notifications nahi padh sakta. APK me ye kaam karta hai.'}
+            </span>
+          </span>
+          {capture === 'denied' && (
+            <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}
+                    onClick={() => void openCaptureSettings()}>
+              Do
+            </button>
+          )}
         </div>
       </div>
 

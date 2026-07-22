@@ -5,6 +5,7 @@
 
 import { toPaise, type Entry } from '@engine';
 import type { Profile } from './profile';
+import type { PendingItem } from './db';
 
 export function isDemo(): boolean {
   return new URLSearchParams(location.search).has('demo');
@@ -55,4 +56,41 @@ export const DEMO_ENTRIES: Entry[] = [
           paidWith: 'digital', source: 'notification', sourceApp: 'Paytm', occurredAt: at(52) }),
   entry({ title: 'Kiraya', amountPaise: toPaise(6500), category: 'rent',
           paidWith: 'digital', occurredAt: at(200) }),
+];
+
+/** Review Inbox ka demo — ek saaf card, ek duplicate, ek shaq wala. */
+export const DEMO_PENDING: PendingItem[] = [
+  {
+    id: 'pen_1',
+    createdAt: at(1),
+    preSelected: true,
+    duplicates: [],
+    draft: {
+      title: 'Swiggy', merchant: 'Swiggy', amountPaise: toPaise(318), type: 'expense',
+      paidWith: 'digital', occurredAt: at(1), source: 'notification', sourceApp: 'GPay',
+      category: 'food', confidence: 0.92, warnings: [],
+    },
+  },
+  {
+    id: 'pen_2',
+    createdAt: at(2),
+    preSelected: false,
+    duplicates: [{ entryId: 'demo_Blinkit_24000', score: 0.95, reasons: ['same amount', '3 min ke andar', 'same dukaan'] }],
+    draft: {
+      title: 'Blinkit', merchant: 'Blinkit', amountPaise: toPaise(240), type: 'expense',
+      paidWith: 'digital', occurredAt: at(4), source: 'notification', sourceApp: 'SMS',
+      category: 'grocery', confidence: 0.86, warnings: ['possible_duplicate'],
+    },
+  },
+  {
+    id: 'pen_3',
+    createdAt: at(6),
+    preSelected: false,
+    duplicates: [],
+    draft: {
+      title: 'Kharcha', amountPaise: toPaise(1200), type: 'expense',
+      paidWith: 'digital', occurredAt: at(6), source: 'notification', sourceApp: 'SMS',
+      category: 'other', confidence: 0.52, warnings: ['merchant_unknown'],
+    },
+  },
 ];

@@ -4,6 +4,7 @@ import { saveSession, type Session } from '@/lib/auth';
 import { Onboarding } from '@/screens/Onboarding';
 import { Auth } from '@/screens/Auth';
 import { Home } from '@/screens/Home';
+import { Review } from '@/screens/Review';
 import type { Profile } from '@/lib/profile';
 import { isDemo } from '@/lib/demo';
 
@@ -24,7 +25,7 @@ function Shell({ screen, children }: { screen: string; children: React.ReactNode
  * Auth skip kiya ja sakta hai: bina account ke bhi poori app chalti hai.
  */
 function Flow() {
-  const { ready, profile, session, saveProfile, setSession } = useStore();
+  const { ready, profile, session, route, saveProfile, setSession } = useStore();
   const [authSkipped, setAuthSkipped] = useState(
     () => isDemo() || localStorage.getItem('hisaabi-auth-skipped') === '1',
   );
@@ -64,5 +65,9 @@ function Flow() {
     );
   }
 
-  return <Shell screen="home"><Home /></Shell>;
+  return (
+    <Shell screen={route}>
+      {route === 'review' ? <Review /> : <Home />}
+    </Shell>
+  );
 }

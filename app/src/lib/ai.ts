@@ -11,7 +11,10 @@ import {
   type AiAdapter, type AiContext, type DraftEntry, type QueryPlan,
 } from '@engine';
 
-const ENDPOINT = '/api/ai';
+// Web pe same-origin. Android app me server hota hi nahi, isliye wahan poora URL chahiye:
+// app/.env me VITE_API_BASE=https://hisaabi.vercel.app daal do.
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
+const ENDPOINT = `${API_BASE}/api/ai`;
 
 export type AiStatus = 'checking' | 'on' | 'off';
 

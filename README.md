@@ -34,6 +34,28 @@ Settings me "AI dimaag" wala row batata hai ki abhi kya chal raha hai.
 AI ko kya diya jata hai: sirf user ka bola/likha text, wo bhi PII scrub karke.
 **Notification ka text kabhi AI ko nahi jata** — usme OTP aur balance ho sakta hai.
 
+## Android APK
+
+```bash
+cd app
+npm run build:android      # web build + cap sync
+npx cap open android       # Android Studio khulega → Run / Build APK
+```
+
+Android Studio zaroori hai (usme JDK bhi aata hai). APK yahan milegi:
+`app/android/app/build/outputs/apk/debug/app-debug.apk`
+
+**Auto-capture:** APK install karne ke baad Settings → *Notification access* → Hisaabi on karo.
+App ke Settings me bhi "Auto-capture" row hai jo seedha wahin le jata hai.
+`READ_SMS` permission kahin nahi maangi jati — bank SMS ka notification hi kaafi hai.
+
+**AI ke liye Android me:** app ke andar server nahi hota, isliye poora URL chahiye —
+`app/.env` banao:
+
+```bash
+VITE_API_BASE=https://hisaabi.vercel.app
+```
+
 ## Repo structure
 
 ```

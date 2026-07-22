@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { categoryMeta, dayRange, formatINR } from '@engine';
+import { categoryMeta, dayRange, formatINR, type Entry } from '@engine';
 import { Amount, Icon, Sheet, useToast } from '@/components/ui';
+import { EntryEditor } from '@/components/EntryEditor';
 import { useStore } from '@/lib/store';
 import { addressWord, greeting } from '@/lib/profile';
 import { AddSheet } from './AddEntry';
@@ -9,7 +10,11 @@ import { Settings } from './Settings';
 
 export function Home() {
   const store = useStore();
-  const { profile, entries, todayPaise, budget, cashPaise } = store;
+  const {
+    profile, entries, todayPaise, budget, cashPaise,
+    pending, setRoute, updateEntry, removeEntry, teachCategory,
+  } = store;
+  const [editing, setEditing] = useState<Entry | null>(null);
   const [sheet, setSheet] = useState<'type' | 'voice' | 'ask' | 'settings' | null>(null);
   const toast = useToast();
 
@@ -33,6 +38,11 @@ export function Home() {
           <div className="greet">{profile ? greeting(profile) : 'Namaste'}</div>
           <div className="name">{profile ? addressWord(profile) : 'dost'}</div>
         </div>
+        {pending.length > 0 && (
+          <button className="icon-btn badge-btn" onClick={() => setRoute('review')} aria-label="Review inbox">
+            📥<span className="badge-dot num">{pending.length}</span>
+          </button>
+        )}
         <button className="icon-btn" onClick={() => setSheet('settings')} aria-label="Settings">
           {Icon.settings}
         </button>
@@ -90,7 +100,8 @@ export function Home() {
           {recent.map((e, i) => {
             const meta = categoryMeta(e.category ?? 'other');
             return (
-              <div className="entry" key={e.id} data-type={e.type} style={{ animationDelay: `${i * 40}ms` }}>
+              <button className="entry" key={e.id} data-type={e.type} style={{ animationDelay: `${i * 40}ms` }}
+                      onClick={() => setEditing(e)}>
                 <span className="e-ico" aria-hidden="true">{meta.emoji}</span>
                 <span>
                   <span className="e-t">{e.title}</span>
@@ -102,7 +113,7 @@ export function Home() {
                 <span className="e-a num">
                   {e.type === 'expense' ? '' : '+'}{formatINR(e.amountPaise)}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -129,6 +140,21 @@ export function Home() {
           onSaved={(count, total) => {
             setSheet(null);
             toast.show(`${count} ${count === 1 ? 'entry' : 'entries'} add ho gayi · ${formatINR(total)}`);
+          }}
+        />
+      )}
+
+      {editing && (
+        <EntryEditor
+          draft={editing}
+          title="Entry theek karo"
+          onClose={() => setEditing(null)}
+          onDelete={() => { void removeEntry(editing.id); setEditing(null); toast.show('Entry hata di'); }}
+          onSave={(next, changed) => {
+            if (changed && next.category) void teachCategory(next.merchant ?? next.title, next.category);
+            void updateEntry({ ...editing, ...next });
+            setEditing(null);
+            toast.show('Update ho gaya');
           }}
         />
       )}

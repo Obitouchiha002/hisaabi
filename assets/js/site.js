@@ -79,11 +79,48 @@
     }
   });
 
+  // Mobile pe body hi scroll container hai (snap sections), desktop pe window.
+  // Dono ka scroll position dekhna padta hai.
+  var scrollTop = function () {
+    return window.scrollY || document.body.scrollTop || 0;
+  };
   var onScroll = function () {
-    nav.classList.toggle('stuck', window.scrollY > 12);
+    nav.classList.toggle('stuck', scrollTop() > 12);
   };
   window.addEventListener('scroll', onScroll, { passive: true });
+  document.body.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
+
+  /* ---------- mobile dock: kaunsa section chal raha hai ---------- */
+  var mnav = document.getElementById('mnav');
+  if (mnav && 'IntersectionObserver' in window) {
+    var links = {};
+    mnav.querySelectorAll('a[data-sec]').forEach(function (a) { links[a.dataset.sec] = a; });
+
+    // dock me 5 hi hain, par section 8 — isliye har section ko sabse kareeb wale link se jodte hain
+    var MAP = {
+      top: 'top', tarike: 'tarike', features: 'features', kaise: 'features',
+      privacy: 'features', pricing: 'pricing', faq: 'pricing', download: 'download',
+    };
+
+    var sections = document.querySelectorAll('main > section[id], .hero');
+    var setActive = function (id) {
+      var target = MAP[id] || 'top';
+      Object.keys(links).forEach(function (key) {
+        links[key].classList.toggle('on', key === target);
+      });
+    };
+
+    var secObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting && en.intersectionRatio > 0.5) {
+          setActive(en.target.id || 'top');
+        }
+      });
+    }, { threshold: [0.5, 0.75] });
+
+    sections.forEach(function (sec) { secObserver.observe(sec); });
+  }
 
   document.getElementById('yr').textContent = new Date().getFullYear();
 

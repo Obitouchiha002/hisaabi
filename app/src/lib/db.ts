@@ -7,14 +7,23 @@
  * App splash pe kabhi atakni nahi chahiye.
  */
 
-import type { Entry, LearnedRule, RawEvent } from '@engine';
+import type { DraftEntry, DuplicateMatch, Entry, LearnedRule, RawEvent } from '@engine';
 
 const DB_NAME = 'hisaabi';
-const VERSION = 1;
+const VERSION = 2;
 const OPEN_TIMEOUT_MS = 1500;
 const LS_PREFIX = 'hisaabi:';
 
-type StoreName = 'entries' | 'raw' | 'meta';
+type StoreName = 'entries' | 'raw' | 'meta' | 'pending';
+
+/** Review Inbox ka ek card — abhi ledger me nahi hai. */
+export interface PendingItem {
+  id: string;
+  draft: DraftEntry;
+  duplicates: DuplicateMatch[];
+  preSelected: boolean;
+  createdAt: string;
+}
 type Mode = 'idb' | 'ls';
 
 let mode: Mode | null = null;
@@ -35,6 +44,7 @@ function openIdb(): Promise<IDBDatabase> {
       }
       if (!database.objectStoreNames.contains('raw')) database.createObjectStore('raw', { keyPath: 'id' });
       if (!database.objectStoreNames.contains('meta')) database.createObjectStore('meta');
+      if (!database.objectStoreNames.contains('pending')) database.createObjectStore('pending', { keyPath: 'id' });
     };
 
     req.onsuccess = () => resolve(req.result);
@@ -146,6 +156,55 @@ export const db = {
     return idbRun<RawEvent[]>('raw', 'readonly', (s) => s.getAll());
   },
 
+  /* ---------- Review Inbox ---------- */
+
+  async addPending(items: PendingItem[]): Promise<void> {
+    if (!items.length) return;
+
+    if ((await ensureMode()) === 'ls') {
+      const all = lsRead<PendingItem[]>('pending', []);
+      const byId = new Map(all.map((p) => [p.id, p]));
+      items.forEach((p) => byId.set(p.id, p));
+      lsWrite('pending', [...byId.values()]);
+      return;
+    }
+
+    const database = await openIdb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = database.transaction('pending', 'readwrite');
+      const store = tx.objectStore('pending');
+      items.forEach((p) => store.put(p));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  },
+
+  async allPending(): Promise<PendingItem[]> {
+    const rows = (await ensureMode()) === 'ls'
+      ? lsRead<PendingItem[]>('pending', [])
+      : await idbRun<PendingItem[]>('pending', 'readonly', (s) => s.getAll());
+    return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  async removePending(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+
+    if ((await ensureMode()) === 'ls') {
+      const drop = new Set(ids);
+      lsWrite('pending', lsRead<PendingItem[]>('pending', []).filter((p) => !drop.has(p.id)));
+      return;
+    }
+
+    const database = await openIdb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = database.transaction('pending', 'readwrite');
+      const store = tx.objectStore('pending');
+      ids.forEach((id) => store.delete(id));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  },
+
   async getMeta<T>(key: string): Promise<T | undefined> {
     if ((await ensureMode()) === 'ls') return lsRead<T | undefined>(`meta:${key}`, undefined);
     return idbRun<T | undefined>('meta', 'readonly', (s) => s.get(key));
@@ -175,7 +234,7 @@ export const db = {
 
     const database = await openIdb();
     await Promise.all(
-      (['entries', 'raw', 'meta'] as StoreName[]).map(
+      (['entries', 'raw', 'meta', 'pending'] as StoreName[]).map(
         (name) =>
           new Promise<void>((resolve, reject) => {
             const tx = database.transaction(name, 'readwrite');
