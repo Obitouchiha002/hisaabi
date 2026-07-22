@@ -1,5 +1,7 @@
 # Hisaabi
 
+🌐 **Live:** https://hisaabi-app.vercel.app · 📲 **APK:** [Releases](https://github.com/Obitouchiha002/hisaabi/releases/latest)
+
 **Bas bol do — hisaab khud ban jayega.**
 
 Voice-first daily expense tracker for India. Ek voice note bolo → AI saare kharche alag-alag
@@ -53,7 +55,7 @@ App ke Settings me bhi "Auto-capture" row hai jo seedha wahin le jata hai.
 `app/.env` banao:
 
 ```bash
-VITE_API_BASE=https://hisaabi.vercel.app
+VITE_API_BASE=https://hisaabi-app.vercel.app
 ```
 
 ## Repo structure
@@ -119,7 +121,7 @@ Testing ke liye URL params bhi chalte hain: `?theme=light&accent=kesari`
 
 - [ ] APK link: `index.html` me `#apkBtn` ka href GitHub Releases pe point karta hai — release banne ke baad verify karo
 - [ ] OG image (`assets/img/og.png`, 1200×630) banao aur `og:image` meta add karo
-- [ ] Domain: `hisaabi.app` ya `hisaabi.vercel.app` — canonical URL update karo
+- [x] Domain: live at https://hisaabi-app.vercel.app
 - [ ] Privacy policy page (`/privacy`) — notification access ke liye zaroori
 
 ## Roadmap

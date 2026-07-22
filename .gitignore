@@ -14,3 +14,4 @@ app/android/app/src/main/assets/capacitor*
 .env
 hisaabi-debug.apk
 *.apk
+.env*

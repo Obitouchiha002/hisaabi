@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /app/
 
-Sitemap: https://hisaabi.vercel.app/sitemap.xml
+Sitemap: https://hisaabi-app.vercel.app/sitemap.xml
