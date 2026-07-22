@@ -12,3 +12,5 @@ app/android/local.properties
 app/android/app/src/main/assets/public/
 app/android/app/src/main/assets/capacitor*
 .env
+hisaabi-debug.apk
+*.apk

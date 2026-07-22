@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { categoryMeta, formatINR, type DraftEntry } from '@engine';
 import { Sheet } from '@/components/ui';
 import { useStore } from '@/lib/store';
+import { startVoice, type VoiceSession } from '@/lib/voice';
 
 /**
  * Likho ya bolo — dono ek hi sheet me.
@@ -23,7 +24,7 @@ export function AddSheet({ mode, onClose, onSaved }: {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
-  const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const voiceRef = useRef<VoiceSession | null>(null);
 
   // type karte hi parse — bina AI ke, isliye har keystroke pe chal sakta hai
   useEffect(() => {
@@ -36,36 +37,31 @@ export function AddSheet({ mode, onClose, onSaved }: {
   }, [text, engine, mode]);
 
   useEffect(() => {
-    if (mode === 'type') setTimeout(() => areaRef.current?.focus(), 320);
-    else startVoice();
-    return () => recRef.current?.abort?.();
+    if (mode === 'type') {
+      setTimeout(() => areaRef.current?.focus(), 320);
+    } else {
+      void beginVoice();
+    }
+    return () => { void voiceRef.current?.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function startVoice() {
-    const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!Ctor) {
-      setVoiceError('Is browser me voice support nahi hai — Android app me chalega. Tab tak likh ke daal do.');
-      setTimeout(() => areaRef.current?.focus(), 200);
-      return;
-    }
-
-    const rec: SpeechRecognitionLike = new Ctor();
-    rec.lang = 'hi-IN';
-    rec.interimResults = true;
-    rec.continuous = false;
-    rec.onresult = (e) => {
-      let out = '';
-      for (let i = 0; i < e.results.length; i++) out += e.results[i][0].transcript;
-      setText(out);
-    };
-    rec.onerror = () => { setVoiceError('Sunai nahi diya. Dobara try karo ya likh do.'); setListening(false); };
-    rec.onend = () => setListening(false);
-
-    recRef.current = rec;
-    setListening(true);
+  async function beginVoice() {
     setVoiceError(null);
-    rec.start();
+    setListening(true);
+
+    const session = await startVoice({
+      onText: setText,
+      onEnd: () => setListening(false),
+      onError: (message) => {
+        setVoiceError(message);
+        setListening(false);
+        setTimeout(() => areaRef.current?.focus(), 200);
+      },
+    });
+
+    voiceRef.current = session;
+    if (!session) setListening(false);
   }
 
   const total = useMemo(
@@ -97,7 +93,20 @@ export function AddSheet({ mode, onClose, onSaved }: {
           <span className="chip"><span className="dot" /> Mic on hai — bol do</span>
         </div>
       )}
-      {voiceError && <div className="dev-note">{voiceError}</div>}
+      {voiceError && (
+        <div className="dev-note">
+          {voiceError}
+          <div style={{ marginTop: 10 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => void beginVoice()}>Phir se try karo</button>
+          </div>
+        </div>
+      )}
+
+      {mode === 'voice' && !listening && !voiceError && (
+        <div className="hint-row">
+          <button className="hint" onClick={() => void beginVoice()}>🎤 Dobara bolo</button>
+        </div>
+      )}
 
       {!text && (
         <div className="hint-row">
@@ -138,24 +147,4 @@ export function AddSheet({ mode, onClose, onSaved }: {
       </div>
     </Sheet>
   );
-}
-
-/* ---------- Web Speech API ke minimal types ---------- */
-
-interface SpeechRecognitionLike {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  start(): void;
-  abort?(): void;
-  onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
-  onerror: () => void;
-  onend: () => void;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition?: new () => SpeechRecognitionLike;
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-  }
 }
