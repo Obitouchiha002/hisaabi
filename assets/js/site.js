@@ -113,16 +113,54 @@
     var tabs = document.getElementById('mtabs');
     var screens = mapp.querySelectorAll('.mscreen');
 
+    var order = [];
+    screens.forEach(function (sc) { order.push(sc.dataset.tab); });
+    var current = order[0];
+
     var showTab = function (go) {
+      if (go === current) return;
+
+      // kis taraf ja rahe hain — usi taraf se screen aati hai
+      var back = order.indexOf(go) < order.indexOf(current);
+      current = go;
+
       tabs.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === go); });
-      screens.forEach(function (sc) { sc.classList.toggle('on', sc.dataset.tab === go); });
-      var open = mapp.querySelector('.mscreen.on');
-      if (open) open.scrollTop = 0;
+      screens.forEach(function (sc) {
+        var on = sc.dataset.tab === go;
+        sc.classList.remove('from-left', 'from-right');
+        sc.classList.toggle('on', on);
+        if (on) {
+          sc.scrollTop = 0;
+          sc.classList.add(back ? 'from-left' : 'from-right');
+        }
+      });
+
+      if (navigator.vibrate) navigator.vibrate(8);
     };
 
     // ?tab=price — deep link, aur screenshot lene ke liye bhi
     var wanted = new URLSearchParams(location.search).get('tab');
     if (wanted && mapp.querySelector('.mscreen[data-tab="' + wanted + '"]')) showTab(wanted);
+
+    // side swipe se bhi tab badle — app jaisa lage
+    var touchX = null, touchY = null;
+    mapp.addEventListener('touchstart', function (e) {
+      touchX = e.touches[0].clientX;
+      touchY = e.touches[0].clientY;
+    }, { passive: true });
+
+    mapp.addEventListener('touchend', function (e) {
+      if (touchX === null) return;
+      var dx = e.changedTouches[0].clientX - touchX;
+      var dy = e.changedTouches[0].clientY - touchY;
+      touchX = null;
+
+      // sirf saaf horizontal swipe — warna scroll me ghalti se tab badal jayega
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+
+      var i = order.indexOf(current) + (dx < 0 ? 1 : -1);
+      if (i >= 0 && i < order.length) showTab(order[i]);
+    }, { passive: true });
 
     tabs.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-go]');

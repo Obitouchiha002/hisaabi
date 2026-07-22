@@ -1522,6 +1522,8 @@ em.serif {
 
   /* ---- top bar ---- */
   .mapp-top {
+    position: relative;
+    z-index: 2;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -1559,8 +1561,43 @@ em.serif {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
-  .mscreen.on { display: flex; animation: mIn .4s var(--ease-out) both; }
-  @keyframes mIn { from { opacity: 0; transform: translateY(10px); } }
+  .mscreen.on { display: flex; }
+
+  /* har screen ke bachche ek-ek karke aate hain — ye hi "premium" wala ehsaas deta hai */
+  .mscreen.on > * { animation: mIn .55s var(--ease-out) both; }
+  .mscreen.on > *:nth-child(1) { animation-delay: .02s; }
+  .mscreen.on > *:nth-child(2) { animation-delay: .07s; }
+  .mscreen.on > *:nth-child(3) { animation-delay: .12s; }
+  .mscreen.on > *:nth-child(4) { animation-delay: .17s; }
+  .mscreen.on > *:nth-child(5) { animation-delay: .22s; }
+  @keyframes mIn {
+    from { opacity: 0; transform: translateY(16px); filter: blur(6px); }
+    to   { opacity: 1; transform: none; filter: blur(0); }
+  }
+
+  /* tab badalne ki disha ke hisaab se slide */
+  .mscreen.on.from-right > * { animation-name: mInRight; }
+  .mscreen.on.from-left  > * { animation-name: mInLeft; }
+  @keyframes mInRight {
+    from { opacity: 0; transform: translateX(26px); filter: blur(5px); }
+    to   { opacity: 1; transform: none; filter: blur(0); }
+  }
+  @keyframes mInLeft {
+    from { opacity: 0; transform: translateX(-26px); filter: blur(5px); }
+    to   { opacity: 1; transform: none; filter: blur(0); }
+  }
+
+  /* upar se halka sa glow — screen zinda lagti hai */
+  .mscreens::before {
+    content: "";
+    position: absolute;
+    inset: -40px -20% auto -20%;
+    height: 260px;
+    background: var(--glow);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .mscreen > * { position: relative; z-index: 1; }
 
   .mscreen h1 {
     font-size: clamp(28px, 8.6vw, 38px);
@@ -1577,19 +1614,32 @@ em.serif {
 
   /* home ka phone */
   .mphone-slot {
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
     display: grid;
     place-items: center;
-    padding-block: 4px;
+    overflow: hidden;
+    padding-block: 2px;
   }
-  .mphone-slot .phone-stage { padding: 0; min-height: 0; }
-  .mphone-slot .phone { width: min(196px, 44vh); }
-  .mphone-slot .phone-stage::after { opacity: .14; }
+  .mphone-slot .phone-stage {
+    padding: 0;
+    min-height: 0;
+    height: 100%;
+    display: grid;
+    place-items: center;
+  }
+  /* height se chalta hai, width aspect-ratio se aati hai — isliye kabhi bahar nahi nikalta */
+  .mphone-slot .phone {
+    height: 100%;
+    width: auto;
+    max-width: min(216px, 60vw);
+    margin-inline: auto;
+  }
+  .mphone-slot .phone-stage::after { opacity: .13; }
 
 
   /* phone ke andar sab kuch chhota — 200px chaudi screen me desktop ke size nahi samate */
-  .mphone-slot .phone { width: min(214px, 46vh); border-radius: 30px; padding: 7px; }
+  .mphone-slot .phone { border-radius: 30px; padding: 7px; }
   .mphone-slot .phone-screen { border-radius: 24px; }
   .mphone-slot .phone-notch { width: 62px; height: 15px; top: 7px; }
   .mphone-slot .p-top { padding: 28px 11px 4px; }
@@ -1627,6 +1677,16 @@ em.serif {
 
   /* ---- list rows ---- */
   .mlist { display: grid; gap: 10px; }
+  .mscreen.on .mlist .mrow { animation: mRow .5s var(--ease-out) both; }
+  .mscreen.on .mlist .mrow:nth-child(1) { animation-delay: .10s; }
+  .mscreen.on .mlist .mrow:nth-child(2) { animation-delay: .16s; }
+  .mscreen.on .mlist .mrow:nth-child(3) { animation-delay: .22s; }
+  .mscreen.on .mlist .mrow:nth-child(4) { animation-delay: .28s; }
+  .mscreen.on .mlist .mrow:nth-child(5) { animation-delay: .34s; }
+  @keyframes mRow {
+    from { opacity: 0; transform: translateY(14px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+  }
   .mrow {
     display: flex;
     gap: 13px;
@@ -1635,12 +1695,9 @@ em.serif {
     border-radius: var(--r-md);
     border: 1px solid var(--line);
     background: var(--surface);
-    animation: mIn .4s var(--ease-out) both;
+    transition: transform .2s var(--ease), border-color .25s var(--ease);
   }
-  .mrow:nth-child(2) { animation-delay: .05s; }
-  .mrow:nth-child(3) { animation-delay: .1s; }
-  .mrow:nth-child(4) { animation-delay: .15s; }
-  .mrow:nth-child(5) { animation-delay: .2s; }
+  .mrow:active { transform: scale(.985); }
   .mrow-ico {
     width: 40px; height: 40px; flex: none;
     border-radius: 13px;
@@ -1713,6 +1770,9 @@ em.serif {
     border: 1px solid var(--line);
     background: var(--surface);
   }
+  .mcenter { justify-content: center; gap: 16px; }
+  .mcenter .mtrust { margin-top: 6px; }
+
   .mtrust {
     margin-top: auto;
     padding: 14px 15px;
@@ -1756,7 +1816,16 @@ em.serif {
   .mtabs button:active { transform: scale(.94); }
   .mtabs button span { font-size: 17px; line-height: 1; }
   .mtabs button.on { color: var(--ink); background: var(--surface-2); }
-  .mtabs .mtab-cta { color: var(--accent-ink); background: var(--accent); }
+  .mtabs button.on span { animation: tabPop .45s var(--spring) both; }
+  @keyframes tabPop {
+    from { transform: scale(.7) translateY(3px); }
+    to   { transform: none; }
+  }
+  .mtabs .mtab-cta {
+    color: var(--accent-ink);
+    background: var(--accent);
+    box-shadow: 0 8px 20px -8px var(--accent);
+  }
   .mtabs .mtab-cta.on { background: var(--accent); color: var(--accent-ink); }
 }
 
@@ -1764,7 +1833,7 @@ em.serif {
 @media (max-width: 900px) and (max-height: 700px) {
   .mscreen h1 { font-size: 26px; }
   .mscreen h2 { font-size: 22px; }
-  .mphone-slot .phone { width: min(150px, 38vh); }
+  .mphone-slot .phone { max-width: min(170px, 48vw); }
   .mrow { padding: 11px 13px; }
   .mrow-ico { width: 34px; height: 34px; font-size: 16px; }
 }
