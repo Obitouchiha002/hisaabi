@@ -157,7 +157,23 @@
            '<span class="p-amt num">' + rupees(e.amt) + '</span>';
   }
 
+  var EMPTY_HTML =
+    '<div class="p-empty">' +
+      '<span class="e-ico" aria-hidden="true">👋</span>' +
+      '<span class="e-t">Namaste!</span>' +
+      '<span class="e-s">Aaj ka hisaab abhi khaali hai. Mic dabao aur jitne kharche hain, ek saath bol do.</span>' +
+      '<span class="e-chip">“chai bees, auto saath…”</span>' +
+    '</div>';
+
+  function hideEmpty() {
+    var empty = body.querySelector('.p-empty');
+    if (!empty || empty.classList.contains('out')) return;
+    empty.classList.add('out');
+    setTimeout(function () { if (empty.parentNode) empty.remove(); }, 500);
+  }
+
   function addRow(e) {
+    hideEmpty();
     var row = document.createElement('div');
     row.className = 'p-row' + (e.auto ? ' auto' : '');
     row.innerHTML = rowHTML(e);
@@ -180,7 +196,7 @@
   }
 
   function resetPhone() {
-    body.innerHTML = '';
+    body.innerHTML = EMPTY_HTML;
     statusEl.textContent = '';
     toast.classList.remove('show');
     mic.classList.remove('rec');
