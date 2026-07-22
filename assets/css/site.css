@@ -1470,7 +1470,11 @@ em.serif {
   word-break: break-all;
   color: var(--ink-2);
 }
-.dl-sum p { font-size: 12.5px; color: var(--ink-3); margin-top: 8px; }
+.dl-sum p { font-size: 12.5px; color: var(--ink-3); margin-top: 8px; line-height: 1.55; }
+.dl-sum p b { color: var(--ink); font-weight: 600; }
+.dl-auto { margin-bottom: 12px; }
+.dl-auto summary { color: var(--ink-2); font-weight: 500; }
+.dl-auto .btn { margin-top: 12px; width: 100%; }
 
 .dl-actions { display: flex; gap: 10px; }
 .dl-actions .btn { flex: 1; height: 50px; }

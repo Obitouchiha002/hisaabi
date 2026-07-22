@@ -83,14 +83,14 @@ export function Settings({ onClose }: { onClose(): void }) {
           <span className="o-emoji">{capture === 'granted' ? '📲' : capture === 'denied' ? '🔕' : '🌐'}</span>
           <span>
             <span className="o-title">
-              {capture === 'granted' ? 'Chalu hai' : capture === 'denied' ? 'Permission chahiye' : 'Sirf Android app me'}
+              {capture === 'granted' ? 'Chalu hai' : capture === 'denied' ? 'Permission chahiye' : 'Is build me nahi hai'}
             </span>
             <span className="o-sub">
               {capture === 'granted'
                 ? 'UPI/bank notifications se entries khud Review Inbox me aati hain.'
                 : capture === 'denied'
                   ? 'Notification access do — sirf paise wale notifications padhe jate hain, wo bhi phone ke andar.'
-                  : 'Browser doosri apps ke notifications nahi padh sakta. APK me ye kaam karta hai.'}
+                  : 'Auto-capture wali alag build hai (website pe download card me). Play Protect usse rokta hai, isliye normal build me wo feature rakha hi nahi gaya.'}
             </span>
           </span>
           {capture === 'denied' && (

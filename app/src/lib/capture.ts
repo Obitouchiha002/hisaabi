@@ -82,7 +82,7 @@ export function simulateNotification(
 
 interface CapturePlugin {
   addListener?(event: string, cb: (data: NativeNotification) => void): unknown;
-  hasPermission?(): Promise<{ granted: boolean }>;
+  hasPermission?(): Promise<{ granted: boolean; supported?: boolean }>;
   openSettings?(): Promise<void>;
 }
 
@@ -128,6 +128,8 @@ export async function captureStatus(): Promise<CaptureStatus> {
   if (!plugin?.hasPermission) return 'unsupported';
   try {
     const res = await plugin.hasPermission();
+    // lite build me service hoti hi nahi — wahan permission maangna bekaar hai
+    if (res?.supported === false) return 'unsupported';
     return res?.granted ? 'granted' : 'denied';
   } catch {
     return 'unsupported';

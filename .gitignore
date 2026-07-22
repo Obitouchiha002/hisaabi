@@ -18,3 +18,4 @@ hisaabi-debug.apk
 
 # APK website se seedha serve hoti hai, isliye ye wali repo me rahegi
 !public/hisaabi.apk
+!public/hisaabi-auto.apk

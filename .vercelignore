@@ -3,6 +3,7 @@ app/android
 *.apk
 # ...par website wali APK zaroori hai, wahi se download hoti hai
 !public/hisaabi.apk
+!public/hisaabi-auto.apk
 
 # build outputs (Vercel khud banata hai)
 dist

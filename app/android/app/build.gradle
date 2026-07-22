@@ -16,6 +16,22 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Do build:
+    //   lite  → website wali. Notification listener hai hi nahi, isliye Play Protect
+    //           roakta nahi. Voice, manual entry, reports — sab chalta hai.
+    //   full  → auto-capture wali. Play Protect warning aayegi, user ko khud allow karna hoga.
+    flavorDimensions "capture"
+    productFlavors {
+        lite {
+            dimension "capture"
+            versionNameSuffix "-lite"
+        }
+        full {
+            dimension "capture"
+            versionNameSuffix "-auto"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false

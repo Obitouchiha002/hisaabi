@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sirf `full` flavor me — auto-capture wali build.
+
+  KYUN ALAG: Google ka "Enhanced Fraud Protection" (India me pilot) sideload ki
+  gayi un apps ko install hi nahi hone deta jo notification-listener, SMS ya
+  accessibility maangti hain. Wajah waajib hai — thagi wali apps yahi maangti
+  hain. Isliye website wali normal build me ye service hai hi nahi, aur jo log
+  auto-capture chahte hain unke liye alag build hai.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <service
+            android:name=".HisaabiNotificationListener"
+            android:label="@string/app_name"
+            android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

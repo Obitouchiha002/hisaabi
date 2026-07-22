@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.provider.Settings;
 import android.text.TextUtils;
 
@@ -57,12 +58,29 @@ public class HisaabiCapturePlugin extends Plugin {
         }
     }
 
-    /** Notification access mila ya nahi. */
+    /**
+     * Notification access mila ya nahi — aur is build me wo feature hai bhi ya nahi.
+     *
+     * `lite` build me service manifest me hoti hi nahi (Play Protect sideload rok deta hai),
+     * isliye app ko pata hona chahiye ki yahan auto-capture ka option dikhana hi nahi.
+     */
     @PluginMethod
     public void hasPermission(PluginCall call) {
         JSObject result = new JSObject();
-        result.put("granted", isEnabled());
+        result.put("supported", isDeclared());
+        result.put("granted", isDeclared() && isEnabled());
         call.resolve(result);
+    }
+
+    /** Manifest me listener service declare hai ya nahi. */
+    private boolean isDeclared() {
+        try {
+            ComponentName component = new ComponentName(getContext(), HisaabiNotificationListener.class);
+            getContext().getPackageManager().getServiceInfo(component, PackageManager.MATCH_DISABLED_COMPONENTS);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
     }
 
     /**
