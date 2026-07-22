@@ -1,0 +1,18 @@
+# Android project Vercel pe nahi chahiye — bhaari hai aur bekaar hai
+app/android
+*.apk
+
+# build outputs (Vercel khud banata hai)
+dist
+app/dist
+node_modules
+app/node_modules
+engine/node_modules
+
+# engine ke tests server pe nahi chalte
+engine/tests
+
+# local
+.env
+.env.local
+.DS_Store
