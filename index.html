@@ -29,6 +29,9 @@
     var s = q || localStorage.getItem('hisaabi-theme');
     var t = s || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
     document.documentElement.setAttribute('data-theme', t);
+
+    var a = new URLSearchParams(location.search).get('accent') || localStorage.getItem('hisaabi-accent');
+    if (a && a !== 'nimbu') document.documentElement.setAttribute('data-accent', a);
   })();
 </script>
 </head>
@@ -49,6 +52,24 @@
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
     </nav>
+
+    <div class="picker">
+      <button class="icon-btn" id="pickerBtn" aria-label="Rang badlo" aria-expanded="false" title="Rang badlo">
+        <span class="picker-dot" aria-hidden="true"></span>
+      </button>
+
+      <div class="picker-pop" id="pickerPop" role="radiogroup" aria-label="Accent rang">
+        <h4>Apna rang chuno</h4>
+        <div class="sw-row">
+          <button class="sw" role="radio" aria-checked="true"  data-accent="nimbu"  aria-label="Nimbu (default)" title="Nimbu"><i style="background:#D6FF3D"></i></button>
+          <button class="sw" role="radio" aria-checked="false" data-accent="kesari" aria-label="Kesari" title="Kesari"><i style="background:#FF8A3D"></i></button>
+          <button class="sw" role="radio" aria-checked="false" data-accent="pudina" aria-label="Pudina" title="Pudina"><i style="background:#2FE3B0"></i></button>
+          <button class="sw" role="radio" aria-checked="false" data-accent="genda"  aria-label="Genda" title="Genda"><i style="background:#FFC233"></i></button>
+          <button class="sw" role="radio" aria-checked="false" data-accent="jamun"  aria-label="Jamun" title="Jamun"><i style="background:#B69CFF"></i></button>
+        </div>
+        <p class="picker-name">Abhi: <b id="accentName">Nimbu</b></p>
+      </div>
+    </div>
 
     <button class="icon-btn" id="themeBtn" aria-label="Theme badlo" title="Theme badlo">
       <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
@@ -361,40 +382,94 @@
 <!-- ============ FAQ ============ -->
 <section class="section" id="faq">
   <div class="wrap">
-    <div class="section-head reveal">
-      <span class="eyebrow">FAQ</span>
-      <h2>Jo sabse zyada poocha jata hai.</h2>
-    </div>
+    <div class="faq-layout">
 
-    <div class="faq reveal">
-      <details open>
-        <summary>Play Store pe kyun nahi hai?</summary>
-        <div class="a">Notification-access wali apps ka store review lamba chalta hai aur usme product ki speed maar khati hai. Filhal APK seedha GitHub Releases se milta hai — app khud hi update check kar leti hai. Aage jaake Play Store pe bhi aa sakta hai.</div>
-      </details>
-      <details>
-        <summary>Kya ye mere bank ka data padhta hai?</summary>
-        <div class="a">Nahi. Bank se koi connection nahi, koi net-banking login nahi. App sirf tumhare phone pe aane wale <strong>notifications ka text</strong> dekhti hai — wo bhi phone ke andar hi process hota hai. Kisi server pe kuch nahi bheja jata.</div>
-      </details>
-      <details>
-        <summary>SMS permission maangoge kya?</summary>
-        <div class="a">Bilkul nahi. Bank ke SMS ka notification bhi messages app se hi mil jata hai, isliye <code>READ_SMS</code> permission ki zaroorat hi nahi padti.</div>
-      </details>
-      <details>
-        <summary>Internet ke bina chalega?</summary>
-        <div class="a">Haan. Entries, reports, auto-capture — sab offline chalta hai. Sirf voice note ko samajhne wale AI ke liye internet chahiye; net aane pe sab sync ho jata hai.</div>
-      </details>
-      <details>
-        <summary>iPhone pe?</summary>
-        <div class="a">Web app iPhone pe bhi chalta hai (voice + manual entry, poori reports). Lekin auto-capture iOS pe technically possible hi nahi hai — wo Android-only feature rahega.</div>
-      </details>
-      <details>
-        <summary>AI galat entry bana de to?</summary>
-        <div class="a">Isliye koi bhi AI ya auto entry seedha save nahi hoti — pehle ek chhoti si confirm card dikhti hai jise ek tap me edit ya delete kar sakte ho. Galat hisaab se koi hisaab na hona behtar hai.</div>
-      </details>
-      <details>
-        <summary>Mera data export kar sakta hoon?</summary>
-        <div class="a">Haan, kabhi bhi — CSV, JSON ya PDF. Data tumhara hai, app chhodni ho to poora leke jao.</div>
-      </details>
+      <aside class="faq-aside reveal">
+        <span class="eyebrow">FAQ</span>
+        <h2>Poochne se pehle hi jawab.</h2>
+        <p>Paise wali app hai — shak hona jayaz hai. Neeche wahi sawaal hain jo log sabse pehle poochte hain, aur unke seedhe jawab. Ghuma-phira ke nahi.</p>
+
+        <div class="ask-card">
+          <strong>Jawab yahan nahi mila?</strong>
+          <p>GitHub pe issue khol do ya message kar do — har sawaal ka jawab khud deta hoon.</p>
+          <a class="btn btn-ghost btn-sm" href="https://github.com/Obitouchiha002" rel="noopener">GitHub pe poocho →</a>
+        </div>
+      </aside>
+
+      <div class="faq reveal d1">
+        <details open>
+          <summary><span class="q-n">01</span> Play Store pe kyun nahi hai?</summary>
+          <div class="a">
+            <p>Do wajah hain. Ek — notification access maangne wali apps ka store review mahino chal jata hai, aur usme product ki raftaar maar khati hai. Do — store ke bahar rehne se har update seedha tum tak aata hai, kisi review ka intezaar nahi.</p>
+            <p>APK <strong>GitHub Releases</strong> pe rehti hai, aur app khud update check kar leti hai. Aage user badhne pe Play Store pe bhi aa sakti hai.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="q-n">02</span> Kya ye mere bank ka data padhta hai?</summary>
+          <div class="a">
+            <p>Nahi. Bank se koi connection nahi, net-banking login nahi, account number kahin nahi maanga jata. App sirf tumhare phone pe aane wale <strong>notification ka text</strong> dekhti hai — jaise "₹240 debited" — aur usme se sirf amount aur dukaan ka naam nikalti hai.</p>
+            <div class="note">Ye poora kaam phone ke andar hota hai. Notification ka text kisi server pe, kisi AI ko, kahin nahi jata.</div>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="q-n">03</span> SMS permission maangoge kya?</summary>
+          <div class="a">
+            <p>Bilkul nahi. Bank ka SMS aata hai to uska notification bhi messages app se dikh jata hai — wahi se kaam ban jata hai. Isliye <code>READ_SMS</code> permission ki zaroorat hi nahi padti.</p>
+            <p>Ye jaan-boojh kar liya gaya faisla hai: jitni kam permission, utna kam bharosa maangna padta hai.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="q-n">04</span> AI galat entry bana de to?</summary>
+          <div class="a">
+            <p>Koi bhi AI ya auto entry <strong>seedha save nahi hoti</strong>. Pehle ek chhota confirm card dikhta hai — amount, category, dukaan — jise ek tap me badal ya hata sakte ho.</p>
+            <p>Galat hisaab se to hisaab na hona hi behtar hai. Isliye chupke se kuch add nahi kiya jata.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="q-n">05</span> Internet ke bina chalega?</summary>
+          <div class="a">
+            <p>Haan. Entries likhna, reports dekhna, auto-capture — sab offline chalta hai, kyunki data pehle phone me save hota hai.</p>
+            <p>Internet sirf do jagah chahiye: voice note ko samajhne ke liye, aur doosre device pe sync karne ke liye. Net wapas aate hi sab apne aap sync ho jata hai.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="q-n">06</span> Hindi me bolun ya English me?</summary>
+          <div class="a">
+            <p>Jaise bolte ho waise bolo. "Chai twenty", "chai bees rupaye", "chai 20" — teeno chalega. Mixed Hinglish bhi samajh aata hai.</p>
+            <p>Number bolne ka tarika bhi koi bhi ho — <strong>"do sau", "dhai sau", "sava sau"</strong> sab handle hote hain.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="q-n">07</span> iPhone pe chalega?</summary>
+          <div class="a">
+            <p>Web app iPhone pe chalta hai — voice entry, manual entry, poori reports sab. Bas <strong>auto-capture iOS pe possible hi nahi</strong> hai, kyunki Apple kisi app ko doosri app ke notifications padhne nahi deta.</p>
+            <p>Isliye Android hi main platform rahega.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="q-n">08</span> Mera data export ho sakta hai?</summary>
+          <div class="a">
+            <p>Haan, kabhi bhi — CSV, JSON ya PDF. Data tumhara hai; app chhodni ho to poora leke jao, koi rok-tok nahi.</p>
+            <p>Account delete karo to server se bhi sab hat jata hai.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span class="q-n">09</span> Kya ye sach me free hai?</summary>
+          <div class="a">
+            <p>Manual entry aur auto-capture <strong>hamesha free</strong> rahenge — wahi roz ki aadat banate hain, unpe paisa maangna galat lagta hai.</p>
+            <p>Paisa sirf AI wale bhaari kaam pe lagta hai (unlimited voice, sawaal-jawaab, receipt scan) kyunki unka asli kharcha hai. Early access me wo bhi free hai.</p>
+          </div>
+        </details>
+      </div>
+
     </div>
   </div>
 </section>
@@ -430,23 +505,51 @@
 <!-- ============ FOOTER ============ -->
 <footer class="footer">
   <div class="wrap">
-    <div class="footer-top">
-      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">₹</span>Hisaabi</a>
-      <nav class="footer-links">
+    <div class="footer-grid">
+
+      <div class="footer-about">
+        <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">₹</span>Hisaabi</a>
+        <p>
+          Ek chhota sa hisaab-kitaab app un logon ke liye jinke kharche chai, auto aur sabzi
+          se shuru hote hain. Bolo to likh jata hai, online kharcha ho to khud pakad leta hai —
+          aur raat ko batata hai ki mahine ka kitna bacha.
+        </p>
+        <p class="made">
+          Bina ad, bina tracking, bina bank login. Poora code khula hua hai.
+        </p>
+      </div>
+
+      <nav class="f-col">
+        <h4>Product</h4>
         <a href="#tarike">Kaise likhein</a>
         <a href="#features">Features</a>
+        <a href="#kaise">Kaise chalta hai</a>
         <a href="#pricing">Pricing</a>
+        <a href="#download">APK download</a>
+        <a href="/app/">Web app<span class="soon">jald</span></a>
+      </nav>
+
+      <nav class="f-col">
+        <h4>Jaankari</h4>
         <a href="#privacy">Privacy</a>
         <a href="#faq">FAQ</a>
         <a href="https://github.com/Obitouchiha002" rel="noopener">GitHub</a>
+        <a href="#download">Release notes</a>
       </nav>
+
+      <div class="f-cta">
+        <strong style="font-size:16px;letter-spacing:-.02em">Kuch kehna hai?</strong>
+        <p>Feature chahiye, bug mila, ya bas feedback dena hai — GitHub pe issue khol do. Har message padha jata hai.</p>
+        <a class="btn btn-ghost btn-sm" href="https://github.com/Obitouchiha002" rel="noopener">Issue kholo →</a>
+      </div>
+
     </div>
 
     <div class="wordmark" aria-hidden="true">Hisaabi</div>
 
     <div class="footer-legal">
       <span>© <span id="yr">2026</span> Hisaabi · banaya Vansh Kashyap ne 🇮🇳</span>
-      <span>Bas bol do.</span>
+      <span>Bas bol do — hisaab khud ban jayega.</span>
     </div>
   </div>
 </footer>

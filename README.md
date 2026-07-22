@@ -53,7 +53,25 @@ Koi build step nahi hai — plain HTML/CSS/JS.
 | `--accent` | `#D6FF3D` | `#C8F225` |
 
 Fonts: **Bricolage Grotesque** (display) · **Inter Tight** (body) · **Instrument Serif** (italic accents).
-Theme `localStorage['hisaabi-theme']` me save hota hai, default OS preference se.
+
+### Themes
+
+Do cheezein user chun sakta hai, dono `localStorage` me save hoti hain:
+
+| | Key | Values |
+|---|---|---|
+| Light/Dark | `hisaabi-theme` | `dark` (default, OS preference se) · `light` |
+| Accent rang | `hisaabi-accent` | `nimbu` (default) · `kesari` · `pudina` · `genda` · `jamun` |
+
+Accent sirf `--accent` aur `--accent-ink` set karta hai — `--accent-soft` aur `--glow`
+`color-mix()` se apne aap derive ho jate hain, isliye naya rang add karna 1 line ka kaam hai:
+
+```css
+:root[data-accent="mera-rang"] { --accent: #XXXXXX; --accent-ink: #YYYYYY; }
+:root[data-theme="light"][data-accent="mera-rang"] { --accent: #...; --accent-ink: #...; }
+```
+
+Testing ke liye URL params bhi chalte hain: `?theme=light&accent=kesari`
 
 ## TODO (landing)
 

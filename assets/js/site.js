@@ -16,6 +16,53 @@
     localStorage.setItem('hisaabi-theme', next);
   });
 
+  /* ---------- 1b. accent picker ---------- */
+  var ACCENTS = {
+    nimbu:  'Nimbu',
+    kesari: 'Kesari',
+    pudina: 'Pudina',
+    genda:  'Genda',
+    jamun:  'Jamun'
+  };
+
+  var pickerBtn  = document.getElementById('pickerBtn');
+  var pickerPop  = document.getElementById('pickerPop');
+  var accentName = document.getElementById('accentName');
+  var swatches   = pickerPop.querySelectorAll('.sw');
+
+  function applyAccent(key) {
+    if (key === 'nimbu') root.removeAttribute('data-accent');
+    else root.setAttribute('data-accent', key);
+
+    localStorage.setItem('hisaabi-accent', key);
+    accentName.textContent = ACCENTS[key] || ACCENTS.nimbu;
+    swatches.forEach(function (s) {
+      s.setAttribute('aria-checked', String(s.dataset.accent === key));
+    });
+  }
+
+  applyAccent(root.getAttribute('data-accent') || 'nimbu');
+
+  swatches.forEach(function (s) {
+    s.addEventListener('click', function () { applyAccent(s.dataset.accent); });
+  });
+
+  function closePicker() {
+    pickerPop.classList.remove('open');
+    pickerBtn.setAttribute('aria-expanded', 'false');
+  }
+  pickerBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = pickerPop.classList.toggle('open');
+    pickerBtn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', function (e) {
+    if (!pickerPop.contains(e.target)) closePicker();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closePicker();
+  });
+
   /* ---------- 2. nav ---------- */
   var nav = document.getElementById('nav');
   var navLinks = document.getElementById('navLinks');

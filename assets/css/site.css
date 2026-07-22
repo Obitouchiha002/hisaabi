@@ -18,14 +18,17 @@
   --ink-3:         #7C7970;
   --accent:        #D6FF3D;
   --accent-ink:    #12140A;
-  --accent-soft:   rgba(214, 255, 61, 0.12);
   --good:          #6EE7A8;
   --warn:          #FFB86B;
   --shadow-sm:     0 1px 2px rgba(0,0,0,.5);
   --shadow-md:     0 18px 40px -20px rgba(0,0,0,.85);
   --shadow-lg:     0 60px 120px -50px rgba(0,0,0,.9);
-  --glow:          radial-gradient(60% 60% at 50% 0%, rgba(214,255,61,.16), transparent 70%);
   --grain-opacity: .035;
+
+  /* accent se hi derive hote hain — accent badla, ye khud badal jate hain */
+  --accent-soft:   color-mix(in srgb, var(--accent) 13%, transparent);
+  --glow:          radial-gradient(60% 60% at 50% 0%,
+                     color-mix(in srgb, var(--accent) 17%, transparent), transparent 70%);
 
   --r-xs: 8px;
   --r-sm: 12px;
@@ -58,15 +61,28 @@
   --ink-3:         #83847A;
   --accent:        #C8F225;
   --accent-ink:    #14170A;
-  --accent-soft:   rgba(140, 175, 20, 0.14);
   --good:          #17915A;
   --warn:          #B4661A;
   --shadow-sm:     0 1px 2px rgba(20,21,15,.06);
   --shadow-md:     0 18px 40px -24px rgba(20,21,15,.28);
   --shadow-lg:     0 60px 110px -55px rgba(20,21,15,.35);
-  --glow:          radial-gradient(60% 60% at 50% 0%, rgba(140,175,20,.14), transparent 70%);
   --grain-opacity: .05;
+  --accent-soft:   color-mix(in srgb, var(--accent) 15%, transparent);
 }
+
+/* ---------- 1b. Accent variants (user apna rang chun sakta hai) ----------
+   default = nimbu (lime). Baaki sirf --accent aur --accent-ink override karte hain,
+   soft/glow apne aap derive ho jate hain.                                   */
+
+:root[data-accent="kesari"]   { --accent: #FF8A3D; --accent-ink: #1A0B03; }
+:root[data-accent="pudina"]   { --accent: #2FE3B0; --accent-ink: #04120D; }
+:root[data-accent="genda"]    { --accent: #FFC233; --accent-ink: #171003; }
+:root[data-accent="jamun"]    { --accent: #B69CFF; --accent-ink: #120B24; }
+
+:root[data-theme="light"][data-accent="kesari"] { --accent: #DD5F13; --accent-ink: #FFF6F0; }
+:root[data-theme="light"][data-accent="pudina"] { --accent: #0E8F6E; --accent-ink: #F0FBF7; }
+:root[data-theme="light"][data-accent="genda"]  { --accent: #B07908; --accent-ink: #FFF9EC; }
+:root[data-theme="light"][data-accent="jamun"]  { --accent: #6741D9; --accent-ink: #F6F2FF; }
 
 /* ---------- 2. Base ---------- */
 
@@ -293,6 +309,68 @@ em.serif {
 :root[data-theme="light"] .icon-moon { display: none; }
 
 .nav-toggle { display: none; }
+
+/* colour picker */
+.picker { position: relative; }
+.picker-dot {
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  transition: background-color .3s var(--ease);
+}
+.picker-pop {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 80;
+  width: 208px;
+  padding: 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(.97);
+  transform-origin: top right;
+  transition: opacity .22s var(--ease), transform .22s var(--ease), visibility .22s;
+}
+.picker-pop.open { opacity: 1; visibility: visible; transform: none; }
+.picker-pop h4 {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 12px;
+}
+.sw-row { display: flex; gap: 9px; }
+.sw {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid transparent;
+  transition: transform .2s var(--ease), border-color .2s var(--ease);
+}
+.sw:hover { transform: scale(1.12); }
+.sw i {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: block;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.14);
+}
+.sw[aria-checked="true"] { border-color: var(--ink); }
+.picker-name {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.picker-name b { color: var(--ink); font-weight: 600; }
 
 /* ---------- 5. Hero ---------- */
 
@@ -956,42 +1034,103 @@ em.serif {
 
 /* ---------- 13. FAQ ---------- */
 
-.faq { display: grid; gap: 10px; max-width: 880px; }
+.faq-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+}
+.faq-aside { position: sticky; top: 112px; }
+.faq-aside h2 { font-size: clamp(30px, 4vw, 44px); margin-top: 18px; }
+.faq-aside > p { color: var(--ink-2); margin-top: 16px; font-size: 16px; }
+.ask-card {
+  margin-top: 28px;
+  padding: 20px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: linear-gradient(150deg, var(--accent-soft), transparent 70%), var(--surface);
+  display: grid;
+  gap: 12px;
+}
+.ask-card p { font-size: 14.5px; color: var(--ink-2); }
+.ask-card strong { display: block; font-size: 16px; color: var(--ink); letter-spacing: -0.02em; }
+
+.faq { display: grid; gap: 10px; }
 .faq details {
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
   overflow: hidden;
-  transition: border-color .25s;
+  transition: border-color .25s var(--ease), background-color .25s var(--ease);
 }
-.faq details[open] { border-color: var(--line-strong); }
+.faq details:hover { border-color: var(--line-strong); }
+.faq details[open] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: linear-gradient(180deg, var(--accent-soft), transparent 34%), var(--surface);
+}
 .faq summary {
   list-style: none;
   cursor: pointer;
-  padding: 20px 22px;
+  padding: 19px 22px;
   font-weight: 600;
   font-size: 16.5px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   letter-spacing: -0.02em;
 }
 .faq summary::-webkit-details-marker { display: none; }
-.faq summary::after {
-  content: "+";
-  margin-left: auto;
-  font-size: 22px;
-  font-weight: 400;
-  color: var(--accent);
-  transition: transform .3s var(--ease);
-  line-height: 1;
+.faq .q-n {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+  min-width: 22px;
 }
-.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details[open] .q-n { color: var(--accent); }
+.faq summary::after {
+  content: "";
+  margin-left: auto;
+  flex: none;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background:
+    linear-gradient(var(--ink), var(--ink)) center/9px 1.5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center/1.5px 9px no-repeat;
+  transition: transform .35s var(--ease), border-color .25s, background-size .25s;
+}
+.faq details[open] summary::after {
+  transform: rotate(135deg);
+  border-color: var(--accent);
+}
 .faq .a {
-  padding: 0 22px 22px;
+  padding: 0 22px 22px 58px;
   color: var(--ink-2);
   font-size: 15.5px;
-  max-width: 70ch;
+  line-height: 1.6;
+  max-width: 68ch;
+  display: grid;
+  gap: 12px;
+}
+.faq .a strong { color: var(--ink); font-weight: 600; }
+.faq .a code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .88em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.faq .a .note {
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  border-left: 2px solid var(--accent);
+  font-size: 14.5px;
+  color: var(--ink-2);
 }
 
 /* ---------- 14. Download CTA ---------- */
@@ -1034,16 +1173,57 @@ em.serif {
   position: relative;
   z-index: 1;
 }
-.footer-top {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  justify-content: space-between;
-  align-items: flex-start;
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1fr 1.3fr;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: start;
 }
-.footer-links { display: flex; flex-wrap: wrap; gap: 22px; }
-.footer-links a { font-size: 14.5px; color: var(--ink-2); }
-.footer-links a:hover { color: var(--ink); }
+.footer-about p {
+  margin-top: 18px;
+  color: var(--ink-2);
+  font-size: 15px;
+  max-width: 40ch;
+}
+.footer-about .made {
+  margin-top: 16px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+}
+.f-col h4 {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 14px;
+}
+.f-col a {
+  display: block;
+  padding: 5px 0;
+  font-size: 14.5px;
+  color: var(--ink-2);
+  transition: color .2s;
+}
+.f-col a:hover { color: var(--ink); }
+.f-col a .soon {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-left: 6px;
+}
+.f-cta {
+  padding: 20px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  gap: 12px;
+}
+.f-cta p { font-size: 14px; color: var(--ink-2); }
 .wordmark {
   margin-top: 40px;
   font-family: var(--font-display);
@@ -1092,6 +1272,10 @@ em.serif {
   .step:nth-child(2) { border-right: 0; }
   .panel { grid-template-columns: 1fr; }
   .plans { grid-template-columns: 1fr; }
+  .faq-layout { grid-template-columns: 1fr; }
+  .faq-aside { position: static; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .footer-about { grid-column: 1 / -1; }
 }
 
 @media (max-width: 720px) {
@@ -1119,7 +1303,15 @@ em.serif {
   .steps { grid-template-columns: 1fr; }
   .step { border-right: 0; padding-left: 0 !important; }
   .hero-cta .btn { flex: 1 1 100%; }
-  .footer-top { flex-direction: column; }
+  .footer-grid { grid-template-columns: 1fr; }
+  .faq .a { padding-left: 22px; }
+  .picker-pop { right: -46px; }
+}
+
+@media print {
+  :root { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .nav { position: static; }
+  .reveal { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
