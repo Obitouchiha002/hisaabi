@@ -6,10 +6,11 @@
  *
  * Env vars (Vercel → Settings → Environment Variables):
  *   GROQ_API_KEY     (pehli pasand — sabse tez)
- *   GEMINI_API_KEY   (fallback)
+ *   GEMINI_API_KEY   (backup — Groq ka rate limit lage to ye chal jata hai)
  *
- * Dono me se ek bhi na ho to endpoint 503 deta hai, aur app chup-chaap
- * apne rule parser pe chalti rehti hai. Kuch tootta nahi.
+ * Dono daalna behtar hai: ek ka quota khatam ho ya wo down ho, to doosra
+ * sambhal leta hai. Dono me se ek bhi na ho to endpoint 503 deta hai, aur app
+ * chup-chaap apne rule parser pe chalti rehti hai. Kuch tootta nahi.
  */
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
@@ -51,15 +52,20 @@ Samajh na aaye to {"metric":"sum","filter":{"type":"expense"},"range":{"label":"
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    return res.status(200).json({ ok: true, provider: pickProvider()?.name ?? null });
+    const chain = providerChain();
+    return res.status(200).json({
+      ok: true,
+      provider: chain[0]?.name ?? null,
+      providers: chain.map((p) => p.name),
+    });
   }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST only' });
   }
 
-  const provider = pickProvider();
-  if (!provider) {
+  const chain = providerChain();
+  if (!chain.length) {
     return res.status(503).json({ error: 'no_ai_configured' });
   }
 
@@ -71,25 +77,38 @@ export default async function handler(req, res) {
   const system = task === 'ask' ? ASK_SYSTEM : PARSE_SYSTEM;
   const user = buildUser(task, text, body?.context);
 
-  try {
-    const raw = await withTimeout(provider.call(system, user), TIMEOUT_MS);
-    const parsed = extractJson(raw);
-    if (!parsed) return res.status(502).json({ error: 'bad_ai_output' });
+  // Pehla provider fail ho (rate limit, downtime, kharab jawab) to agla try karo.
+  // Dono keys hain to app kabhi bina AI ke nahi rehti.
+  let lastError = null;
 
-    return res.status(200).json({ provider: provider.name, task, result: parsed });
-  } catch (err) {
-    // key ya upstream ka message kabhi client ko mat bhejo
-    console.error('[ai]', provider.name, err?.message);
-    return res.status(502).json({ error: 'upstream_failed' });
+  for (const provider of chain) {
+    try {
+      const raw = await withTimeout(provider.call(system, user), TIMEOUT_MS);
+      const parsed = extractJson(raw);
+      if (!parsed) throw new Error('bad output');
+
+      return res.status(200).json({ provider: provider.name, task, result: parsed });
+    } catch (err) {
+      // key ya upstream ka message kabhi client ko mat bhejo
+      console.error('[ai]', provider.name, err?.message);
+      lastError = err;
+    }
   }
+
+  return res.status(502).json({ error: 'upstream_failed', detail: lastError ? 'all_providers_failed' : undefined });
 }
 
 /* ---------- providers ---------- */
 
-function pickProvider() {
-  if (process.env.GROQ_API_KEY) return { name: 'groq', call: callGroq };
-  if (process.env.GEMINI_API_KEY) return { name: 'gemini', call: callGemini };
-  return null;
+/**
+ * Groq pehle — wo sabse tez hai. Gemini backup, taki Groq ka rate limit
+ * lagne pe bhi app ka AI zinda rahe.
+ */
+function providerChain() {
+  const chain = [];
+  if (process.env.GROQ_API_KEY) chain.push({ name: 'groq', call: callGroq });
+  if (process.env.GEMINI_API_KEY) chain.push({ name: 'gemini', call: callGemini });
+  return chain;
 }
 
 async function callGroq(system, user) {
