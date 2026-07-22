@@ -1,6 +1,8 @@
 # Android project Vercel pe nahi chahiye — bhaari hai aur bekaar hai
 app/android
 *.apk
+# ...par website wali APK zaroori hai, wahi se download hoti hai
+!public/hisaabi.apk
 
 # build outputs (Vercel khud banata hai)
 dist
