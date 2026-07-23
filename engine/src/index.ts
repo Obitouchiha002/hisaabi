@@ -17,6 +17,8 @@ export * from './budget.js';
 export * from './ask.js';
 export * from './query.js';
 export * from './ai.js';
+export * from './planner.js';
+export * from './trips.js';
 
 import type { DraftEntry, Entry, EngineContext, InputSource, LearnedRule, RawEvent, ReviewItem } from './types.js';
 import type { AiAdapter, AiContext } from './ai.js';

@@ -7,10 +7,10 @@
  * App splash pe kabhi atakni nahi chahiye.
  */
 
-import type { DraftEntry, DuplicateMatch, Entry, LearnedRule, RawEvent } from '@engine';
+import type { DraftEntry, DuplicateMatch, Entry, LearnedRule, RawEvent, Trip } from '@engine';
 
 const DB_NAME = 'hisaabi';
-const VERSION = 2;
+const VERSION = 3;
 const LS_PREFIX = 'hisaabi:';
 
 /**
@@ -28,7 +28,7 @@ const OPEN_TIMEOUT_KNOWN_MS = 30000;
 /** Kaunsa storage chala tha — taki har launch pe faisla badle nahi. */
 const MODE_KEY = LS_PREFIX + 'storage';
 
-type StoreName = 'entries' | 'raw' | 'meta' | 'pending';
+type StoreName = 'entries' | 'raw' | 'meta' | 'pending' | 'trips';
 
 /** Review Inbox ka ek card — abhi ledger me nahi hai. */
 export interface PendingItem {
@@ -59,6 +59,7 @@ function openIdb(): Promise<IDBDatabase> {
       if (!database.objectStoreNames.contains('raw')) database.createObjectStore('raw', { keyPath: 'id' });
       if (!database.objectStoreNames.contains('meta')) database.createObjectStore('meta');
       if (!database.objectStoreNames.contains('pending')) database.createObjectStore('pending', { keyPath: 'id' });
+      if (!database.objectStoreNames.contains('trips')) database.createObjectStore('trips', { keyPath: 'id' });
     };
 
     req.onsuccess = () => resolve(req.result);
@@ -241,6 +242,32 @@ export const db = {
     });
   },
 
+  /* ---------- trips ---------- */
+
+  async putTrip(trip: Trip): Promise<void> {
+    if ((await ensureMode()) === 'ls') {
+      const all = lsRead<Trip[]>('trips', []).filter((t) => t.id !== trip.id);
+      lsWrite('trips', [trip, ...all]);
+      return;
+    }
+    await idbRun('trips', 'readwrite', (s) => s.put(trip));
+  },
+
+  async allTrips(): Promise<Trip[]> {
+    const rows = (await ensureMode()) === 'ls'
+      ? lsRead<Trip[]>('trips', [])
+      : await idbRun<Trip[]>('trips', 'readonly', (s) => s.getAll());
+    return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  async deleteTrip(id: string): Promise<void> {
+    if ((await ensureMode()) === 'ls') {
+      lsWrite('trips', lsRead<Trip[]>('trips', []).filter((t) => t.id !== id));
+      return;
+    }
+    await idbRun('trips', 'readwrite', (s) => s.delete(id));
+  },
+
   async getMeta<T>(key: string): Promise<T | undefined> {
     if ((await ensureMode()) === 'ls') return lsRead<T | undefined>(`meta:${key}`, undefined);
     return idbRun<T | undefined>('meta', 'readonly', (s) => s.get(key));
@@ -270,7 +297,7 @@ export const db = {
 
     const database = await openIdb();
     await Promise.all(
-      (['entries', 'raw', 'meta', 'pending'] as StoreName[]).map(
+      (['entries', 'raw', 'meta', 'pending', 'trips'] as StoreName[]).map(
         (name) =>
           new Promise<void>((resolve, reject) => {
             const tx = database.transaction(name, 'readwrite');

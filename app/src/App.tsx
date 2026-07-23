@@ -5,6 +5,8 @@ import { Onboarding } from '@/screens/Onboarding';
 import { Auth } from '@/screens/Auth';
 import { Home } from '@/screens/Home';
 import { Review } from '@/screens/Review';
+import { Trips } from '@/screens/Trips';
+import { TripDetail } from '@/screens/TripDetail';
 import type { Profile } from '@/lib/profile';
 import { isDemo } from '@/lib/demo';
 
@@ -67,7 +69,10 @@ function Flow() {
 
   return (
     <Shell screen={route}>
-      {route === 'review' ? <Review /> : <Home />}
+      {route === 'review' ? <Review />
+        : route === 'trips' ? <Trips />
+        : route === 'trip' ? <TripDetail />
+        : <Home />}
     </Shell>
   );
 }

@@ -6,6 +6,7 @@
 import { toPaise, type Entry } from '@engine';
 import type { Profile } from './profile';
 import type { PendingItem } from './db';
+import type { Trip } from '@engine';
 
 export function isDemo(): boolean {
   return new URLSearchParams(location.search).has('demo');
@@ -94,3 +95,26 @@ export const DEMO_PENDING: PendingItem[] = [
     },
   },
 ];
+
+/** Demo trip — Goa, 4 dost, hisaab baaki. */
+export const DEMO_TRIPS: Trip[] = [{
+  id: 'trip_demo',
+  name: 'Goa',
+  emoji: '🏖️',
+  createdAt: at(72),
+  status: 'open',
+  budgetPaise: toPaise(15000),
+  members: [
+    { id: 'm0', name: 'Vansh' },
+    { id: 'm1', name: 'Rahul' },
+    { id: 'm2', name: 'Aman' },
+    { id: 'm3', name: 'Sneha' },
+  ],
+  expenses: [
+    { id: 'te1', title: 'Petrol', amountPaise: toPaise(2400), paidBy: 'm0', splitMode: 'equal', category: 'travel', occurredAt: at(70) },
+    { id: 'te2', title: 'Hotel', amountPaise: toPaise(6000), paidBy: 'm1', splitMode: 'equal', category: 'rent', occurredAt: at(68) },
+    { id: 'te3', title: 'Dinner', amountPaise: toPaise(2200), paidBy: 'm2', splitMode: 'equal', category: 'food', occurredAt: at(60) },
+    { id: 'te4', title: 'Water sports', amountPaise: toPaise(3200), paidBy: 'm0', splitMode: 'equal', category: 'fun', occurredAt: at(50) },
+    { id: 'te5', title: 'Nashta', amountPaise: toPaise(560), paidBy: 'm3', splitMode: 'equal', category: 'food', occurredAt: at(46) },
+  ],
+}];

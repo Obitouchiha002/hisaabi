@@ -2,10 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import {
   HisaabiEngine, cashBalance, learnCategory, monthRange, safeToSpend, spentBetween, dayRange,
   type CategoryId, type DraftEntry, type Entry, type LearnedRule, type SafeToSpend,
+  type Trip, type TripExpense, type TripMember,
 } from '@engine';
 import { db, newId, type PendingItem } from './db';
 import { DEFAULT_PROFILE, type Profile } from './profile';
-import { DEMO_ENTRIES, DEMO_PENDING, DEMO_PROFILE, isDemo } from './demo';
+import { DEMO_ENTRIES, DEMO_PENDING, DEMO_PROFILE, DEMO_TRIPS, isDemo } from './demo';
 import { getSession, type Session } from './auth';
 import { checkAi, remoteAi, type AiStatus } from './ai';
 import { handleNotification, startNativeCapture } from './capture';
@@ -19,7 +20,9 @@ interface Store {
   engine: HisaabiEngine;
   ai: { status: AiStatus; provider: string | null };
   pending: PendingItem[];
+  trips: Trip[];
   route: Route;
+  openTripId: string | null;
 
   todayPaise: number;
   monthPaise: number;
@@ -38,10 +41,19 @@ interface Store {
   ignorePending(ids: string[]): Promise<void>;
   /** User ne category badli — engine ko sikha do */
   teachCategory(key: string, category: CategoryId): Promise<void>;
+
+  /* trips */
+  openTrip(id: string | null): void;
+  createTrip(name: string, emoji: string, members: TripMember[]): Promise<Trip>;
+  saveTrip(trip: Trip): Promise<void>;
+  addTripExpense(tripId: string, expense: TripExpense): Promise<void>;
+  removeTripExpense(tripId: string, expenseId: string): Promise<void>;
+  deleteTrip(id: string): Promise<void>;
+
   reload(): Promise<void>;
 }
 
-export type Route = 'home' | 'review';
+export type Route = 'home' | 'review' | 'trips' | 'trip';
 
 const Ctx = createContext<Store | null>(null);
 
@@ -52,9 +64,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [rules, setRules] = useState<LearnedRule[]>([]);
   const [pending, setPending] = useState<PendingItem[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [openTripId, setOpenTripId] = useState<string | null>(
+    () => new URLSearchParams(location.search).get('trip'),
+  );
   // ?route=review — dev/screenshot ke liye
   const [route, setRoute] = useState<Route>(
-    () => (new URLSearchParams(location.search).get('route') === 'review' ? 'review' : 'home'),
+    () => {
+      const r = new URLSearchParams(location.search).get('route');
+      return r === 'review' || r === 'trips' || r === 'trip' ? (r as Route) : 'home';
+    },
   );
 
   const [ai, setAi] = useState<{ status: AiStatus; provider: string | null }>({ status: 'checking', provider: null });
@@ -82,19 +101,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setEntries([...DEMO_ENTRIES].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)));
       setRules([]);
       setPending(DEMO_PENDING);
+      setTrips(DEMO_TRIPS);
       return;
     }
 
-    const [savedProfile, savedEntries, savedRules, savedPending] = await Promise.all([
+    const [savedProfile, savedEntries, savedRules, savedPending, savedTrips] = await Promise.all([
       db.getMeta<Profile>('profile'),
       db.allEntries(),
       db.getRules(),
       db.allPending(),
+      db.allTrips(),
     ]);
     setProfile(savedProfile ?? null);
     setEntries(savedEntries);
     setRules(savedRules);
     setPending(savedPending);
+    setTrips(savedTrips);
   }, []);
 
   useEffect(() => {
@@ -169,6 +191,55 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
+  /* ---------- trips ---------- */
+
+  const openTrip = useCallback((id: string | null) => {
+    setOpenTripId(id);
+    setRoute(id ? 'trip' : 'trips');
+  }, []);
+
+  const saveTrip = useCallback(async (trip: Trip) => {
+    await db.putTrip(trip);
+    setTrips((prev) => {
+      const rest = prev.filter((t) => t.id !== trip.id);
+      return [trip, ...rest].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    });
+  }, []);
+
+  const createTrip = useCallback(async (name: string, emoji: string, members: TripMember[]) => {
+    const trip: Trip = {
+      id: newId('trip'),
+      name: name.trim() || 'Trip',
+      emoji,
+      members,
+      expenses: [],
+      createdAt: new Date().toISOString(),
+      status: 'open',
+    };
+    await db.putTrip(trip);
+    setTrips((prev) => [trip, ...prev]);
+    return trip;
+  }, []);
+
+  const addTripExpense = useCallback(async (tripId: string, expense: TripExpense) => {
+    const trip = tripsRef.current.find((t) => t.id === tripId);
+    if (!trip) return;
+    await saveTrip({ ...trip, expenses: [...trip.expenses, expense] });
+  }, [saveTrip]);
+
+  const removeTripExpense = useCallback(async (tripId: string, expenseId: string) => {
+    const trip = tripsRef.current.find((t) => t.id === tripId);
+    if (!trip) return;
+    await saveTrip({ ...trip, expenses: trip.expenses.filter((e) => e.id !== expenseId) });
+  }, [saveTrip]);
+
+  const deleteTrip = useCallback(async (id: string) => {
+    await db.deleteTrip(id);
+    setTrips((prev) => prev.filter((t) => t.id !== id));
+    setOpenTripId(null);
+    setRoute('trips');
+  }, []);
+
   const derived = useMemo(() => {
     const now = new Date();
     const day = dayRange(now);
@@ -191,11 +262,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const pushPendingRef = useRef(pushPending);
   pushPendingRef.current = pushPending;
 
+  const tripsRef = useRef(trips);
+  tripsRef.current = trips;
+
   const value: Store = {
-    ready, profile, session, entries, rules, engine, ai, pending, route,
+    ready, profile, session, entries, rules, engine, ai, pending, route, trips, openTripId,
     ...derived,
     saveProfile, setSession, setRoute, commitDrafts, updateEntry, removeEntry,
-    pushPending, confirmPending, ignorePending, teachCategory, reload,
+    pushPending, confirmPending, ignorePending, teachCategory,
+    openTrip, createTrip, saveTrip, addTripExpense, removeTripExpense, deleteTrip,
+    reload,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

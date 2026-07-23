@@ -1,0 +1,139 @@
+import { useState } from 'react';
+import { formatINR, tripSummary, type TripMember } from '@engine';
+import { Icon, Sheet, useToast } from '@/components/ui';
+import { useStore } from '@/lib/store';
+
+/**
+ * Trip list + naya trip banana.
+ *
+ * Asli zindagi me ek hi banda hisaab rakhta hai aur baaki log WhatsApp pe
+ * hote hain — isliye "invite" ke bajaye members sirf naam hain, aur aakhir me
+ * WhatsApp pe bhejne layak summary milti hai. Bina kisi server ke chalta hai.
+ */
+
+const EMOJIS = ['🏖️', '🏔️', '🎉', '🍻', '🚗', '✈️', '🎂', '🏏', '🎬', '🏕️'];
+
+export function Trips() {
+  const { trips, setRoute, openTrip, createTrip } = useStore();
+  const [creating, setCreating] = useState(false);
+
+  return (
+    <div className="screen">
+      <header className="home-top">
+        <button className="icon-btn" onClick={() => setRoute('home')} aria-label="Peeche">{Icon.back}</button>
+        <div className="grow" style={{ marginLeft: 4 }}>
+          <div className="greet">Doston ka hisaab</div>
+          <div className="name">{trips.length ? `${trips.length} trip` : 'Trips'}</div>
+        </div>
+      </header>
+
+      {trips.length === 0 ? (
+        <div className="empty">
+          <div className="big">🏖️</div>
+          <p>
+            Trip, party ya bahar khana — jahan kharcha baant-na ho,
+            wahan ek trip bana lo. Aakhir me app khud batayegi kaun kisko kitna de.
+          </p>
+        </div>
+      ) : (
+        <div className="trip-list">
+          {trips.map((trip, i) => {
+            const s = tripSummary(trip);
+            const pending = s.transfers.length;
+
+            return (
+              <button key={trip.id} className="trip-card" style={{ animationDelay: `${i * 50}ms` }}
+                      onClick={() => openTrip(trip.id)}>
+                <span className="trip-emoji" aria-hidden="true">{trip.emoji}</span>
+                <span className="grow" style={{ minWidth: 0 }}>
+                  <span className="e-t">{trip.name}</span>
+                  <span className="e-s">
+                    {trip.members.length} log · {s.expenseCount} kharche
+                    {pending ? ` · ${pending} hisaab baaki` : ' · hisaab barabar ✅'}
+                  </span>
+                </span>
+                <span className="e-a num">{formatINR(s.totalPaise)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="q-foot">
+        <button className="btn btn-primary btn-block" onClick={() => setCreating(true)}>
+          {Icon.plus} Naya trip
+        </button>
+      </div>
+
+      {creating && (
+        <CreateTrip
+          onClose={() => setCreating(false)}
+          onCreate={async (name, emoji, members) => {
+            const trip = await createTrip(name, emoji, members);
+            setCreating(false);
+            openTrip(trip.id);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateTrip({ onClose, onCreate }: {
+  onClose(): void;
+  onCreate(name: string, emoji: string, members: TripMember[]): void;
+}) {
+  const { profile } = useStore();
+  const [name, setName] = useState('');
+  const [emoji, setEmoji] = useState(EMOJIS[0]!);
+  const [names, setNames] = useState(profile?.name ? `${profile.name}, ` : '');
+  const toast = useToast();
+
+  const members: TripMember[] = names
+    .split(',')
+    .map((n) => n.trim())
+    .filter(Boolean)
+    .map((n, i) => ({ id: `m${i}_${n.toLowerCase().replace(/\W/g, '')}`, name: n }));
+
+  const valid = name.trim().length > 0 && members.length >= 2;
+
+  return (
+    <Sheet onClose={onClose}>
+      <h2>Naya trip</h2>
+
+      <label>
+        <span className="f-k">Kahan ja rahe ho</span>
+        <input className="text-field" value={name} maxLength={30} autoFocus
+               placeholder="Goa, Manali, Rahul ki party…"
+               onChange={(e) => setName(e.target.value)} />
+      </label>
+
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>Nishaan</h2></div>
+      <div className="emoji-row">
+        {EMOJIS.map((e) => (
+          <button key={e} className="emoji-pick" data-selected={e === emoji} onClick={() => setEmoji(e)}>{e}</button>
+        ))}
+      </div>
+
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>Kaun-kaun hai</h2></div>
+      <input className="text-field" value={names}
+             placeholder="Vansh, Rahul, Aman, Sneha"
+             onChange={(e) => setNames(e.target.value)} />
+      <p className="hint-line">
+        Comma se alag karo. {members.length >= 2
+          ? `${members.length} log — ${members.map((m) => m.name).join(', ')}`
+          : 'Kam se kam 2 log chahiye.'}
+      </p>
+
+      <div className="q-foot">
+        <button className="btn btn-primary btn-block" disabled={!valid}
+                onClick={() => valid ? onCreate(name, emoji, members) : toast.show('Naam aur 2 log to chahiye')}>
+          Trip banao
+        </button>
+        <button className="btn btn-quiet btn-block" onClick={onClose}>Rehne do</button>
+      </div>
+
+      {toast.node}
+    </Sheet>
+  );
+}

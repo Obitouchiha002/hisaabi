@@ -58,6 +58,9 @@ export function Home() {
             {Icon.inbox}<span className="badge-dot num">{pending.length}</span>
           </button>
         )}
+        <button className="icon-btn" onClick={() => setRoute('trips')} aria-label="Doston ka hisaab">
+          {Icon.users}
+        </button>
         <button className="icon-btn" onClick={toggleTheme} aria-label="Theme badlo">
           {theme === 'light' ? Icon.moon : Icon.sun}
         </button>

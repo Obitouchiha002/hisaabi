@@ -51,7 +51,9 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
   position: relative;
   z-index: 1;
   min-height: 100%;
+  width: 100%;
   max-width: 520px;
+  overflow-x: hidden;
   margin-inline: auto;
   display: flex;
   flex-direction: column;
@@ -59,6 +61,7 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 
 .screen {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   padding: calc(var(--safe-top) + 18px) 20px calc(var(--safe-bottom) + 20px);
@@ -67,6 +70,10 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 @keyframes screenIn {
   from { opacity: 0; transform: translateY(10px); }
 }
+/* Har direct bachcha screen ki chaudai me hi rahe — lambi line ya bade number
+   se poora layout bahar nikal jata tha. */
+.screen > * { max-width: 100%; min-width: 0; }
+
 .screen.back { animation-name: screenInBack; }
 @keyframes screenInBack {
   from { opacity: 0; transform: translateY(-8px); }
@@ -93,6 +100,10 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
   transition: transform .18s var(--ease), background-color .2s, border-color .2s, opacity .2s;
   user-select: none;
 }
+/* Button ke andar icon ko apni jagah pe rehna chahiye — warna flex use
+   poori chaudai kha jata hai aur icon fool ke bada dikhta hai. */
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn { max-width: 100%; }
 .btn:active { transform: scale(.965); }
 .btn:disabled { opacity: .4; pointer-events: none; }
 
@@ -328,7 +339,9 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 }
 .hero-card .big {
   font-family: var(--font-display);
-  font-size: clamp(42px, 13vw, 56px);
+  /* bade number (₹14,360) chhoti screen pe bahar nikal jate the */
+  font-size: clamp(34px, 11vw, 56px);
+  overflow-wrap: anywhere;
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 1;
@@ -360,6 +373,16 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 }
 .bar i { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width .9s var(--ease-out); }
 .bar[data-tone="bad"] i { background: var(--bad); }
+
+/* Budget line — do taraf ki baatein, beech me jagah. */
+.safe-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
 
 .section-title {
   display: flex;
@@ -871,6 +894,140 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
   border-color: var(--accent);
   background: var(--accent-soft);
   font-weight: 600;
+}
+
+
+/* ================= trips: doston ka hisaab ================= */
+
+.trip-list { display: grid; gap: 10px; }
+
+.trip-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 15px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+  animation: cardIn .45s var(--ease-out) both;
+  transition: transform .2s var(--ease), border-color .25s;
+}
+.trip-card:active { transform: scale(.985); }
+.trip-emoji {
+  width: 46px; height: 46px; flex: none;
+  border-radius: 15px;
+  display: grid; place-items: center;
+  font-size: 22px;
+  background: var(--surface-2);
+}
+
+.emoji-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.emoji-pick {
+  width: 46px; height: 46px;
+  border-radius: 14px;
+  display: grid; place-items: center;
+  font-size: 21px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition: transform .2s var(--spring), border-color .2s, background-color .2s;
+}
+.emoji-pick:active { transform: scale(.9); }
+.emoji-pick[data-selected="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.06);
+}
+
+.hint-line { font-size: 13px; color: var(--ink-3); margin-top: 10px; line-height: 1.5; }
+
+.chip-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-p {
+  padding: 10px 15px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+  transition: transform .18s var(--ease), border-color .2s, background-color .2s, color .2s;
+}
+.chip-p:active { transform: scale(.94); }
+.chip-p[data-on="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.trip-exp-list { display: grid; gap: 8px; }
+.trip-exp-list .entry { cursor: pointer; }
+
+/* ---- settlement ---- */
+
+.settle { display: block; }
+
+.settle-done {
+  padding: 18px;
+  border-radius: var(--r-md);
+  background: linear-gradient(120deg, var(--accent-soft), transparent 70%), var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  animation: cardIn .45s var(--ease-out) both;
+}
+
+.transfer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  animation: cardIn .45s var(--ease-out) both;
+}
+.transfer + .transfer { margin-top: 8px; }
+.transfer .t-from, .transfer .t-to { font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
+.transfer .t-arrow { color: var(--accent); display: grid; place-items: center; }
+.transfer .t-arrow svg { width: 17px; height: 17px; }
+.transfer .t-amt { margin-left: auto; font-weight: 700; letter-spacing: -0.02em; }
+
+.bal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 14.5px;
+}
+.bal-row + .bal-row { margin-top: 6px; }
+.bal-paid { color: var(--ink-3); font-size: 13.5px; }
+.bal-net { font-weight: 600; min-width: 74px; text-align: right; }
+.bal-net[data-tone="good"] { color: var(--good); }
+.bal-net[data-tone="bad"] { color: var(--bad); }
+
+.awards { display: grid; gap: 8px; }
+.award {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: var(--r-md);
+  background: linear-gradient(130deg, var(--accent-soft), transparent 65%), var(--surface);
+  border: 1px solid var(--line);
+  animation: cardIn .5s var(--ease-out) both;
+}
+.award-emoji {
+  width: 40px; height: 40px; flex: none;
+  border-radius: 13px;
+  display: grid; place-items: center;
+  font-size: 20px;
+  background: var(--surface-2);
 }
 
 /* ================= misc ================= */
