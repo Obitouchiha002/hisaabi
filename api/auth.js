@@ -29,6 +29,8 @@
 
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 
+import { cors } from './_cors.js';
+
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // O/0, I/1/L hataye — likhne me galti na ho
 const CODE_LENGTH = 6;
 const TTL_MS = 10 * 60 * 1000;          // code 10 minute chalta hai
@@ -37,6 +39,8 @@ const SESSION_DAYS = 180;
 export const config = { maxDuration: 15 };
 
 export default async function handler(req, res) {
+  if (cors(req, res)) return;
+
   if (req.method === 'GET') {
     return res.status(200).json({
       ok: true,

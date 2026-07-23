@@ -13,6 +13,8 @@
  * chup-chaap apne rule parser pe chalti rehti hai. Kuch tootta nahi.
  */
 
+import { cors } from './_cors.js';
+
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const GEMINI_MODEL = 'gemini-2.0-flash';
 
@@ -133,6 +135,8 @@ Categories: food, grocery, travel, bills, shopping, health, rent, education, fun
 Samajh na aaye to {"metric":"sum","filter":{"type":"expense"},"range":{"label":"this_month"}}.`;
 
 export default async function handler(req, res) {
+  if (cors(req, res)) return;
+
   if (req.method === 'GET') {
     const chain = providerChain();
     return res.status(200).json({

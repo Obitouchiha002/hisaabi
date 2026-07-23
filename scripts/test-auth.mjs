@@ -12,14 +12,16 @@ const { default: handler, readToken } = await import('../api/auth.js');
 
 function fakeRes() {
   return {
-    statusCode: 0, body: null,
+    statusCode: 0, body: null, headers: {}, ended: false,
     status(c) { this.statusCode = c; return this; },
     json(b) { this.body = b; return this; },
+    setHeader(k, v) { this.headers[k.toLowerCase()] = v; },
+    end() { this.ended = true; return this; },
   };
 }
-const call = async (method, body) => {
+const call = async (method, body, headers = {}) => {
   const res = fakeRes();
-  await handler({ method, body }, res);
+  await handler({ method, body, headers }, res);
   return res;
 };
 
@@ -75,6 +77,19 @@ const codes = new Set();
 for (let i = 0; i < 20; i++) codes.add((await call('POST', { action: 'send', email: 'a@b.com' })).body.devCode);
 t('code har baar naya', codes.size >= 18, `${codes.size}/20 alag`);
 t('code me confusing akshar nahi', ![...codes].some((c) => /[O0I1L]/.test(c)));
+
+// CORS — APK ka origin `https://localhost` hai, apna domain nahi
+const apk = await call('GET', null, { origin: 'https://localhost' });
+t('APK ke origin ko CORS milta hai', apk.headers['access-control-allow-origin'] === 'https://localhost');
+
+const site = await call('GET', null, { origin: 'https://hisaabii.vercel.app' });
+t('site ke origin ko CORS milta hai', site.headers['access-control-allow-origin'] === 'https://hisaabii.vercel.app');
+
+const evil = await call('GET', null, { origin: 'https://kisi-aur-ki-site.com' });
+t('anjaan site ko CORS nahi milta', evil.headers['access-control-allow-origin'] === undefined);
+
+const pre = await call('OPTIONS', null, { origin: 'https://localhost' });
+t('preflight ka jawab milta hai', pre.statusCode === 204 && pre.ended);
 
 console.log(`\n${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);
