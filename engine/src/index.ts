@@ -19,6 +19,7 @@ export * from './query.js';
 export * from './ai.js';
 export * from './planner.js';
 export * from './trips.js';
+export * from './when.js';
 
 import type { DraftEntry, Entry, EngineContext, InputSource, LearnedRule, RawEvent, ReviewItem } from './types.js';
 import type { AiAdapter, AiContext } from './ai.js';
@@ -28,12 +29,17 @@ import { parseText } from './parse.js';
 import { parseNotification } from './notifications.js';
 import { resolveCategory } from './categories.js';
 import { findDuplicates } from './duplicates.js';
-import { planQuery } from './ask.js';
+import { detectIntent, planQuery } from './ask.js';
 import { answerText, runQuery, type QueryResult } from './query.js';
 
 export interface EngineOptions extends EngineContext {
   ai?: AiAdapter;
 }
+
+export type RouteResult =
+  | { intent: 'expense'; drafts: DraftEntry[] }
+  | { intent: 'question'; answer: AskAnswer | null }
+  | { intent: 'unknown' };
 
 export interface AskAnswer {
   plan: QueryPlan;
@@ -98,6 +104,38 @@ export class HisaabiEngine {
     }
 
     return drafts.map((d) => this.withCategory(d));
+  }
+
+  /**
+   * Ek hi jagah se kaam chalane ke liye: text dekh kar khud tay karta hai ki
+   * ye kharcha hai ya sawaal, aur usi hisaab se jawab deta hai.
+   *
+   * User ko ye sochna hi nahi chahiye ki kaunsa button dabana hai.
+   */
+  async handle(
+    text: string,
+    entries: Entry[],
+    opts: { source?: InputSource; aiContext?: AiContext } = {},
+  ): Promise<RouteResult> {
+    const trimmed = text.trim();
+    if (!trimmed) return { intent: 'unknown' };
+
+    // pehle sasta rasta: rules se parse karke dekho amount mila ya nahi
+    const quick = parseText(trimmed, { ...this.ctx, source: opts.source ?? 'manual' });
+    const intent = detectIntent(trimmed, quick.length > 0);
+
+    if (intent === 'question') {
+      return { intent, answer: await this.ask(trimmed, entries, opts.aiContext) };
+    }
+
+    const drafts = await this.ingestText(trimmed, opts);
+    if (drafts.length) return { intent: 'expense', drafts };
+
+    // kharcha nahi bana — shayad sawaal tha
+    const answer = await this.ask(trimmed, entries, opts.aiContext);
+    if (answer) return { intent: 'question', answer };
+
+    return { intent: 'unknown' };
   }
 
   /** Notification → draft. Ye poora on-device hai, AI kabhi nahi. */

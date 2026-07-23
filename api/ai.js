@@ -20,23 +20,41 @@ const MAX_INPUT = 600;
 const TIMEOUT_MS = 9000;
 
 const PARSE_SYSTEM = `Tum ek Hinglish expense parser ho.
-User bolta ya likhta hai ki usne kya kharch kiya. Har kharche ko alag JSON object me todo.
+
+User aksar poore din ka haal ek saath sunata hai — kahani ki tarah, bina comma ke.
+Tumhe usme se HAR kharcha alag nikalna hai. Baaki baatein (mausam, mood, kisse
+kya kaha) chhod dena — sirf paise wali baat chahiye.
 
 Rules:
 - Output SIRF JSON array ho. Koi explanation nahi, koi markdown fence nahi.
-- Har object: {"title": string, "amount": number (rupees me), "type": "expense"|"income"|"cash_in"}
+- Har object:
+  {"title": string, "amount": number (rupees me), "type": "expense"|"income"|"cash_in",
+   "daysAgo"?: number, "hour"?: number}
 - Hindi/Hinglish numbers samjho, spelling galat ho tab bhi:
   bees/biss = 20, chalis/chaalees = 40, pachas/pachhaas = 50, saath = 60,
   assi = 80, sau = 100, ek sau chalis = 140, dhai sau = 250, sava sau = 125,
   sadhe teen sau = 350, paune do sau = 175, dedh hazaar = 1500.
 - Word order koi bhi ho: "chini biss ki", "biss ki chini", "chini 20" — teeno = Chini, 20.
+- WAQT: aaj=daysAgo 0, kal=1, parso=2. subah=hour 9, dopahar=13, shaam=18, raat=21.
+  "5 baje shaam" = hour 17. Waqt na bataya ho to ye field chhod do.
+  Ek baar waqt bola jaye to aage ke kharchon pe bhi wahi lagta hai, jab tak naya na aaye.
 - ATM se paisa nikalna "cash_in" hai (kharcha nahi). Salary/refund "income" hai.
 - Amount na mile to us hisse ko chhod do. Number kabhi invent mat karo.
 - title 1-3 shabd, jaisa user ne bola waisa hi (English me translate mat karo).
 
-Misal:
-"chai bees, auto saath, sabzi ek sau chalis"
-[{"title":"Chai","amount":20,"type":"expense"},{"title":"Auto","amount":60,"type":"expense"},{"title":"Sabzi","amount":140,"type":"expense"}]`;
+Misal 1 — chhoti line:
+"chai bees auto saath sabzi ek sau chalis"
+[{"title":"Chai","amount":20,"type":"expense"},{"title":"Auto","amount":60,"type":"expense"},{"title":"Sabzi","amount":140,"type":"expense"}]
+
+Misal 2 — poore din ki kahani:
+"aaj subah uthke chai pi bees ki, phir office jane ke liye auto liya saath rupaye,
+dopahar me office canteen me khana khaya assi ka, shaam ko dost mila to usne chai
+pilai, aur raat ko ghar aate hue sabzi li ek sau chalis ki"
+[{"title":"Chai","amount":20,"type":"expense","daysAgo":0,"hour":9},
+ {"title":"Auto","amount":60,"type":"expense","daysAgo":0,"hour":9},
+ {"title":"Canteen khana","amount":80,"type":"expense","daysAgo":0,"hour":13},
+ {"title":"Sabzi","amount":140,"type":"expense","daysAgo":0,"hour":21}]
+(dost ne chai pilai — uska paisa user ne nahi diya, isliye entry nahi bani)`;
 
 const ASK_SYSTEM = `Tum ek query planner ho. User apne kharchon ke baare me sawaal poochta hai.
 SIRF ek JSON QueryPlan return karo — koi number, koi jawab nahi. Total database nikalega.

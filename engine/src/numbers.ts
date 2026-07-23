@@ -196,6 +196,58 @@ function isFalseNumberRun(run: string[], prev?: string, next?: string): boolean 
   return false;
 }
 
+export interface AmountSpan {
+  /** token index — shuru */
+  start: number;
+  /** token index — khatam (exclusive) */
+  end: number;
+  value: number;
+  kind: 'digits' | 'words';
+}
+
+/**
+ * Token stream me saare amounts kahan-kahan hain.
+ *
+ * Isse hi pata chalta hai ki "chai bees auto saath" me DO kharche hain —
+ * bolte waqt koi comma nahi lagata, isliye sirf comma pe todna kaafi nahi.
+ */
+export function findAmountSpans(tokens: string[]): AmountSpan[] {
+  const spans: AmountSpan[] = [];
+  let i = 0;
+
+  while (i < tokens.length) {
+    const token = tokens[i]!;
+
+    // digits: 20, ₹1,240, 500rs, 2k
+    const digitMatch = token.match(/^(?:₹|rs\.?|inr\.?)?\s*(\d[\d,]*(?:\.\d{1,2})?)(k)?(?:rs|rupaye|rupees?|\/-)?$/i);
+    if (digitMatch?.[1]) {
+      let value = parseFloat(digitMatch[1].replace(/,/g, ''));
+      if (digitMatch[2]) value *= 1000;
+      if (isFinite(value) && value > 0) {
+        spans.push({ start: i, end: i + 1, value, kind: 'digits' });
+        i += 1;
+        continue;
+      }
+    }
+
+    if (isNumberWord(token)) {
+      let j = i;
+      while (j < tokens.length && isNumberWord(tokens[j]!)) j++;
+      const run = tokens.slice(i, j);
+      const value = isFalseNumberRun(run, tokens[i - 1], tokens[j]) ? null : wordsToNumber(run);
+      if (value !== null && value > 0) {
+        spans.push({ start: i, end: j, value, kind: 'words' });
+      }
+      i = j;
+      continue;
+    }
+
+    i += 1;
+  }
+
+  return spans;
+}
+
 export interface AmountHit {
   /** rupees me (paise me convert karna caller ka kaam) */
   value: number;

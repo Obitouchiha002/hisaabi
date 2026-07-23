@@ -16,6 +16,45 @@ describe('parseText', () => {
     expect(drafts.every((d) => d.type === 'expense')).toBe(true);
   });
 
+  /* Bolte waqt koi comma nahi lagata — ye sabse asli case hai.
+     Ek baar ye tootne se poora "ek saath sab bol do" wala vaada tootta hai. */
+  describe('bina comma ke bhi todta hai (voice)', () => {
+    it('teen kharche, koi comma nahi', () => {
+      const drafts = parseText('chai bees auto saath sabzi ek sau chalis', { now: NOW, source: 'voice' });
+      expect(drafts.map((d) => [d.title, d.amountPaise])).toEqual([
+        ['Chai', 2000],
+        ['Auto', 6000],
+        ['Sabzi', 14000],
+      ]);
+    });
+
+    it('digits ke saath bhi', () => {
+      const drafts = parseText('chai 20 auto 60 petrol 500', { now: NOW });
+      expect(drafts.map((d) => d.amountPaise)).toEqual([2000, 6000, 50000]);
+    });
+
+    it('naam amount ke baad ho tab bhi — "bees ki chai"', () => {
+      const drafts = parseText('bees ki chai saath ka auto', { now: NOW });
+      expect(drafts.map((d) => [d.title, d.amountPaise])).toEqual([
+        ['Chai', 2000],
+        ['Auto', 6000],
+      ]);
+    });
+
+    it('ek hi kharcha ho to todta nahi', () => {
+      expect(parseText('sabzi ek sau chalis', { now: NOW })).toHaveLength(1);
+      expect(parseText('atm se do hazaar nikale', { now: NOW })).toHaveLength(1);
+    });
+
+    it('lamba jumla — 5 kharche ek saans me', () => {
+      const drafts = parseText(
+        'aaj chai bees auto saath sabzi ek sau chalis dopahar khana assi aur raat me zomato teen sau',
+        { now: NOW, source: 'voice' },
+      );
+      expect(drafts.map((d) => d.amountPaise)).toEqual([2000, 6000, 14000, 8000, 30000]);
+    });
+  });
+
   it('"aur" pe bhi todta hai', () => {
     const drafts = parseText('chai 20 aur samosa 15', { now: NOW });
     expect(drafts).toHaveLength(2);

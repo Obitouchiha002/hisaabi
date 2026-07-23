@@ -189,3 +189,43 @@ export const RANGE_LABELS_HI: Record<RangeLabel, string> = {
   this_year: 'is saal',
   all_time: 'ab tak',
 };
+
+/* ============================================================
+   Intent — user ne kharcha likha hai ya sawaal pucha hai?
+   User ko ye sochna hi nahi chahiye ki kaunsa button dabana hai.
+   ============================================================ */
+
+export type Intent = 'expense' | 'question' | 'unknown';
+
+/** Sawaal ke pakke ishare. */
+const QUESTION_RE =
+  /\?|\b(kitna|kitne|kitni|kaha|kahan|kaun|kaunsa|konsa|kab|kyun|batao|bata|dikha|dikhao|list|report|summary|total|average|sabse|compare|bacha|bachega|safe|kya\s+hai|how much|how many|what|which|when|show)\b/i;
+
+/** Kharcha likhne ke pakke ishare. */
+const EXPENSE_RE =
+  /\b(kiya|kiye|diya|diye|liya|liye|lagaye|laga|kharch|kharcha|kharche|khareeda|kharida|bhara|dala|khaya|piya|paid|spent|bought)\b/i;
+
+/**
+ * Text kharcha hai ya sawaal.
+ *
+ * Sabse bada ishara: amount hai ya nahi. Sawaal me aksar amount nahi hota
+ * ("swiggy pe kitna gaya"), aur kharche me hamesha hota hai ("swiggy 300").
+ * Dono ho — "is mahine 500 se zyada kaunse kharche" — to sawaal wale
+ * shabd bhaari padte hain.
+ */
+export function detectIntent(text: string, hasAmount: boolean): Intent {
+  const t = text.trim();
+  if (!t) return 'unknown';
+
+  const looksLikeQuestion = QUESTION_RE.test(t);
+  const looksLikeExpense = EXPENSE_RE.test(t);
+
+  // "?" ya "kitna" jaisa saaf sawaal — amount ho tab bhi sawaal hi hai
+  if (looksLikeQuestion && !looksLikeExpense) return 'question';
+
+  if (hasAmount) return 'expense';
+  if (looksLikeQuestion) return 'question';
+  if (looksLikeExpense) return 'expense';
+
+  return 'unknown';
+}

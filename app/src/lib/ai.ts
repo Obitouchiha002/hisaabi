@@ -7,7 +7,7 @@
  */
 
 import {
-  resolveRange, scrubPII, toPaise,
+  resolveRange, resolveWhen, scrubPII, toPaise,
   type AiAdapter, type AiContext, type DraftEntry, type QueryPlan,
 } from '@engine';
 
@@ -75,12 +75,24 @@ function toDraft(row: Record<string, unknown>, now: string): DraftEntry | null {
 
   const type = row.type === 'income' || row.type === 'cash_in' ? row.type : 'expense';
 
+  // AI ne waqt bataya ho ("kal shaam") to wahi lagao — warna aaj ka hisaab galat hoga
+  const when = resolveWhen(
+    typeof row.daysAgo === 'number' || typeof row.hour === 'number'
+      ? {
+          daysAgo: Math.max(0, Math.min(60, Number(row.daysAgo) || 0)),
+          hour: typeof row.hour === 'number' && row.hour >= 0 && row.hour <= 23 ? row.hour : undefined,
+          matched: [],
+        }
+      : null,
+    new Date(now),
+  );
+
   return {
     title: title.slice(0, 40),
     amountPaise: toPaise(amount),
     type,
     paidWith: type === 'cash_in' ? 'cash' : 'unknown',
-    occurredAt: now,
+    occurredAt: when.toISOString(),
     source: 'manual',
     // AI ka jawab hamesha review ke liye jata hai — confidence jaan-boojh ke kam
     confidence: 0.7,

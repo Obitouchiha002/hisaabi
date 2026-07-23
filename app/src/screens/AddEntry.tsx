@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { categoryMeta, formatINR, type DraftEntry } from '@engine';
+import { categoryMeta, formatINR, type AskAnswer, type DraftEntry } from '@engine';
 import { Icon, Sheet } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { startVoice, voiceEngine, type VoiceSession } from '@/lib/voice';
@@ -21,10 +21,11 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
   onClose(): void;
   onSaved(count: number, total: number): void;
 }) {
-  const { engine, commitDrafts, ai } = useStore();
+  const { engine, commitDrafts, ai, entries } = useStore();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [text, setText] = useState('');
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  const [answer, setAnswer] = useState<AskAnswer | null>(null);
   const [listening, setListening] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -34,20 +35,26 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const voiceRef = useRef<VoiceSession | null>(null);
 
-  /* ---- parse ---- */
+  /* ---- samajhna ----
+     User ko ye sochna hi nahi chahiye ki ye kharcha hai ya sawaal.
+     Engine khud tay karta hai; hum sirf uska jawab dikhate hain.
+     Type karte waqt thoda ruk kar chalate hain, warna har akshar pe kaam hota hai. */
   useEffect(() => {
     let alive = true;
-    if (!text.trim()) { setDrafts([]); setThinking(false); return; }
+    if (!text.trim()) { setDrafts([]); setAnswer(null); setThinking(false); return; }
+
     setThinking(true);
+    const t = setTimeout(() => {
+      void engine.handle(text, entries, { source: mode === 'voice' ? 'voice' : 'manual' }).then((res) => {
+        if (!alive) return;
+        setDrafts(res.intent === 'expense' ? res.drafts : []);
+        setAnswer(res.intent === 'question' ? res.answer : null);
+        setThinking(false);
+      });
+    }, 350);
 
-    void engine.ingestText(text, { source: mode === 'voice' ? 'voice' : 'manual' }).then((d) => {
-      if (!alive) return;
-      setDrafts(d);
-      setThinking(false);
-    });
-
-    return () => { alive = false; };
-  }, [text, engine, mode]);
+    return () => { alive = false; clearTimeout(t); };
+  }, [text, engine, entries, mode]);
 
   useEffect(() => {
     void voiceEngine().then((e) => setCanVoice(e !== 'none'));
@@ -146,8 +153,8 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
             ref={areaRef}
             className="compose"
             value={text}
-            rows={2}
-            placeholder={'Ek saath sab likh do —\n“chai 20, auto 60, sabzi 140”'}
+            rows={3}
+            placeholder={'Poore din ka haal likh do —\n“subah chai bees, dopahar khana assi”\n\nYa poocho — “is mahine kitna gaya?”'}
             onChange={(e) => setText(e.target.value)}
           />
           {!text && (
@@ -161,6 +168,14 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       )}
 
       {voiceError && <div className="dev-note">{voiceError}</div>}
+
+      {/* sawaal ka jawab */}
+      {answer && !thinking && (
+        <div className="ask-answer">
+          <span className="tile-k">Jawab</span>
+          <p>{answer.answer}</p>
+        </div>
+      )}
 
       {/* parse ka natija */}
       {(drafts.length > 0 || thinking) && (
@@ -197,15 +212,19 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       )}
 
       {!text && mode === 'type' && ai.status === 'on' && (
-        <p className="ai-note">{Icon.spark} AI on hai — ulta-seedha likho tab bhi samajh jayega</p>
+        <p className="ai-note">{Icon.spark} Poore din ki kahani likh do — AI usme se kharche khud nikal lega</p>
       )}
 
       <div className="q-foot">
-        <button className="btn btn-primary btn-block" onClick={() => void save()} disabled={!drafts.length || saving}>
-          {drafts.length
-            ? `${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'} add karo · ${formatINR(total)}`
-            : mode === 'voice' ? 'Bolo, phir add karna' : 'Kuch likho'}
-        </button>
+        {answer && !drafts.length ? (
+          <button className="btn btn-primary btn-block" onClick={onClose}>Theek hai</button>
+        ) : (
+          <button className="btn btn-primary btn-block" onClick={() => void save()} disabled={!drafts.length || saving}>
+            {drafts.length
+              ? `${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'} add karo · ${formatINR(total)}`
+              : mode === 'voice' ? 'Bolo, phir add karna' : 'Kuch likho ya poocho'}
+          </button>
+        )}
         <button className="btn btn-quiet btn-block" onClick={onClose}>Rehne do</button>
       </div>
     </Sheet>
