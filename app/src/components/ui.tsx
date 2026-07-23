@@ -149,6 +149,28 @@ export function Sheet({ children, onClose }: { children: ReactNode; onClose(): v
     };
   }, [onClose]);
 
+  /* Keyboard khulte hi sheet ka aadha hissa uske neeche chhup jata tha —
+     jo likh rahe ho wahi nahi dikhta. visualViewport batata hai ki asli me
+     kitni jagah bachi hai; wahi height sheet ko de dete hain. */
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const apply = () => {
+      const hidden = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--kb', `${Math.round(hidden)}px`);
+    };
+
+    apply();
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    return () => {
+      vv.removeEventListener('resize', apply);
+      vv.removeEventListener('scroll', apply);
+      document.documentElement.style.removeProperty('--kb');
+    };
+  }, []);
+
   return (
     <>
       <div className="sheet-backdrop" onClick={onClose} />
