@@ -84,6 +84,18 @@
           <span><b>Telegram se</b><i>Bot ko voice note bhej do, app me sync ho jayega</i></span>
         </div>
       </div>
+      <div class="mdemo">
+        <p class="mdemo-k">Aise bol do</p>
+        <p class="mdemo-say">“aaj subah chai bees, auto saath, dopahar khana assi, raat ko sabzi ek sau chalis”</p>
+        <div class="mdemo-out">
+          <span>🍵 Chai <b>₹20</b></span>
+          <span>🛺 Auto <b>₹60</b></span>
+          <span>🍛 Khana <b>₹80</b></span>
+          <span>🥬 Sabzi <b>₹140</b></span>
+        </div>
+        <p class="mdemo-note">Comma na bhi lagao to bhi chalega. Waqt bataoge to entry usi waqt ki banegi.</p>
+      </div>
+
       <p class="mfoot">Purani apps isliye chhoot jati hain kyunki har chai ke liye app kholna padta hai.</p>
     </section>
 
@@ -132,7 +144,88 @@
       <p class="mfoot">Auto-capture hamesha free — wahi roz ki aadat banata hai.</p>
     </section>
 
-    <!-- 5. APP -->
+    <!-- 5. SAWAAL -->
+    <section class="mscreen" data-tab="faq">
+      <h2>Poochne se<br>pehle hi jawab.</h2>
+
+      <div class="mfaq">
+        <details open>
+          <summary>Play Store pe kyun nahi?</summary>
+          <p>
+            Notification access maangne wali apps ka store review mahino chalta hai.
+            Isliye APK seedha yahin se milti hai. App khud update check kar leti hai.
+          </p>
+        </details>
+
+        <details>
+          <summary>Mera bank data padhoge?</summary>
+          <p>
+            Nahi. Bank se koi connection nahi, net-banking login nahi, account number
+            kahin nahi maanga jata. App sirf notification ka text dekhti hai — “₹240 debited” —
+            aur wo bhi <b>tumhare phone ke andar hi</b>. Kisi server pe kuch nahi jata.
+          </p>
+        </details>
+
+        <details>
+          <summary>SMS permission maangoge?</summary>
+          <p>
+            Bilkul nahi. Bank ka SMS aaye to uska notification hi kaafi hai, isliye
+            <code>READ_SMS</code> ki zaroorat hi nahi padti.
+          </p>
+        </details>
+
+        <details>
+          <summary>AI galat entry bana de to?</summary>
+          <p>
+            Koi bhi AI ya auto entry <b>seedha save nahi hoti</b>. Pehle confirm card
+            dikhta hai — ek tap me badal ya hata sakte ho.
+          </p>
+        </details>
+
+        <details>
+          <summary>Internet ke bina chalega?</summary>
+          <p>
+            Haan. Entries, reports, auto-capture — sab offline. Internet sirf voice
+            samajhne aur sync ke liye chahiye.
+          </p>
+        </details>
+
+        <details>
+          <summary>Hindi me bolun ya English?</summary>
+          <p>
+            Jaise bolte ho waise. “chai twenty”, “chai bees rupaye”, “chai 20” — teeno
+            chalega. <b>“do sau”, “dhai sau”, “sava sau”</b> sab samajh aata hai.
+          </p>
+        </details>
+
+        <details>
+          <summary>iPhone pe?</summary>
+          <p>
+            Web app iPhone pe chalta hai. Auto-capture iOS pe possible hi nahi —
+            Apple kisi app ko doosri app ke notifications padhne nahi deta.
+          </p>
+        </details>
+
+        <details>
+          <summary>Data export ho sakta hai?</summary>
+          <p>Haan — CSV, JSON ya PDF. Kabhi bhi, poora. Data tumhara hai.</p>
+        </details>
+
+        <details>
+          <summary>Kya ye sach me free hai?</summary>
+          <p>
+            Manual entry aur auto-capture <b>hamesha free</b>. Paisa sirf AI wale
+            bhaari kaam pe lagta hai — aur early access me wo bhi free hai.
+          </p>
+        </details>
+      </div>
+
+      <a class="mgh" href="https://github.com/Obitouchiha002/hisaabi" rel="noopener">
+        Jawab yahan nahi mila? GitHub pe poocho →
+      </a>
+    </section>
+
+    <!-- 6. APP -->
     <section class="mscreen mcenter" data-tab="app">
       <span class="mbig-ico" aria-hidden="true">₹</span>
       <h2>Aaj raat se<br>hisaab shuru.</h2>
@@ -142,7 +235,8 @@
       </div>
       <div class="mtrust">
         <b>Tumhara data tumhare phone me</b>
-        Notification parsing 100% phone ke andar · bank login kabhi nahi · code khula hua hai
+        Notification parsing 100% phone ke andar · bank login kabhi nahi ·
+        AI ko sirf tumhara likha text jata hai, wo bhi saaf karke · code khula hua hai
       </div>
       <a class="btn btn-primary btn-block" href="/hisaabi.apk" download>APK Download</a>
     </section>
@@ -154,6 +248,7 @@
     <button data-go="likho"><span>✍️</span>Likho</button>
     <button data-go="features"><span>✨</span>Features</button>
     <button data-go="price"><span>💸</span>Price</button>
+    <button data-go="faq"><span>❓</span>Sawaal</button>
     <button data-go="app" class="mtab-cta"><span>⬇️</span>App</button>
   </nav>
 </div>
@@ -685,6 +780,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
 
+    <div class="dl-scroll">
     <div class="dl-head">
       <span class="dl-icon" aria-hidden="true">₹</span>
       <div>
@@ -731,6 +827,8 @@
       <code id="dlHash">24163c3c5e0168109158e27ed8bcc207ad0104a7762db32e66f2d1542f49b7c3</code>
       <p>Chaho to milake dekh lo ki file waisi hi hai jaisi humne banayi thi.</p>
     </details>
+
+    </div>
 
     <div class="dl-actions">
       <a class="btn btn-primary" id="dlGo" href="/hisaabi.apk" download>
