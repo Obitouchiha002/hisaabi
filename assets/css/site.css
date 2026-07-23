@@ -1550,10 +1550,13 @@ em.serif {
     min-height: 100svh;
     position: relative;
     z-index: 1;
+    width: 100%;
     max-width: 560px;
+    overflow-x: clip;          /* 393px screen pe page 471px chauda ho raha tha */
     margin-inline: auto;
     padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
+  .mapp * { min-width: 0; }
 
   /* ---- top bar ---- */
   .mapp-top {
@@ -1584,16 +1587,19 @@ em.serif {
   .mapp-top .icon-btn svg { width: 17px; height: 17px; }
 
   /* ---- screens ---- */
-  .mscreens { flex: 1; position: relative; display: flex; }
+  .mscreens { flex: 1; position: relative; display: flex; max-width: 100%; overflow-x: clip; }
   .mscreen {
     display: none;
     flex: 1;
     flex-direction: column;
     gap: 14px;
+    width: 100%;
+    max-width: 100%;
     padding: 8px 18px 14px;
     /* itni jagah ki screen bhari-bhari lage, par content zyada ho to page scroll ho jaye */
     min-height: calc(100svh - 150px);
   }
+  .mscreen > * { max-width: 100%; }
   .mscreen.on { display: flex; }
 
   /* har screen ke bachche ek-ek karke aate hain — ye hi "premium" wala ehsaas deta hai */
@@ -1620,11 +1626,14 @@ em.serif {
     to   { opacity: 1; transform: none; filter: blur(0); }
   }
 
-  /* upar se halka sa glow — screen zinda lagti hai */
+  /* Upar se halka sa glow.
+     Pehle iska inset -20% tha (dono taraf), matlab ye screen se 40% chauda tha
+     aur poore page ko 393 → 472px kha deta tha. Poori website mobile pe side me
+     khisak jati thi. Ab apni hi chaudai me rehta hai. */
   .mscreens::before {
     content: "";
     position: absolute;
-    inset: -40px -20% auto -20%;
+    inset: -40px 0 auto 0;
     height: 260px;
     background: var(--glow);
     pointer-events: none;
@@ -1648,16 +1657,20 @@ em.serif {
   /* home ka phone */
   .mphone-slot {
     flex: 1 1 auto;
+    min-height: 0;
     display: grid;
     place-items: center;
     padding-block: 4px;
+    overflow: hidden;
   }
-  .mphone-slot .phone-stage { padding: 0; min-height: 0; }
+  .mphone-slot .phone-stage { padding: 0; min-height: 0; max-width: 100%; }
   /* Width fix, height aspect-ratio se. Andar ka text isi width ke hisaab se saja hai —
      isse chhota karoge to sab tootne lagta hai. Screen chhoti ho to page scroll ho jayega,
      aur wo theek hai; content ka toot-na theek nahi.                                    */
+  /* Chaudai se bandhne pe height 2.1x ho jati thi aur home screen scroll karna
+     padta tha. Ab jo bhi chhota ho — chaudai ya bachi hui height — wahi lete hain. */
   .mphone-slot .phone {
-    width: min(206px, 58vw);
+    width: min(190px, 52vw, 24svh);
     height: auto;
     margin-inline: auto;
   }
@@ -1901,21 +1914,23 @@ em.serif {
     text-underline-offset: 3px;
   }
 
-  /* 6 tabs — thodi si aur jagah banani padi */
-  .mtabs button { font-size: 9.5px; padding: 7px 1px; }
-  .mtabs button span { font-size: 16px; }
+  .mtabs button span { font-size: 15px; line-height: 1; }
 
   /* ---- bottom tabs ---- */
+  /* 6 tabs 393px me: 393 − 20 margin − 10 padding = 363 ÷ 6 = 60px per tab.
+     Pehle har button apne text jitni jagah maang raha tha ("Features" 60px me
+     nahi aata), isliye poori bar chaudi ho jati thi aur page bahar nikal jata. */
   .mtabs {
     position: fixed;
     z-index: 40;
     left: 50%;
     transform: translateX(-50%);
-    width: min(536px, calc(100% - 24px));
-    bottom: calc(env(safe-area-inset-bottom) + 12px);
+    width: min(536px, calc(100% - 20px));
+    max-width: calc(100vw - 20px);
+    bottom: calc(env(safe-area-inset-bottom) + 10px);
     display: flex;
-    gap: 2px;
-    padding: 7px;
+    gap: 1px;
+    padding: 5px;
     border-radius: var(--r-pill);
     background: color-mix(in srgb, var(--surface) 88%, transparent);
     backdrop-filter: blur(20px) saturate(1.6);
@@ -1924,15 +1939,20 @@ em.serif {
     box-shadow: 0 18px 40px -20px rgba(0,0,0,.55);
   }
   .mtabs button {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;                /* text chhota ho jaye, bar na phaile */
     display: grid;
     justify-items: center;
-    gap: 3px;
-    padding: 8px 2px;
+    gap: 2px;
+    padding: 7px 1px;
     border-radius: var(--r-pill);
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--ink-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     transition: color .25s var(--ease), background-color .25s var(--ease), transform .2s var(--ease);
   }
   .mtabs button:active { transform: scale(.94); }
@@ -1955,7 +1975,7 @@ em.serif {
 @media (max-width: 900px) and (max-height: 700px) {
   .mscreen h1 { font-size: 26px; }
   .mscreen h2 { font-size: 22px; }
-  .mphone-slot .phone { width: min(184px, 52vw); }
+  .mphone-slot .phone { width: min(160px, 46vw, 21svh); }
   .mrow { padding: 11px 13px; }
   .mrow-ico { width: 34px; height: 34px; font-size: 16px; }
 }

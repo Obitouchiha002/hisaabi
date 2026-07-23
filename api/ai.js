@@ -44,14 +44,29 @@ Rules:
   · "chai 20"           → kharcha (expense)
   · "500 ATM se nikale" → cash_in (kharcha NAHI — paisa jeb me aaya)
   · "salary mili 25000" → income
-  · UDHAAR — ye kharcha NAHI hai, par iski bhi entry banti hai:
-      "Rahul ko 500 diye"       → lent,     counterparty "Rahul"  (wapas milne hain)
-      "Rahul se 500 lene hain"  → lent,     counterparty "Rahul"  (wahi baat)
-      "Aman se 200 liye"        → borrowed, counterparty "Aman"   (wapas dene hain)
-      "Aman ko 200 dene hain"   → borrowed, counterparty "Aman"   (wahi baat)
-    Dhyan: "kisko diya/kisse liya" nahi, balki "ab lena hai ya dena hai" — usi se
-    type tay hota hai. Naam na pata ho to counterparty chhod do.
-    title chhota rakho: "Rahul se lene hain" / "Aman ko dene hain".
+  · UDHAAR — ye kharcha NAHI hai, par iski bhi entry banti hai.
+    SIRF EK SAWAAL PUCHO: paisa USER ke paas se GAYA ya USER ke paas AAYA?
+      Paisa user se GAYA  → "lent"     (ab user ko wapas MILNA hai)
+      Paisa user ke paas AAYA → "borrowed" (ab user ko wapas DENA hai)
+
+    Ye sab "lent" hain (paisa user se gaya, wapas milna hai):
+      "Rahul ko 500 diye"
+      "Rahul se 500 lene hain"
+      "Rahul ne mujhse 500 udhaar liye"     ← DHYAN: liye Rahul ne, paisa MERA gaya
+      "Rahul ne mujhse 500 maange"
+
+    Ye sab "borrowed" hain (paisa user ke paas aaya, wapas dena hai):
+      "Aman se 200 liye"
+      "Aman ko 200 dene hain"
+      "maine Aman se 200 udhaar liye"
+      "Aman ne mujhe 200 diye"              ← DHYAN: diye Aman ne, paisa MERE paas aaya
+      "dukaan ka 1500 baaki hai"            ← baaki dena hai
+      "bill ka aadha paisa baad me dunga"
+
+    Yaad rakho: "liya/diya" shabd se nahi, KISNE kisko se tay karo.
+    "X ne mujhse liya" = lent. "maine X se liya" = borrowed.
+    Naam na pata ho to counterparty chhod do.
+    title chhota: "Rahul se lene hain" / "Aman ko dene hain".
   · "dost ne khilaya", "usne pay kiya" → user ne paisa nahi diya, entry mat banao.
 - AMOUNT KISKA HAI, ye pakka karo. Number cheez ke pehle bhi aa sakta hai aur baad me bhi:
   "20 tea"  = Tea, 20      (tea 20 ka hai)
@@ -84,10 +99,18 @@ Misal 3 — ulti-seedhi line, sab kuch mila-jula:
 (chai 20 ki thi — 500 nahi. 500 ATM se nikale = cash_in.
  "dost se 12 lene hain" = lent, kyunki wo paisa wapas aana hai.)
 
-Misal 4 — sirf udhaar:
-"Rahul ko 500 diye aur Aman se 200 liye"
+Misal 4 — udhaar, dono direction:
+"Rahul ko 500 diye, aur bhai ne mujhse 1000 udhaar liye, Aman se 200 liye the"
 [{"title":"Rahul se lene hain","amount":500,"type":"lent","counterparty":"Rahul"},
- {"title":"Aman ko dene hain","amount":200,"type":"borrowed","counterparty":"Aman"}]`;
+ {"title":"Bhai se lene hain","amount":1000,"type":"lent","counterparty":"Bhai"},
+ {"title":"Aman ko dene hain","amount":200,"type":"borrowed","counterparty":"Aman"}]
+(pehle do me paisa MERA gaya — dono lent. teesre me paisa MERE paas aaya — borrowed.)
+
+Misal 5 — aadha paisa abhi, aadha baad me:
+"petrol 2 hazar ka bharwaya par abhi 500 diye baaki baad me"
+[{"title":"Petrol","amount":2000,"type":"expense"},
+ {"title":"Petrol pump ko dene hain","amount":1500,"type":"borrowed","counterparty":"Petrol pump"}]
+(poora 2000 ka kharcha hua hi hai. 1500 abhi dena baaki hai — wo borrowed.)`;
 
 const ASK_SYSTEM = `Tum ek query planner ho. User apne kharchon ke baare me sawaal poochta hai.
 SIRF ek JSON QueryPlan return karo — koi number, koi jawab nahi. Total database nikalega.
