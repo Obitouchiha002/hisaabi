@@ -56,16 +56,74 @@ export function safeToSpend(input: BudgetInput): SafeToSpend {
 /**
  * Cash wallet: ATM se aaya paisa minus cash me kiye kharche.
  * `cash_in` ko kabhi expense me mat ginna — warna mahina do baar count hoga.
+ *
+ * Udhaar bhi jeb se jata/aata hai (kharcha na hone ke bawajood), isliye
+ * cash wallet me wo bhi ginte hain — warna jeb ka hisaab galat dikhega.
  */
 export function cashBalance(entries: Entry[]): Paise {
   let balance = 0;
   for (const e of entries) {
     if (e.status !== 'confirmed') continue;
+    const cash = e.paidWith === 'cash';
+
     if (e.type === 'cash_in') balance += e.amountPaise;
-    else if (e.type === 'expense' && e.paidWith === 'cash') balance -= e.amountPaise;
-    else if (e.type === 'income' && e.paidWith === 'cash') balance += e.amountPaise;
+    else if (e.type === 'expense' && cash) balance -= e.amountPaise;
+    else if (e.type === 'income' && cash) balance += e.amountPaise;
+    else if (e.type === 'lent' && cash) balance -= e.amountPaise;
+    else if (e.type === 'borrowed' && cash) balance += e.amountPaise;
   }
   return balance;
+}
+
+/* ---------- lena-dena ---------- */
+
+export interface UdhaarPerson {
+  name: string;
+  /** + matlab mujhe milna hai, − matlab mujhe dena hai */
+  netPaise: Paise;
+  entries: Entry[];
+}
+
+export interface UdhaarSummary {
+  /** kul kitna mujhe milna hai */
+  toGetPaise: Paise;
+  /** kul kitna mujhe dena hai */
+  toGivePaise: Paise;
+  people: UdhaarPerson[];
+}
+
+/**
+ * Kiska kitna baaki hai.
+ *
+ * Ek hi bande ke saath lena aur dena dono ho sakta hai — un dono ko jod kar
+ * ek hi number dikhate hain, warna "Rahul se 500 lene, Rahul ko 300 dene"
+ * jaisa bewajah confusion hota hai.
+ */
+export function udhaarSummary(entries: Entry[]): UdhaarSummary {
+  const byPerson = new Map<string, UdhaarPerson>();
+
+  for (const e of entries) {
+    if (e.status !== 'confirmed') continue;
+    if (e.type !== 'lent' && e.type !== 'borrowed') continue;
+    if (e.settledAt) continue;   // chukta ho gaya
+
+    const name = e.counterparty?.trim() || 'Koi';
+    const row = byPerson.get(name) ?? { name, netPaise: 0, entries: [] };
+
+    row.netPaise += e.type === 'lent' ? e.amountPaise : -e.amountPaise;
+    row.entries.push(e);
+    byPerson.set(name, row);
+  }
+
+  const people = [...byPerson.values()]
+    .filter((p) => p.netPaise !== 0)
+    .sort((a, b) => Math.abs(b.netPaise) - Math.abs(a.netPaise));
+
+  return {
+    toGetPaise: people.filter((p) => p.netPaise > 0).reduce((s, p) => s + p.netPaise, 0),
+    toGivePaise: people.filter((p) => p.netPaise < 0).reduce((s, p) => s - p.netPaise, 0),
+    people,
+  };
 }
 
 /** Mahine ka kharcha — cash_in aur income isme nahi jate. */

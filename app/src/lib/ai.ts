@@ -73,7 +73,14 @@ function toDraft(row: Record<string, unknown>, now: string): DraftEntry | null {
   const title = String(row.title ?? '').trim();
   if (!isFinite(amount) || amount <= 0 || !title) return null;
 
-  const type = row.type === 'income' || row.type === 'cash_in' ? row.type : 'expense';
+  const KNOWN = ['income', 'cash_in', 'lent', 'borrowed'] as const;
+  const type = (KNOWN as readonly string[]).includes(String(row.type))
+    ? (row.type as (typeof KNOWN)[number])
+    : 'expense';
+
+  const counterparty = typeof row.counterparty === 'string' && row.counterparty.trim()
+    ? row.counterparty.trim().slice(0, 24)
+    : undefined;
 
   // AI ne waqt bataya ho ("kal shaam") to wahi lagao — warna aaj ka hisaab galat hoga
   const when = resolveWhen(
@@ -92,6 +99,7 @@ function toDraft(row: Record<string, unknown>, now: string): DraftEntry | null {
     amountPaise: toPaise(amount),
     type,
     paidWith: type === 'cash_in' ? 'cash' : 'unknown',
+    counterparty,
     occurredAt: when.toISOString(),
     source: 'manual',
     // AI ka jawab hamesha review ke liye jata hai — confidence jaan-boojh ke kam

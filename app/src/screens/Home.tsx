@@ -11,8 +11,8 @@ import { Settings } from './Settings';
 export function Home() {
   const store = useStore();
   const {
-    profile, entries, todayPaise, budget, cashPaise,
-    pending, setRoute, updateEntry, removeEntry, teachCategory,
+    profile, entries, todayPaise, budget, cashPaise, udhaar,
+    pending, setRoute, updateEntry, removeEntry, teachCategory, settleUdhaar,
   } = store;
   const [editing, setEditing] = useState<Entry | null>(null);
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') ?? 'dark');
@@ -22,6 +22,12 @@ export function Home() {
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('hisaabi-theme', next);
     setTheme(next);
+  }
+
+  /** Poora hisaab chukta — us bande ki saari entries ek saath settle. */
+  async function settleAll(ids: string[], name: string) {
+    for (const id of ids) await settleUdhaar(id);
+    toast.show(`${name} ka hisaab barabar ✅`);
   }
 
   async function quickAdd(line: string) {
@@ -104,6 +110,30 @@ export function Home() {
         </div>
       </div>
 
+      {udhaar.people.length > 0 && (
+        <div className="udhaar-card">
+          <div className="udhaar-top">
+            <span className="tile-k">Lena-dena</span>
+            <span className="udhaar-net">
+              {udhaar.toGetPaise > 0 && <b className="good">↓ {formatINR(udhaar.toGetPaise)} lene</b>}
+              {udhaar.toGivePaise > 0 && <b className="bad">↑ {formatINR(udhaar.toGivePaise)} dene</b>}
+            </span>
+          </div>
+
+          {udhaar.people.slice(0, 4).map((p) => (
+            <div className="udhaar-row" key={p.name}>
+              <span className="u-name">{p.name}</span>
+              <span className="u-amt num" data-tone={p.netPaise > 0 ? 'good' : 'bad'}>
+                {p.netPaise > 0 ? `${formatINR(p.netPaise)} lene` : `${formatINR(-p.netPaise)} dene`}
+              </span>
+              <button className="u-done" onClick={() => void settleAll(p.entries.map((e) => e.id), p.name)}>
+                Ho gaya
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="quick-row">
         <span className="quick-k">Jaldi se</span>
         {['chai 20', 'auto 60', 'sabzi 140', 'petrol 500'].map((q) => (
@@ -131,12 +161,18 @@ export function Home() {
                 <span>
                   <span className="e-t">{e.title}</span>
                   <span className="e-s">
-                    {meta.label}
-                    {e.sourceApp ? ` · ${e.sourceApp}` : e.paidWith === 'cash' ? ' · cash' : ''}
+                    {e.type === 'lent' ? 'Lena hai'
+                      : e.type === 'borrowed' ? 'Dena hai'
+                      : e.type === 'cash_in' ? 'Cash nikala'
+                      : e.type === 'income' ? 'Aamdani'
+                      : meta.label}
+                    {e.settledAt ? ' · chukta' : ''}
+                    {e.sourceApp ? ` · ${e.sourceApp}` : ''}
                   </span>
                 </span>
                 <span className="e-a num">
-                  {e.type === 'expense' ? '' : '+'}{formatINR(e.amountPaise)}
+                  {e.type === 'income' || e.type === 'cash_in' || e.type === 'borrowed' ? '+' : ''}
+                  {formatINR(e.amountPaise)}
                 </span>
               </button>
             );

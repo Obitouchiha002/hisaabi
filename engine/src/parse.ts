@@ -11,7 +11,26 @@ import { cleanTitle, normalize, splitSegments, titleCase } from './normalize.js'
 import { toPaise } from './money.js';
 import { extractWhen, resolveWhen, stripWhen, type WhenHit } from './when.js';
 
-const INCOME_RE = /\b(mila|mili|milay|aaya|aayi|salary|tankhwah|income|credited|credit|received|refund|wapas|return)\b/i;
+const INCOME_RE = /\b(mila|mili|milay|aaya|aayi|salary|tankhwah|income|credited|credit|received|refund)\b/i;
+
+/* ---------- lena-dena ----------
+   "Rahul ko 500 diye"   → lent     (paisa gaya, wapas milna hai)
+   "Aman se 200 liye"    → borrowed (paisa aaya, wapas dena hai)
+   Ye kharcha/kamai nahi hai — isliye budget me nahi jate.                */
+
+/** Maine kisi ko diya — wapas milna hai. */
+const LENT_RE =
+  /\b(?:ko|k)\s+.*?\b(?:diye|diya|de diye|de diya|udhaar diya|udhar diya|lend|lent)\b|\b(?:se)\s+.*?\b(?:lene hain|lene hai|leni hai|lene h|milne hain|milne hai|wapas milne)\b/i;
+
+/** Maine kisi se liya — wapas dena hai. */
+const BORROWED_RE =
+  /\b(?:se|s)\s+.*?\b(?:liye|liya|le liye|le liya|udhaar liya|udhar liya|maange|maanga|borrow)\b|\b(?:ko)\s+.*?\b(?:dene hain|dene hai|deni hai|dene h|wapas dene)\b/i;
+
+/** Udhaar wala shabd hai ya nahi — inke bina "ko/se" ka koi matlab nahi. */
+const UDHAAR_HINT_RE = /\b(udhaar|udhar|lene|dene|liye|diye|liya|diya|maange|maanga|wapas)\b/i;
+
+/** Kiske saath — "Rahul ko 500" me se "Rahul". */
+const PARTY_RE = /\b([A-Za-z][a-z]{2,14})\s+(?:ko|se)\b/;
 const CASH_IN_RE = /\b(atm|nikale|nikala|nikali|nikal|withdraw|withdrawn|withdrawal)\b/i;
 const CASH_RE = /\b(cash|nakad|nagad)\b/i;
 const DIGITAL_RE = /\b(upi|gpay|g pay|phonepe|phone pe|paytm|card|online|net ?banking|bhim)\b/i;
@@ -110,8 +129,22 @@ function parseSegment(
   const cleaned = cleanTitle(rest);
 
   let type: EntryType = 'expense';
-  if (CASH_IN_RE.test(segment)) type = 'cash_in';
-  else if (INCOME_RE.test(segment)) type = 'income';
+  let counterparty: string | undefined;
+
+  if (CASH_IN_RE.test(segment)) {
+    type = 'cash_in';
+  } else if (UDHAAR_HINT_RE.test(segment) && LENT_RE.test(segment)) {
+    type = 'lent';
+  } else if (UDHAAR_HINT_RE.test(segment) && BORROWED_RE.test(segment)) {
+    type = 'borrowed';
+  } else if (INCOME_RE.test(segment)) {
+    type = 'income';
+  }
+
+  if (type === 'lent' || type === 'borrowed') {
+    const party = segment.match(PARTY_RE);
+    if (party?.[1]) counterparty = titleCase(party[1]);
+  }
 
   let paidWith: PaidWith = opts.defaultPaidWith ?? 'cash';
   if (type === 'cash_in') paidWith = 'cash';
@@ -119,8 +152,20 @@ function parseSegment(
   else if (CASH_RE.test(segment)) paidWith = 'cash';
 
   let title = titleCase(cleaned);
+
+  /* Lena-dena me title wo batata hai jo AB karna hai, na ki jo hua tha.
+     "Rahul ko 500 diye" aur "Rahul se 500 lene hain" — dono ka matlab ek hi hai:
+     Rahul se paisa lena baaki hai. List me wahi dikhna chahiye. */
+  if (counterparty) {
+    title = type === 'lent' ? `${counterparty} se lene hain` : `${counterparty} ko dene hain`;
+  }
+
   if (!title) {
-    title = type === 'cash_in' ? 'ATM se nikala' : type === 'income' ? 'Aamdani' : 'Kharcha';
+    title =
+      type === 'cash_in' ? 'ATM se nikala' :
+      type === 'income' ? 'Aamdani' :
+      type === 'lent' ? 'Lene hain' :
+      type === 'borrowed' ? 'Dene hain' : 'Kharcha';
     if (type === 'expense') warnings.push('title_missing');
   }
 
@@ -140,6 +185,7 @@ function parseSegment(
     paidWith,
     occurredAt: resolveWhen(opts.when ?? null, opts.now).toISOString(),
     source: opts.source,
+    counterparty,
     confidence: round2(clamp01(confidence)),
     warnings,
   };

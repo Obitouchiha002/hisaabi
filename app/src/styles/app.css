@@ -451,6 +451,47 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 }
 .empty-dots i[data-on="true"] { background: var(--accent); transform: scale(1.35); }
 
+/* ---- lena-dena ---- */
+
+.udhaar-card {
+  margin-top: 12px;
+  padding: 15px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  gap: 10px;
+  animation: cardIn .5s var(--ease-out) both;
+}
+.udhaar-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.udhaar-net { display: flex; gap: 10px; font-size: 13px; font-weight: 600; }
+.udhaar-net .good { color: var(--good); }
+.udhaar-net .bad { color: var(--bad); }
+
+.udhaar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+.udhaar-row .u-name { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; flex: 1; min-width: 0; }
+.udhaar-row .u-amt { font-size: 14px; font-weight: 600; }
+.udhaar-row .u-amt[data-tone="good"] { color: var(--good); }
+.udhaar-row .u-amt[data-tone="bad"] { color: var(--bad); }
+.udhaar-row .u-done {
+  flex: none;
+  padding: 6px 11px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+  transition: transform .18s var(--ease), color .2s, border-color .2s;
+}
+.udhaar-row .u-done:active { transform: scale(.94); }
+
 /* ---- jaldi wale chips: aksar wahi kharche, ek tap me ---- */
 .quick-row {
   display: flex;

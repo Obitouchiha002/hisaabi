@@ -28,7 +28,9 @@ kya kaha) chhod dena — sirf paise wali baat chahiye.
 Rules:
 - Output SIRF JSON array ho. Koi explanation nahi, koi markdown fence nahi.
 - Har object:
-  {"title": string, "amount": number (rupees me), "type": "expense"|"income"|"cash_in",
+  {"title": string, "amount": number (rupees me),
+   "type": "expense"|"income"|"cash_in"|"lent"|"borrowed",
+   "counterparty"?: string,   // lent/borrowed me kiske saath — "Rahul"
    "daysAgo"?: number, "hour"?: number}
 - Hindi/Hinglish numbers samjho, spelling galat ho tab bhi:
   bees/biss = 20, chalis/chaalees = 40, pachas/pachhaas = 50, saath = 60,
@@ -42,8 +44,14 @@ Rules:
   · "chai 20"           → kharcha (expense)
   · "500 ATM se nikale" → cash_in (kharcha NAHI — paisa jeb me aaya)
   · "salary mili 25000" → income
-  · "dost se 500 lene hain" / "Rahul ko 200 dene hain" → UDHAAR hai, kharcha nahi.
-    Iski entry mat banao — chhod do. (App me udhaar ka hisaab alag se aa raha hai.)
+  · UDHAAR — ye kharcha NAHI hai, par iski bhi entry banti hai:
+      "Rahul ko 500 diye"       → lent,     counterparty "Rahul"  (wapas milne hain)
+      "Rahul se 500 lene hain"  → lent,     counterparty "Rahul"  (wahi baat)
+      "Aman se 200 liye"        → borrowed, counterparty "Aman"   (wapas dene hain)
+      "Aman ko 200 dene hain"   → borrowed, counterparty "Aman"   (wahi baat)
+    Dhyan: "kisko diya/kisse liya" nahi, balki "ab lena hai ya dena hai" — usi se
+    type tay hota hai. Naam na pata ho to counterparty chhod do.
+    title chhota rakho: "Rahul se lene hain" / "Aman ko dene hain".
   · "dost ne khilaya", "usne pay kiya" → user ne paisa nahi diya, entry mat banao.
 - AMOUNT KISKA HAI, ye pakka karo. Number cheez ke pehle bhi aa sakta hai aur baad me bhi:
   "20 tea"  = Tea, 20      (tea 20 ka hai)
@@ -71,9 +79,15 @@ pilai, aur raat ko ghar aate hue sabzi li ek sau chalis ki"
 Misal 3 — ulti-seedhi line, sab kuch mila-jula:
 "20 tea 500 ATM se dost se 12 lene hi"
 [{"title":"Tea","amount":20,"type":"expense"},
- {"title":"ATM se nikale","amount":500,"type":"cash_in"}]
-(chai 20 ki thi — 500 nahi. 500 ATM se nikale, wo cash_in hai.
- "dost se 12 lene hain" udhaar hai — uski entry nahi bani.)`;
+ {"title":"ATM se nikale","amount":500,"type":"cash_in"},
+ {"title":"Dost se lene hain","amount":12,"type":"lent","counterparty":"Dost"}]
+(chai 20 ki thi — 500 nahi. 500 ATM se nikale = cash_in.
+ "dost se 12 lene hain" = lent, kyunki wo paisa wapas aana hai.)
+
+Misal 4 — sirf udhaar:
+"Rahul ko 500 diye aur Aman se 200 liye"
+[{"title":"Rahul se lene hain","amount":500,"type":"lent","counterparty":"Rahul"},
+ {"title":"Aman ko dene hain","amount":200,"type":"borrowed","counterparty":"Aman"}]`;
 
 const ASK_SYSTEM = `Tum ek query planner ho. User apne kharchon ke baare me sawaal poochta hai.
 SIRF ek JSON QueryPlan return karo — koi number, koi jawab nahi. Total database nikalega.

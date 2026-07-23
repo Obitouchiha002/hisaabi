@@ -92,9 +92,14 @@ describe('HisaabiEngine — poora flow', () => {
     await engine.ingestText('chai 20');
     expect(ai.parseEntries).not.toHaveBeenCalled();
 
-    // shabdon wala amount bhi rules hi handle kar lete hain
-    await engine.ingestText('bhaiya ko chaar sau pachas de diye kirane ke');
+    // "chai bees, auto saath" jaisi saaf line bhi rules hi karte hain
+    await engine.ingestText('chai bees, auto saath');
     expect(ai.parseEntries).not.toHaveBeenCalled();
+
+    // "bhaiya ko de diye" — udhaar hai ya kirane ka kharcha? Ye rules ka kaam nahi.
+    await engine.ingestText('bhaiya ko chaar sau pachas de diye kirane ke');
+    expect(ai.parseEntries).toHaveBeenCalledOnce();
+    ai.parseEntries.mockClear();
 
     // yahan amount hi nahi mila — ab AI ki baari
     const drafts = await engine.ingestText('kal raat wale dinner ka paisa bhi add kar do');

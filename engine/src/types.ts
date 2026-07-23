@@ -11,9 +11,20 @@
 export type Paise = number;
 
 export type EntryType =
-  | 'expense'   // paisa gaya
-  | 'income'    // paisa aaya
-  | 'cash_in';  // ATM se nikala — kharcha nahi, sirf cash wallet me aaya
+  | 'expense'    // paisa gaya, wapas nahi aayega
+  | 'income'     // paisa aaya, kamai
+  | 'cash_in'    // ATM se nikala — kharcha nahi, sirf cash wallet me aaya
+  | 'lent'       // maine kisi ko diya — paisa gaya PAR kharcha nahi, wapas milna hai
+  | 'borrowed';  // maine kisi se liya — paisa aaya PAR kamai nahi, wapas dena hai
+
+/**
+ * Lena-dena kharcha nahi hai.
+ *
+ * "Rahul ko 500 diye" — paisa jeb se gaya, par wo wapas aayega. Use mahine ke
+ * kharche me ginna galat hai; user ka budget bekaar me kharab dikhega.
+ * Isliye ye alag types hain aur budget me nahi jate — sirf cash wallet me.
+ */
+export const UDHAAR_TYPES: EntryType[] = ['lent', 'borrowed'];
 
 export type PaidWith = 'cash' | 'digital' | 'unknown';
 
@@ -62,6 +73,8 @@ export interface DraftEntry {
   ref?: string;
   /** kis app se aaya — PhonePe / GPay / SBI */
   sourceApp?: string;
+  /** lena-dena kiske saath — "Rahul" */
+  counterparty?: string;
 }
 
 export type DraftWarning =
@@ -78,6 +91,8 @@ export interface Entry extends DraftEntry {
   status: 'confirmed' | 'ignored' | 'duplicate';
   createdAt: string;
   updatedAt: string;
+  /** udhaar chukta ho gaya — lena-dena me ab nahi ginta */
+  settledAt?: string;
 }
 
 /** Category memory — user ne baar-baar jo theek kiya. */

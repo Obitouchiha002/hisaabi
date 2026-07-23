@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   HisaabiEngine, cashBalance, learnCategory, monthRange, safeToSpend, spentBetween, dayRange,
+  udhaarSummary, type UdhaarSummary,
   type CategoryId, type DraftEntry, type Entry, type LearnedRule, type SafeToSpend,
   type Trip, type TripExpense, type TripMember,
 } from '@engine';
@@ -28,6 +29,7 @@ interface Store {
   monthPaise: number;
   cashPaise: number;
   budget: SafeToSpend;
+  udhaar: UdhaarSummary;
 
   saveProfile(p: Profile): Promise<void>;
   setSession(s: Session | null): void;
@@ -35,6 +37,8 @@ interface Store {
   commitDrafts(drafts: DraftEntry[]): Promise<Entry[]>;
   updateEntry(entry: Entry): Promise<void>;
   removeEntry(id: string): Promise<void>;
+  /** Udhaar chukta ho gaya — ab lena-dena me nahi ginega */
+  settleUdhaar(id: string): Promise<void>;
   /** Naye drafts Review Inbox me daalo (duplicate check ke saath) */
   pushPending(drafts: DraftEntry[]): Promise<number>;
   confirmPending(ids: string[]): Promise<void>;
@@ -186,6 +190,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setRules(next);
   }, [rules]);
 
+  const settleUdhaar = useCallback(async (id: string) => {
+    const entry = entriesRef.current.find((e) => e.id === id);
+    if (!entry) return;
+    const next = { ...entry, settledAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    await db.putEntry(next);
+    setEntries((prev) => prev.map((e) => (e.id === id ? next : e)));
+  }, []);
+
   const removeEntry = useCallback(async (id: string) => {
     await db.deleteEntry(id);
     setEntries((prev) => prev.filter((e) => e.id !== id));
@@ -250,6 +262,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       todayPaise: spentBetween(entries, day.from, day.to),
       monthPaise,
       cashPaise: cashBalance(entries),
+      udhaar: udhaarSummary(entries),
       budget: safeToSpend({
         monthlyBudgetPaise: profile?.monthlyBudgetPaise ?? DEFAULT_PROFILE.monthlyBudgetPaise,
         spentThisMonthPaise: monthPaise,
@@ -265,11 +278,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const tripsRef = useRef(trips);
   tripsRef.current = trips;
 
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
+
   const value: Store = {
     ready, profile, session, entries, rules, engine, ai, pending, route, trips, openTripId,
     ...derived,
     saveProfile, setSession, setRoute, commitDrafts, updateEntry, removeEntry,
-    pushPending, confirmPending, ignorePending, teachCategory,
+    pushPending, confirmPending, ignorePending, teachCategory, settleUdhaar,
     openTrip, createTrip, saveTrip, addTripExpense, removeTripExpense, deleteTrip,
     reload,
   };

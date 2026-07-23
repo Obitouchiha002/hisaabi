@@ -57,6 +57,10 @@ export const DEMO_ENTRIES: Entry[] = [
           paidWith: 'digital', source: 'notification', sourceApp: 'Paytm', occurredAt: at(52) }),
   entry({ title: 'Kiraya', amountPaise: toPaise(6500), category: 'rent',
           paidWith: 'digital', occurredAt: at(200) }),
+  entry({ title: 'Rahul se lene hain', amountPaise: toPaise(500), type: 'lent',
+          counterparty: 'Rahul', category: 'other', occurredAt: at(26) }),
+  entry({ title: 'Aman ko dene hain', amountPaise: toPaise(300), type: 'borrowed',
+          counterparty: 'Aman', category: 'other', occurredAt: at(20) }),
 ];
 
 /** Review Inbox ka demo — ek saaf card, ek duplicate, ek shaq wala. */
