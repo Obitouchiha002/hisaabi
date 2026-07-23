@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  categoryMeta, fillMembers, formatINR, tripDraftMessage,
+  calculate, categoryMeta, fillMembers, formatINR, looksLikeMath, tripDraftMessage,
   type AskAnswer, type DraftEntry, type TripDraft,
 } from '@engine';
 import { Icon, Sheet } from '@/components/ui';
@@ -33,6 +33,11 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [answer, setAnswer] = useState<AskAnswer | null>(null);
   const [tripDraft, setTripDraft] = useState<TripDraft | null>(null);
+
+  /* Kharcha likhte waqt jod-ghata aam baat hai — "3 samose 15 ke", "1200 ka
+     bill 4 me". Doosri app kholna poora flow tod deta hai, isliye calculator
+     yahin hai. Jaise hi ganit dikhe, jawab upar aa jata hai. */
+  const math = useMemo(() => (looksLikeMath(text) ? calculate(text) : null), [text]);
   const [listening, setListening] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -48,7 +53,10 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
      Type karte waqt thoda ruk kar chalate hain, warna har akshar pe kaam hota hai. */
   useEffect(() => {
     let alive = true;
-    if (!text.trim()) { setDrafts([]); setAnswer(null); setTripDraft(null); setThinking(false); return; }
+    if (!text.trim() || looksLikeMath(text)) {
+      setDrafts([]); setAnswer(null); setTripDraft(null); setThinking(false);
+      return;
+    }
 
     setThinking(true);
     const t = setTimeout(() => {
@@ -236,6 +244,23 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       )}
 
       {voiceError && <div className="dev-note">{voiceError}</div>}
+
+      {/* calculator */}
+      {math && (
+        <div className="calc-out">
+          <span className="calc-exp">{math.expression}</span>
+          {math.error ? (
+            <span className="calc-err">{math.error}</span>
+          ) : (
+            <>
+              <span className="calc-val num">= {formatINR(Math.round(math.value * 100))}</span>
+              <button className="btn btn-primary btn-sm" onClick={() => setText(String(math.value))}>
+                Isko kharcha banao
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* trip ka plan — AI ne samjha, ab confirm */}
       {tripDraft && !thinking && (

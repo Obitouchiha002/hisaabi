@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { categoryMeta, formatINR, type DraftEntry } from '@engine';
 import { Icon, useToast } from '@/components/ui';
 import { EntryEditor } from '@/components/EntryEditor';
+import { CalcButton } from '@/components/CalcButton';
 import { useStore } from '@/lib/store';
 import type { PendingItem } from '@/lib/db';
 import { simulateNotification } from '@/lib/capture';
@@ -76,6 +77,7 @@ export function Review() {
           <div className="greet">Review inbox</div>
           <div className="name">{pending.length ? `${pending.length} pending` : 'Sab clear'}</div>
         </div>
+        <CalcButton />
       </header>
 
       {pending.length === 0 ? (

@@ -5,6 +5,8 @@ import {
 } from '@engine';
 import { Icon, useToast } from '@/components/ui';
 import { EntryEditor } from '@/components/EntryEditor';
+import { SwipeRow } from '@/components/SwipeRow';
+import { CalcButton } from '@/components/CalcButton';
 import { useStore } from '@/lib/store';
 
 /**
@@ -18,11 +20,17 @@ import { useStore } from '@/lib/store';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function History() {
-  const { entries, profile, setRoute, updateEntry, removeEntry, teachCategory } = useStore();
+  const { entries, profile, setRoute, updateEntry, removeEntry, restoreEntry, teachCategory } = useStore();
   const [offset, setOffset] = useState(0);          // 0 = is mahine, 1 = pichhla…
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [editing, setEditing] = useState<Entry | null>(null);
   const toast = useToast();
+
+  /** Swipe se hataya — 5 second tak wapas laya ja sakta hai. */
+  async function deleteWithUndo(e: Entry) {
+    await removeEntry(e.id);
+    toast.show(`${e.title} hata di`, { label: 'Wapas lao', run: () => void restoreEntry(e) });
+  }
 
   const when = useMemo(() => {
     const d = new Date();
@@ -82,6 +90,7 @@ export function History() {
           <div className="greet">Poora hisaab</div>
           <div className="name">{monthName}</div>
         </div>
+        <CalcButton />
         <button className="icon-btn" onClick={() => setOffset((o) => o + 1)} aria-label="Pichhla mahina">
           {Icon.back}
         </button>
@@ -161,11 +170,13 @@ export function History() {
                 {d.entries.map((e) => {
                   const meta = categoryMeta(e.category ?? 'other');
                   return (
-                    <button className="day-entry" key={e.id} onClick={() => setEditing(e)}>
-                      <span className="de-ico">{meta.emoji}</span>
-                      <span className="de-name">{e.merchant ?? e.title}</span>
-                      <span className="de-amt num">{formatINR(e.amountPaise)}</span>
-                    </button>
+                    <SwipeRow key={e.id} onDelete={() => void deleteWithUndo(e)}>
+                      <button className="day-entry" onClick={() => setEditing(e)}>
+                        <span className="de-ico">{meta.emoji}</span>
+                        <span className="de-name">{e.merchant ?? e.title}</span>
+                        <span className="de-amt num">{formatINR(e.amountPaise)}</span>
+                      </button>
+                    </SwipeRow>
                   );
                 })}
               </div>

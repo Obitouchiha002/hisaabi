@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { categoryMeta, dayRange, formatINR, type Entry } from '@engine';
 import { Amount, Icon, Sheet, useToast } from '@/components/ui';
 import { EntryEditor } from '@/components/EntryEditor';
+import { SwipeRow } from '@/components/SwipeRow';
 import { useStore } from '@/lib/store';
 import { addressWord, greeting } from '@/lib/profile';
 import { AddSheet } from './AddEntry';
@@ -12,7 +13,7 @@ export function Home() {
   const store = useStore();
   const {
     profile, entries, todayPaise, budget, cashPaise, udhaar,
-    pending, setRoute, updateEntry, removeEntry, teachCategory, settleUdhaar,
+    pending, setRoute, updateEntry, removeEntry, restoreEntry, teachCategory, settleUdhaar,
   } = store;
   const [editing, setEditing] = useState<Entry | null>(null);
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') ?? 'dark');
@@ -37,6 +38,12 @@ export function Home() {
       setShowBackup(false);
       toast.show('Backup ho gaya ✅');
     }
+  }
+
+  /** Delete hamesha wapas laya ja sake — warna galti se swipe hone ka dar rehta hai. */
+  async function deleteWithUndo(e: Entry) {
+    await removeEntry(e.id);
+    toast.show(`${e.title} hata di`, { label: 'Wapas lao', run: () => void restoreEntry(e) });
   }
 
   async function quickAdd(line: string) {
@@ -181,7 +188,8 @@ export function Home() {
           {recent.map((e, i) => {
             const meta = categoryMeta(e.category ?? 'other');
             return (
-              <button className="entry" key={e.id} data-type={e.type} style={{ animationDelay: `${i * 40}ms` }}
+              <SwipeRow key={e.id} onDelete={() => void deleteWithUndo(e)}>
+              <button className="entry" data-type={e.type} style={{ animationDelay: `${i * 40}ms` }}
                       onClick={() => setEditing(e)}>
                 <span className="e-ico" aria-hidden="true">{meta.emoji}</span>
                 <span>
@@ -201,6 +209,7 @@ export function Home() {
                   {formatINR(e.amountPaise)}
                 </span>
               </button>
+              </SwipeRow>
             );
           })}
         </div>

@@ -38,6 +38,8 @@ interface Store {
   commitDrafts(drafts: DraftEntry[]): Promise<Entry[]>;
   updateEntry(entry: Entry): Promise<void>;
   removeEntry(id: string): Promise<void>;
+  /** Delete ke baad "Wapas lao" — wahi entry, wahi id */
+  restoreEntry(entry: Entry): Promise<void>;
   /** Udhaar chukta ho gaya — ab lena-dena me nahi ginega */
   settleUdhaar(id: string): Promise<void>;
   /** Naye drafts Review Inbox me daalo (duplicate check ke saath) */
@@ -218,6 +220,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
+  /** Galti se delete ho gayi entry wapas — wahi id, wahi tareekh. */
+  const restoreEntry = useCallback(async (entry: Entry) => {
+    await db.putEntry(entry);
+    setEntries((prev) => [entry, ...prev.filter((e) => e.id !== entry.id)]
+      .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)));
+  }, []);
+
   /* ---------- trips ---------- */
 
   const openTrip = useCallback((id: string | null) => {
@@ -299,7 +308,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value: Store = {
     ready, profile, session, entries, rules, engine, ai, pending, route, trips, openTripId,
     ...derived,
-    saveProfile, setSession, setRoute, commitDrafts, updateEntry, removeEntry,
+    saveProfile, setSession, setRoute, commitDrafts, updateEntry, removeEntry, restoreEntry,
     pushPending, confirmPending, ignorePending, teachCategory, settleUdhaar,
     openTrip, createTrip, saveTrip, addTripExpense, removeTripExpense, deleteTrip,
     reload,

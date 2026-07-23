@@ -21,6 +21,7 @@ export * from './planner.js';
 export * from './trips.js';
 export * from './when.js';
 export * from './summary.js';
+export * from './calc.js';
 
 import type { DraftEntry, Entry, EngineContext, InputSource, LearnedRule, RawEvent, ReviewItem } from './types.js';
 import type { AiAdapter, AiContext } from './ai.js';

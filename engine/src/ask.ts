@@ -202,16 +202,37 @@ export type Intent = 'expense' | 'question' | 'trip' | 'unknown';
  * Do cheezein saath honi chahiye: log (dost/hum/humlog/naam) aur jaana/trip/party.
  */
 const TRIP_RE =
-  /\b(trip|tour|outing|picnic|party|ghumne|ghoomne|jaana hai|ja rahe|jaa rahe|jaayenge|jayenge|nikal rahe|plan hai|plan kar)\b/i;
+  /\b(trip|tour|outing|picnic|party|ghumne|ghoomne|jaana hai|ja rahe|jaa rahe|jaayenge|jayenge|nikal rahe|nikalte hain|chal rahe|chalte hain|chalein|chalen|chalo|plan hai|plan kar)\b/i;
 
 const PEOPLE_RE =
-  /\b(dost|dosto|doston|yaar|yaaron|log|logon|hum|humlog|hamlog|banda|bande|friends|couple|family|ghar wale|ke saath|sabke saath)\b/i;
+  /\b(dost|dosto|doston|yaar|yaaron|log|logon|hum|humlog|hamlog|banda|bande|friends|couple|family|ghar wale|ke saath|sabke saath|aur me|aur mai|aur main|mere saath)\b/i;
+
+/**
+ * "trip bana do" — isme na koi dost hai, na koi jagah, phir bhi mansha saaf hai.
+ * Aise me trip bana ke baaki baatein pooch lena sahi hai; mana kar dena galat.
+ */
+const TRIP_MAKE_RE =
+  /\b(trip|tour|outing|picnic)\b[^.?!]{0,30}\b(bana|banao|banade|banaa|shuru|start|chalu)\w*|\b(bana|banao|banade|shuru|start)\w*\b[^.?!]{0,20}\b(trip|tour|outing|picnic)\b/i;
+
+/* Naam ginte waqt ye aam shabd naam nahi mane jayenge. */
+const NOT_A_NAME = new Set([
+  'trip', 'tour', 'plan', 'hai', 'hain', 'rahe', 'raha', 'jaa', 'jaana', 'jayenge', 'jaayenge',
+  'ghumne', 'ghoomne', 'nikal', 'nikalte', 'chal', 'chalte', 'chalo', 'chalein', 'chalen', 'party',
+  'aur', 'saath', 'budget', 'hazaar', 'hazar', 'sau', 'bana', 'banao', 'banade', 'karo', 'kar',
+  'picnic', 'outing', 'log', 'logon', 'dost', 'dosto', 'doston', 'hum', 'humlog', 'hamlog',
+  'mein', 'wale', 'sabke', 'friends', 'family', 'couple', 'yaar', 'yaaron',
+]);
 
 export function looksLikeTrip(text: string): boolean {
+  if (TRIP_MAKE_RE.test(text)) return true;
   if (!TRIP_RE.test(text)) return false;
   if (PEOPLE_RE.test(text)) return true;
-  // "Rahul Aman ke saath Goa" — do naam bhi log hi hain
-  return (text.match(/\b[A-Z][a-z]{2,12}\b/g) ?? []).length >= 2;
+
+  // "Rahul Aman ke saath Goa" — do naam bhi log hi hain.
+  // Bol kar likhwaya text pura chhote akshar me aata hai, isliye capital pe
+  // bharosa nahi kar sakte; aam shabd hata kar baaki ko naam maan lete hain.
+  const words = text.match(/\b[A-Za-z][A-Za-z]{2,12}\b/g) ?? [];
+  return words.filter((wd) => !NOT_A_NAME.has(wd.toLowerCase())).length >= 2;
 }
 
 /** Sawaal ke pakke ishare. */
@@ -241,12 +262,16 @@ export function detectIntent(text: string, hasAmount: boolean): Intent {
   const t = text.trim();
   if (!t) return 'unknown';
 
-  // Trip pehle — "4 dost Goa ja rahe hain budget das hazaar" me amount bhi hai,
-  // par wo kharcha nahi, trip ka budget hai.
-  if (looksLikeTrip(t)) return 'trip';
+  // "trip bana do" — mansha saaf hai, iske aage kuch nahi dekhna.
+  if (TRIP_MAKE_RE.test(t)) return 'trip';
 
-  // "?" ya "kitna/kaunsa" — amount ho tab bhi sawaal hi hai
+  // "goa trip me kitna laga" — trip ka zikr hai, par ye sawaal hai, naya
+  // trip banane ki baat nahi. Isliye sawaal wale shabd trip se pehle.
   if (STRONG_QUESTION_RE.test(t)) return 'question';
+
+  // "4 dost Goa ja rahe hain budget das hazaar" — amount hai, par wo kharcha
+  // nahi, trip ka budget hai.
+  if (looksLikeTrip(t)) return 'trip';
 
   const looksLikeQuestion = QUESTION_RE.test(t);
   const looksLikeExpense = EXPENSE_RE.test(t);

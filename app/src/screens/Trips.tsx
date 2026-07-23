@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { formatINR, tripSummary, type TripMember } from '@engine';
 import { Icon, Sheet, useToast } from '@/components/ui';
+import { CalcButton } from '@/components/CalcButton';
 import { useStore } from '@/lib/store';
 
 /**
@@ -25,6 +26,7 @@ export function Trips() {
           <div className="greet">Doston ka hisaab</div>
           <div className="name">{trips.length ? `${trips.length} trip` : 'Trips'}</div>
         </div>
+        <CalcButton />
       </header>
 
       {trips.length === 0 ? (

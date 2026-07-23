@@ -66,6 +66,13 @@ export const Icon = {
       <path d="M5 12v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12" />
     </svg>
   ),
+  calc: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4.5" y="2.8" width="15" height="18.4" rx="2.6" />
+      <path d="M8 7h8" />
+      <path d="M8.4 12h.01M12 12h.01M15.6 12h.01M8.4 16.5h.01M12 16.5h.01M15.6 16.5h.01" />
+    </svg>
+  ),
   arrow: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 12h13M13 6l6 6-6 6" />
@@ -195,17 +202,45 @@ export function Sheet({ children, onClose }: { children: ReactNode; onClose(): v
 
 /* ---------- toast ---------- */
 
-export function Toast({ message }: { message: string }) {
-  return <div className="toast">{message}</div>;
+export interface ToastAction {
+  label: string;
+  run(): void;
+}
+
+export function Toast({ message, action }: { message: string; action?: ToastAction }) {
+  return (
+    <div className="toast">
+      <span className="toast-msg">{message}</span>
+      {action && (
+        <button className="toast-act" onClick={action.run}>{action.label}</button>
+      )}
+    </div>
+  );
 }
 
 export function useToast() {
-  const [message, setMessage] = useState<string | null>(null);
+  const [state, setState] = useState<{ message: string; action?: ToastAction } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const show = (text: string) => {
-    setMessage(text);
-    setTimeout(() => setMessage(null), 2200);
+  const hide = () => {
+    if (timer.current) clearTimeout(timer.current);
+    setState(null);
   };
 
-  return { message, show, node: message ? <Toast message={message} /> : null };
+  /* Undo wale toast ko thoda zyada waqt — 2 second me "Wapas lao" dabana
+     mushkil hai, aur delete undo na ho paye to bharosa tootta hai. */
+  const show = (text: string, action?: ToastAction) => {
+    if (timer.current) clearTimeout(timer.current);
+    setState({ message: text, action });
+    timer.current = setTimeout(() => setState(null), action ? 5000 : 2200);
+  };
+
+  const node = state ? (
+    <Toast
+      message={state.message}
+      action={state.action ? { label: state.action.label, run: () => { state.action!.run(); hide(); } } : undefined}
+    />
+  ) : null;
+
+  return { message: state?.message ?? null, show, hide, node };
 }

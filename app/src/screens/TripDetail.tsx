@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  categoryMeta, formatINR, resolveCategory, toPaise, tripAwards, tripShareText, tripSummary,
+  calculate, categoryMeta, formatINR, looksLikeMath, parseText, resolveCategory, toPaise,
+  tripAwards, tripShareText, tripSummary,
   type SplitMode, type Trip, type TripExpense,
 } from '@engine';
+import { startVoice, voiceEngine, type VoiceSession } from '@/lib/voice';
 import { Icon, Sheet, useToast } from '@/components/ui';
+import { CalcButton } from '@/components/CalcButton';
 import { useStore } from '@/lib/store';
 import { newId } from '@/lib/db';
 
@@ -50,6 +53,7 @@ export function TripDetail() {
           <div className="greet">{trip.members.map((m) => m.name).join(', ')}</div>
           <div className="name">{trip.emoji} {trip.name}</div>
         </div>
+        <CalcButton />
         <button className="icon-btn" onClick={() => void share()} aria-label="Share">{Icon.share}</button>
       </header>
 
@@ -195,13 +199,47 @@ function AddTripExpense({ trip, onClose, onAdd }: {
 }) {
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
+  const [listening, setListening] = useState(false);
+  const [voiceMsg, setVoiceMsg] = useState<string | null>(null);
+  const voiceRef = useRef<VoiceSession | null>(null);
+  const [canVoice, setCanVoice] = useState(false);
+
+  useEffect(() => {
+    void voiceEngine().then((e) => setCanVoice(e !== 'none'));
+    return () => { void voiceRef.current?.stop(); };
+  }, []);
+
+  /* Trip me bhi bol ke likho — "hotel do hazaar" se naam aur daam dono
+     bhar jate hain. Yahan wahi engine chalta hai jo baaki app me hai. */
+  async function bolo() {
+    if (listening) { await voiceRef.current?.stop(); setListening(false); return; }
+
+    setVoiceMsg(null);
+    setListening(true);
+
+    voiceRef.current = await startVoice({
+      onText: (heard) => {
+        const [d] = parseText(heard);
+        if (d) {
+          setTitle(d.title);
+          setAmount(String(Math.round(d.amountPaise / 100)));
+        } else {
+          setTitle(heard.slice(0, 40));
+        }
+      },
+      onEnd: () => setListening(false),
+      onError: (m) => { setVoiceMsg(m); setListening(false); },
+    });
+  }
   const [paidBy, setPaidBy] = useState(trip.members[0]!.id);
   const [splitMode, setSplitMode] = useState<SplitMode>('equal');
   const [only, setOnly] = useState<Set<string>>(new Set(trip.members.map((m) => m.id)));
 
-  const amountNum = Number(amount);
+  // "3*450" jaisa likho to jawab apne aap
+  const math = looksLikeMath(amount) ? calculate(amount) : null;
+  const amountNum = math && !math.error ? math.value : Number(amount);
   const among = [...only];
-  const valid = title.trim() && amountNum > 0 && among.length > 0;
+  const valid = Boolean(title.trim()) && amountNum > 0 && among.length > 0;
 
   function toggleMember(id: string) {
     setOnly((prev) => {
@@ -229,7 +267,18 @@ function AddTripExpense({ trip, onClose, onAdd }: {
 
   return (
     <Sheet onClose={onClose}>
-      <h2>Kharcha add karo</h2>
+      <div className="trip-add-head">
+        <h2>Kharcha add karo</h2>
+        {canVoice && (
+          <button className={`mic-mini ${listening ? 'on' : ''}`} onClick={() => void bolo()}
+                  aria-label={listening ? 'Rok do' : 'Bol ke likho'}>
+            {Icon.mic}
+          </button>
+        )}
+      </div>
+
+      {listening && <p className="hint-line">Sun raha hoon… “hotel do hazaar” bol do</p>}
+      {voiceMsg && <div className="dev-note">{voiceMsg}</div>}
 
       <div className="field-row">
         <label>
@@ -239,10 +288,21 @@ function AddTripExpense({ trip, onClose, onAdd }: {
         </label>
         <label style={{ maxWidth: 130 }}>
           <span className="f-k">Kitne ka</span>
-          <input className="text-field num" value={amount} inputMode="numeric" placeholder="0"
-                 onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))} />
+          <input className="text-field num" value={amount} inputMode="text" placeholder="0"
+                 onChange={(e) => setAmount(e.target.value.replace(/[^\d+\-*/.() ]/g, ''))} />
         </label>
       </div>
+
+      {/* Jawab wahin jahan ganit likha ja raha hai. Pehle ye poori sheet ke
+          neeche tha, to "300*4" likhne wale ko dikhta hi nahi tha. */}
+      {math && (
+        <div className="calc-out">
+          <span className="calc-exp">{math.expression}</span>
+          {math.error
+            ? <span className="calc-err">{math.error}</span>
+            : <span className="calc-val num">= {formatINR(Math.round(math.value * 100))}</span>}
+        </div>
+      )}
 
       <div className="section-title"><h2 style={{ fontSize: 15 }}>Kisne diya</h2></div>
       <div className="chip-pick">

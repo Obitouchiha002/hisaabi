@@ -552,11 +552,11 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
   align-items: center;
   gap: 8px;
   margin-top: 18px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  /* pehle side me scroll hota tha, aakhri chip aadhi dikhti thi.
+     Ab wrap — kheenchna nahi padta, sab ek nazar me. */
+  flex-wrap: wrap;
   padding-bottom: 2px;
 }
-.quick-row::-webkit-scrollbar { display: none; }
 .quick-k {
   font-size: 11px;
   font-weight: 600;
@@ -761,6 +761,57 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
   border: 1px solid var(--line);
   animation: cardIn .4s var(--ease-out) both;
 }
+
+/* ---- calculator ---- */
+
+.calc-out {
+  margin-top: 14px;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  background: linear-gradient(140deg, var(--accent-soft), transparent 70%), var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  animation: cardIn .35s var(--ease-out) both;
+}
+.calc-exp { font-size: 14px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.calc-val {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.calc-err { font-size: 14px; color: var(--warn); }
+.calc-out .btn { margin-top: 4px; }
+
+/* ---- har screen wala calculator ---- */
+
+.calc-input { font-size: 22px; letter-spacing: -0.01em; }
+.calc-out[data-big] { justify-items: end; }
+
+.calc-pad {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.calc-key {
+  padding: 15px 0;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s var(--ease), background .15s;
+}
+.calc-key:active { transform: scale(.94); background: var(--surface); }
+.calc-key[data-op] { color: var(--accent); }
+.calc-key[data-wide] { grid-column: span 3; font-size: 16px; }
 
 /* ---- trip ka plan ---- */
 
@@ -1142,6 +1193,23 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 .trip-exp-list { display: grid; gap: 8px; }
 .trip-exp-list .entry { cursor: pointer; }
 
+.trip-add-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.trip-add-head h2 { margin: 0; }
+
+.mic-mini {
+  margin-left: auto;
+  flex: none;
+  width: 42px; height: 42px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  transition: transform .2s var(--spring), box-shadow .3s var(--ease);
+}
+.mic-mini svg { width: 18px; height: 18px; }
+.mic-mini:active { transform: scale(.9); }
+.mic-mini.on { animation: orbBreathe 1.6s var(--ease) infinite; box-shadow: 0 0 0 6px var(--accent-soft); }
+
 /* ---- settlement ---- */
 
 .settle { display: block; }
@@ -1389,9 +1457,44 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
   font-weight: 500;
   box-shadow: var(--shadow-lg);
   animation: toastIn .4s var(--spring) both;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* pehle nowrap tha — lambi line 360px phone pe bahar nikal jati thi */
+  max-width: min(92vw, 480px);
+}
+.toast-msg { min-width: 0; }
+.toast-act {
+  flex: none;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 16px); } }
+
+/* ---------- swipe karke hatao ---------- */
+
+.swipe { position: relative; overflow: hidden; border-radius: var(--r-md); }
+.swipe[data-going] { max-height: 0; opacity: 0; transition: max-height .18s, opacity .18s; }
+.swipe-back {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 22px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bad) 18%, transparent);
+  color: var(--bad);
+  font-weight: 700;
+  font-size: 14px;
+}
+.swipe-back[data-armed] { background: var(--bad); color: #fff; }
+.swipe-front { position: relative; background: var(--bg); touch-action: pan-y; }
 
 .splash {
   position: fixed; inset: 0;
@@ -1418,6 +1521,22 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 /* ================= responsive =================
    Phone pehle. Tablet aur bade screen pe do column, taki khaali jagah
    bekaar na jaye aur list scroll kiye bina dikh jaye.                */
+
+/* Phone: teeno stat ek hi line me. Pehle 2-column grid tha, to teesra card
+   akela adhi chaudai me latak jata tha aur home scroll kiye bina poora nahi
+   dikhta tha. */
+@media (max-width: 699px) {
+  .hero-card { padding: 18px; }
+  .hero-card .big { font-size: clamp(32px, 10vw, 48px); }
+  .hero-card .sub { font-size: 13.5px; margin-top: 6px; }
+
+  .stat-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .stat { padding: 12px 11px; }
+  .stat .k { font-size: 9.5px; letter-spacing: .05em; }
+  .stat .v { font-size: 17px; margin-top: 3px; }
+  .stat .v small { font-size: 10.5px; }
+  .stat-more { font-size: 10.5px; margin-top: 4px; }
+}
 
 @media (min-width: 700px) {
   .app { max-width: 620px; }

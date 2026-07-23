@@ -17,7 +17,15 @@ const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const GEMINI_MODEL = 'gemini-2.0-flash';
 
 const MAX_INPUT = 600;
-const TIMEOUT_MS = 9000;
+const TIMEOUT_MS = 8000;
+
+/* Groq free tier kabhi-kabhi 429 de deta hai aur usi pal Gemini bhi atak jata
+   hai — jaanch me har 5 me se 1 baar dono fail hue. Isliye pehle provider ko
+   ek dobara mauka milta hai. 3 koshish × 8s = 24s, isliye maxDuration 30. */
+const ATTEMPTS_PER_PROVIDER = 2;
+const RETRY_DELAY_MS = 400;
+
+export const config = { maxDuration: 30 };
 
 const PARSE_SYSTEM = `Tum ek Hinglish expense parser ho.
 
@@ -156,16 +164,22 @@ export default async function handler(req, res) {
   let lastError = null;
 
   for (const provider of chain) {
-    try {
-      const raw = await withTimeout(provider.call(system, user), TIMEOUT_MS);
-      const parsed = extractJson(raw);
-      if (!parsed) throw new Error('bad output');
+    // aakhri provider ko dobara koshish ka faida nahi — waqt bacha lo
+    const tries = provider === chain[chain.length - 1] ? 1 : ATTEMPTS_PER_PROVIDER;
 
-      return res.status(200).json({ provider: provider.name, task, result: parsed });
-    } catch (err) {
-      // key ya upstream ka message kabhi client ko mat bhejo
-      console.error('[ai]', provider.name, err?.message);
-      lastError = err;
+    for (let attempt = 1; attempt <= tries; attempt++) {
+      try {
+        const raw = await withTimeout(provider.call(system, user), TIMEOUT_MS);
+        const parsed = extractJson(raw);
+        if (!parsed) throw new Error('bad output');
+
+        return res.status(200).json({ provider: provider.name, task, result: parsed });
+      } catch (err) {
+        // key ya upstream ka message kabhi client ko mat bhejo
+        console.error('[ai]', provider.name, `try ${attempt}/${tries}`, err?.message);
+        lastError = err;
+        if (attempt < tries) await sleep(RETRY_DELAY_MS);
+      }
     }
   }
 
@@ -264,6 +278,10 @@ function unwrap(value) {
 
 function safeJson(text) {
   try { return JSON.parse(text); } catch { return null; }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function withTimeout(promise, ms) {
