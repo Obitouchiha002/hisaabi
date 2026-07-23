@@ -9,6 +9,7 @@
  */
 
 import type { CategoryId, Paise } from './types.js';
+import { isNumberWord } from './numbers.js';
 
 export interface TripMember {
   id: string;
@@ -396,4 +397,153 @@ export function tripShareText(trip: Trip, format: (p: Paise) => string = paise):
 
 function paise(value: Paise): string {
   return '₹' + Math.round(value / 100).toLocaleString('en-IN');
+}
+
+/* ============================================================
+   Bol ke trip banana — "4 dost Goa ja rahe hain, budget das hazaar"
+   ============================================================ */
+
+/** AI ya rules se nikla hua trip ka khaka. Kuch cheezein missing ho sakti hain. */
+export interface TripDraft {
+  name?: string;
+  emoji?: string;
+  /** naam jo mile — "Rahul, Aman" */
+  memberNames: string[];
+  /** kitne log bole gaye ("4 dost") — naam na pata ho to bhi count aata hai */
+  memberCount?: number;
+  budgetPaise?: Paise;
+  /** kya-kya poochna baaki hai */
+  missing: Array<'name' | 'members' | 'budget'>;
+}
+
+/** Jaani-pehchani jagah — inka emoji apne aap lag jata hai. */
+const PLACE_EMOJI: Array<[RegExp, string]> = [
+  [/\b(goa|beach|samundar|puri|andaman)\b/i, '🏖️'],
+  [/\b(manali|shimla|kashmir|pahad|mountain|leh|ladakh|spiti|mussoorie|nainital)\b/i, '🏔️'],
+  [/\b(party|birthday|bday)\b/i, '🎉'],
+  [/\b(daaru|beer|bar|club)\b/i, '🍻'],
+  [/\b(road ?trip|bike|car|gaadi)\b/i, '🚗'],
+  [/\b(flight|udan|dubai|thailand|bali|videsh)\b/i, '✈️'],
+  [/\b(camp|trek|jungle)\b/i, '🏕️'],
+  [/\b(movie|film|cinema)\b/i, '🎬'],
+  [/\b(match|cricket|stadium)\b/i, '🏏'],
+];
+
+/** Jaha ja rahe hain — "goa ja rahe hain" me se "Goa". */
+const DESTINATION_RE =
+  /\b(?:for |ke liye |)([A-Za-z][A-Za-z\s]{2,20}?)\s+(?:ja rahe|jaa rahe|jaana|jayenge|jaayenge|ki trip|ka trip|trip pe|trip par|ghumne|ghoomne)/i;
+
+/** "4 dost", "paanch log", "hum teen" */
+const COUNT_RE = /\b(\d{1,2}|ek|do|teen|char|chaar|panch|paanch|chhe|saat|aath|nau|das)\s*(?:dost|dosto|doston|log|logon|yaar|banda|bande|jane|friends|people)\b/i;
+
+const COUNT_WORDS: Record<string, number> = {
+  ek: 1, do: 2, teen: 3, char: 4, chaar: 4, panch: 5, paanch: 5,
+  chhe: 6, saat: 7, aath: 8, nau: 9, das: 10,
+};
+
+/** "budget das hazaar", "bees hazaar ka budget" */
+const BUDGET_RE = /\b(?:budget|bajat)\b/i;
+
+/**
+ * Text se trip ka khaka nikalo — rules se.
+ * Jo na mile wo `missing` me aata hai, taki app wahi poochh sake.
+ */
+export function draftTripFromText(
+  text: string,
+  helpers: { extractAmount(t: string): { value: number } | null },
+): TripDraft {
+  const draft: TripDraft = { memberNames: [], missing: [] };
+
+  const dest = text.match(DESTINATION_RE);
+  if (dest?.[1]) {
+    // "4 dost Goa" me se sirf "Goa" chahiye — log/dost/hum jagah ka naam nahi hain
+    const NOT_A_PLACE = /^(dost|dosto|doston|log|logon|yaar|yaaron|hum|humlog|hamlog|banda|bande|jane|friends|people|sab|sabhi|apne|mere|ham|ke|ki|ka|saath|liye)$/i;
+
+    const words = dest[1]
+      .trim()
+      .split(/\s+/)
+      // ginti bhi jagah ka naam nahi hai — "paanch log Manali" me sirf Manali
+      .filter((w) => !NOT_A_PLACE.test(w) && !/^\d+$/.test(w) && !isNumberWord(w));
+
+    const name = words.slice(-2).join(' ').trim();
+    if (name) {
+      draft.name = name
+        .split(/\s+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+    }
+  }
+
+  for (const [re, emoji] of PLACE_EMOJI) {
+    if (re.test(text)) { draft.emoji = emoji; break; }
+  }
+
+  const count = text.match(COUNT_RE);
+  if (count?.[1]) {
+    const raw = count[1].toLowerCase();
+    const n = /^\d+$/.test(raw) ? parseInt(raw, 10) : COUNT_WORDS[raw];
+    if (n && n >= 2 && n <= 30) draft.memberCount = n;
+  }
+
+  // Bade akshar wale naam — "Rahul Aman ke saath"
+  const names = text.match(/\b[A-Z][a-z]{2,12}\b/g) ?? [];
+  draft.memberNames = names
+    .filter((n) => !/^(Goa|Manali|Shimla|Kashmir|Delhi|Mumbai|Trip|Budget)$/i.test(n))
+    .slice(0, 12);
+
+  if (BUDGET_RE.test(text)) {
+    const after = text.slice(text.search(BUDGET_RE));
+    const amount = helpers.extractAmount(after) ?? helpers.extractAmount(text);
+    if (amount && amount.value >= 100) draft.budgetPaise = Math.round(amount.value * 100);
+  }
+
+  if (!draft.name) draft.missing.push('name');
+  if (!draft.memberCount && draft.memberNames.length < 2) draft.missing.push('members');
+  if (!draft.budgetPaise) draft.missing.push('budget');
+
+  return draft;
+}
+
+/**
+ * App ko kya poochna chahiye — ek waqt me ek hi sawaal, warna form jaisa lagta hai.
+ */
+export function nextTripQuestion(draft: TripDraft): string | null {
+  if (draft.missing.includes('name')) return 'Kahan ja rahe ho?';
+  if (draft.missing.includes('members')) return 'Kaun-kaun ja raha hai? Naam bata do.';
+  if (draft.missing.includes('budget')) return 'Kitne ka budget socha hai? (chhod bhi sakte ho)';
+  return null;
+}
+
+/**
+ * User ko dikhane wali line — pehle ye batao ki kya samjha, phir jo baaki hai wo poocho.
+ * Form jaisa nahi lagna chahiye; dost ki tarah baat honi chahiye.
+ */
+export function tripDraftMessage(draft: TripDraft, format: (p: Paise) => string = paise): string {
+  const samjha: string[] = [];
+
+  if (draft.name) samjha.push(`${draft.emoji ?? '🧳'} ${draft.name}`);
+  if (draft.memberCount) samjha.push(`${draft.memberCount} log`);
+  else if (draft.memberNames.length >= 2) samjha.push(draft.memberNames.join(', '));
+  if (draft.budgetPaise) samjha.push(`${format(draft.budgetPaise)} ka budget`);
+
+  if (!samjha.length) return 'Trip ka plan lag raha hai! Thoda aur batao —';
+
+  const head = `Mast plan hai! ${samjha.join(' · ')}`;
+  const question = nextTripQuestion(draft);
+
+  return question ? `${head}\n\nBas ek cheez — ${question.toLowerCase()}` : `${head}\n\nBana doon?`;
+}
+
+/** Count pata ho par naam nahi — "Dost 2", "Dost 3" jaise placeholder. */
+export function fillMembers(draft: TripDraft, myName = 'Main'): TripMember[] {
+  const names = [...draft.memberNames];
+  const total = Math.max(draft.memberCount ?? names.length, names.length);
+
+  if (!names.length) names.push(myName);
+  while (names.length < total) names.push(`Dost ${names.length}`);
+
+  return names.map((name, i) => ({
+    id: `m${i}_${name.toLowerCase().replace(/\W/g, '')}`,
+    name,
+  }));
 }

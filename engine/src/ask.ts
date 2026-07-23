@@ -195,15 +195,39 @@ export const RANGE_LABELS_HI: Record<RangeLabel, string> = {
    User ko ye sochna hi nahi chahiye ki kaunsa button dabana hai.
    ============================================================ */
 
-export type Intent = 'expense' | 'question' | 'unknown';
+export type Intent = 'expense' | 'question' | 'trip' | 'unknown';
+
+/**
+ * "4 dost Goa ja rahe hain, budget das hazaar" — ye kharcha nahi, trip ka plan hai.
+ * Do cheezein saath honi chahiye: log (dost/hum/humlog/naam) aur jaana/trip/party.
+ */
+const TRIP_RE =
+  /\b(trip|tour|outing|picnic|party|ghumne|ghoomne|jaana hai|ja rahe|jaa rahe|jaayenge|jayenge|nikal rahe|plan hai|plan kar)\b/i;
+
+const PEOPLE_RE =
+  /\b(dost|dosto|doston|yaar|yaaron|log|logon|hum|humlog|hamlog|banda|bande|friends|couple|family|ghar wale|ke saath|sabke saath)\b/i;
+
+export function looksLikeTrip(text: string): boolean {
+  if (!TRIP_RE.test(text)) return false;
+  if (PEOPLE_RE.test(text)) return true;
+  // "Rahul Aman ke saath Goa" — do naam bhi log hi hain
+  return (text.match(/\b[A-Z][a-z]{2,12}\b/g) ?? []).length >= 2;
+}
 
 /** Sawaal ke pakke ishare. */
 const QUESTION_RE =
   /\?|\b(kitna|kitne|kitni|kaha|kahan|kaun|kaunsa|konsa|kab|kyun|batao|bata|dikha|dikhao|list|report|summary|total|average|sabse|compare|bacha|bachega|safe|kya\s+hai|how much|how many|what|which|when|show)\b/i;
 
-/** Kharcha likhne ke pakke ishare. */
+/**
+ * Kharcha likhne ke ishare — sirf kriya (verb), naam (noun) nahi.
+ * "kharche" jaisa noun sawaal me bhi aata hai: "kaunse kharche the?"
+ */
 const EXPENSE_RE =
-  /\b(kiya|kiye|diya|diye|liya|liye|lagaye|laga|kharch|kharcha|kharche|khareeda|kharida|bhara|dala|khaya|piya|paid|spent|bought)\b/i;
+  /\b(kiya|kiye|diya|diye|liya|liye|lagaye|laga|khareeda|kharida|bhara|dala|khaya|piya|paid|spent|bought)\b/i;
+
+/** "?" ya saaf sawaal wale shabd — inke aage kuch nahi chalta. */
+const STRONG_QUESTION_RE =
+  /\?|\b(kitna|kitne|kitni|kaunsa|kaunse|konsa|konse|kahan|kaha|kab|kyun|batao|dikhao|report|summary|how much|how many|which|show me)\b/i;
 
 /**
  * Text kharcha hai ya sawaal.
@@ -217,10 +241,16 @@ export function detectIntent(text: string, hasAmount: boolean): Intent {
   const t = text.trim();
   if (!t) return 'unknown';
 
+  // Trip pehle — "4 dost Goa ja rahe hain budget das hazaar" me amount bhi hai,
+  // par wo kharcha nahi, trip ka budget hai.
+  if (looksLikeTrip(t)) return 'trip';
+
+  // "?" ya "kitna/kaunsa" — amount ho tab bhi sawaal hi hai
+  if (STRONG_QUESTION_RE.test(t)) return 'question';
+
   const looksLikeQuestion = QUESTION_RE.test(t);
   const looksLikeExpense = EXPENSE_RE.test(t);
 
-  // "?" ya "kitna" jaisa saaf sawaal — amount ho tab bhi sawaal hi hai
   if (looksLikeQuestion && !looksLikeExpense) return 'question';
 
   if (hasAmount) return 'expense';

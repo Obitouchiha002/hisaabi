@@ -30,6 +30,8 @@ import { parseNotification } from './notifications.js';
 import { resolveCategory } from './categories.js';
 import { findDuplicates } from './duplicates.js';
 import { detectIntent, planQuery } from './ask.js';
+import { draftTripFromText, nextTripQuestion, type TripDraft } from './trips.js';
+import { extractAmount } from './numbers.js';
 import { answerText, runQuery, type QueryResult } from './query.js';
 
 export interface EngineOptions extends EngineContext {
@@ -39,6 +41,7 @@ export interface EngineOptions extends EngineContext {
 export type RouteResult =
   | { intent: 'expense'; drafts: DraftEntry[] }
   | { intent: 'question'; answer: AskAnswer | null }
+  | { intent: 'trip'; trip: TripDraft; question: string | null }
   | { intent: 'unknown' };
 
 export interface AskAnswer {
@@ -123,6 +126,11 @@ export class HisaabiEngine {
     // pehle sasta rasta: rules se parse karke dekho amount mila ya nahi
     const quick = parseText(trimmed, { ...this.ctx, source: opts.source ?? 'manual' });
     const intent = detectIntent(trimmed, quick.length > 0);
+
+    if (intent === 'trip') {
+      const trip = draftTripFromText(trimmed, { extractAmount });
+      return { intent, trip, question: nextTripQuestion(trip) };
+    }
 
     if (intent === 'question') {
       return { intent, answer: await this.ask(trimmed, entries, opts.aiContext) };

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { categoryMeta, formatINR, type AskAnswer, type DraftEntry } from '@engine';
+import {
+  categoryMeta, fillMembers, formatINR, tripDraftMessage,
+  type AskAnswer, type DraftEntry, type TripDraft,
+} from '@engine';
 import { Icon, Sheet } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { startVoice, voiceEngine, type VoiceSession } from '@/lib/voice';
@@ -21,11 +24,12 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
   onClose(): void;
   onSaved(count: number, total: number): void;
 }) {
-  const { engine, commitDrafts, ai, entries } = useStore();
+  const { engine, commitDrafts, ai, entries, profile, createTrip, openTrip, saveTrip } = useStore();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [text, setText] = useState('');
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [answer, setAnswer] = useState<AskAnswer | null>(null);
+  const [tripDraft, setTripDraft] = useState<TripDraft | null>(null);
   const [listening, setListening] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -41,7 +45,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
      Type karte waqt thoda ruk kar chalate hain, warna har akshar pe kaam hota hai. */
   useEffect(() => {
     let alive = true;
-    if (!text.trim()) { setDrafts([]); setAnswer(null); setThinking(false); return; }
+    if (!text.trim()) { setDrafts([]); setAnswer(null); setTripDraft(null); setThinking(false); return; }
 
     setThinking(true);
     const t = setTimeout(() => {
@@ -49,6 +53,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
         if (!alive) return;
         setDrafts(res.intent === 'expense' ? res.drafts : []);
         setAnswer(res.intent === 'question' ? res.answer : null);
+        setTripDraft(res.intent === 'trip' ? res.trip : null);
         setThinking(false);
       });
     }, 350);
@@ -104,6 +109,15 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
     () => drafts.reduce((s, d) => s + (d.type === 'expense' ? d.amountPaise : 0), 0),
     [drafts],
   );
+
+  /** Trip banao aur seedha usi me le jao — baaki cheezein wahin poochh lenge. */
+  async function makeTrip(draft: TripDraft) {
+    const members = fillMembers(draft, profile?.name || 'Main');
+    const trip = await createTrip(draft.name ?? 'Trip', draft.emoji ?? '🧳', members);
+    if (draft.budgetPaise) await saveTrip({ ...trip, budgetPaise: draft.budgetPaise });
+    onClose();
+    openTrip(trip.id);
+  }
 
   async function save() {
     if (!drafts.length) return;
@@ -169,6 +183,16 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
 
       {voiceError && <div className="dev-note">{voiceError}</div>}
 
+      {/* trip ka plan — AI ne samjha, ab confirm */}
+      {tripDraft && !thinking && (
+        <div className="trip-suggest">
+          <p className="trip-msg">{tripDraftMessage(tripDraft)}</p>
+          <button className="btn btn-primary btn-block" onClick={() => void makeTrip(tripDraft)}>
+            Haan, trip bana do
+          </button>
+        </div>
+      )}
+
       {/* sawaal ka jawab */}
       {answer && !thinking && (
         <div className="ask-answer">
@@ -216,7 +240,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       )}
 
       <div className="q-foot">
-        {answer && !drafts.length ? (
+        {tripDraft ? null : answer && !drafts.length ? (
           <button className="btn btn-primary btn-block" onClick={onClose}>Theek hai</button>
         ) : (
           <button className="btn btn-primary btn-block" onClick={() => void save()} disabled={!drafts.length || saving}>
