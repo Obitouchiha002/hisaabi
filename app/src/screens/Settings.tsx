@@ -6,6 +6,11 @@ import { db } from '@/lib/db';
 import { clearSession } from '@/lib/auth';
 import { BUDGET_OPTIONS } from '@/lib/profile';
 import { captureStatus, openCaptureSettings, type CaptureStatus } from '@/lib/capture';
+import {
+  askNudgePermission, cancelNightlySummary, nudgeSettings, nudgeStatus,
+  saveNudgeSettings, scheduleNightlySummary, type NudgeStatus,
+} from '@/lib/nudge';
+import { buildBackup, downloadCsv, lastBackupAt, parseBackup, saveBackup } from '@/lib/backup';
 
 const ACCENTS = [
   { id: 'nimbu', color: '#D6FF3D', name: 'Nimbu' },
@@ -16,13 +21,41 @@ const ACCENTS = [
 ];
 
 export function Settings({ onClose }: { onClose(): void }) {
-  const { profile, session, entries, ai, saveProfile, setSession, reload } = useStore();
+  const { profile, session, entries, trips, ai, saveProfile, setSession, reload } = useStore();
   const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') ?? 'dark');
   const [accent, setAccent] = useState(document.documentElement.getAttribute('data-accent') ?? 'nimbu');
   const [confirmWipe, setConfirmWipe] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [lastBackup, setLastBackup] = useState(() => lastBackupAt());
+  const [restoreMsg, setRestoreMsg] = useState<string | null>(null);
   const [capture, setCapture] = useState<CaptureStatus>('unsupported');
+  const [nudge, setNudge] = useState<NudgeStatus>('unsupported');
+  const [nudgeOn, setNudgeOn] = useState(() => nudgeSettings().on);
+  const [nudgeHour, setNudgeHour] = useState(() => nudgeSettings().hour);
 
   useEffect(() => { void captureStatus().then(setCapture); }, []);
+  useEffect(() => { void nudgeStatus().then(setNudge); }, []);
+
+  /** Toggle ya waqt badla — turant naye notification laga do. */
+  async function applyNudge(on: boolean, hour: number) {
+    setNudgeOn(on);
+    setNudgeHour(hour);
+    saveNudgeSettings({ on, hour });
+
+    if (!on) { await cancelNightlySummary(); return; }
+
+    if (nudge !== 'granted') {
+      const next = await askNudgePermission();
+      setNudge(next);
+      if (next !== 'granted') return;
+    }
+
+    if (profile) {
+      await scheduleNightlySummary({
+        entries, monthlyBudgetPaise: profile.monthlyBudgetPaise, name: profile.name, hour,
+      });
+    }
+  }
 
   function applyTheme(next: string) {
     document.documentElement.setAttribute('data-theme', next);
@@ -37,21 +70,34 @@ export function Settings({ onClose }: { onClose(): void }) {
     setAccent(next);
   }
 
-  function exportJson() {
-    const blob = new Blob([JSON.stringify({ profile, entries }, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `hisaabi-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  async function backupNow() {
+    setBusy(true);
+    const res = await saveBackup(buildBackup({ profile, entries, trips }));
+    setBusy(false);
+    if (res !== 'failed') setLastBackup(lastBackupAt());
+  }
+
+  /** Backup file wapas laao — purani entries jud jayengi, hategi nahi. */
+  async function restore(file: File) {
+    const data = parseBackup(await file.text());
+    if (!data) { setRestoreMsg('Ye Hisaabi ki backup file nahi lagti.'); return; }
+
+    const mine = new Set(entries.map((e) => e.id));
+    const fresh = data.entries.filter((e) => !mine.has(e.id));
+
+    if (fresh.length) await db.putEntries(fresh);
+    if (data.profile && !profile) await db.setMeta('profile', data.profile);
+    for (const t of data.trips ?? []) await db.putTrip(t);
+
+    await reload();
+    setRestoreMsg(fresh.length ? `${fresh.length} entries wapas aa gayi ✅` : 'Sab kuch pehle se tha — kuch naya nahi mila.');
   }
 
   return (
     <Sheet onClose={onClose}>
       <h2>Settings</h2>
 
-      <div className="section-title" style={{ marginTop: 6 }}><h2 style={{ fontSize: 15 }}>Dikhawat</h2></div>
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>Dikhawat</h2></div>
       <div className="options">
         <div className="option" style={{ animation: 'none' }}>
           <span className="o-emoji">{theme === 'light' ? '☀️' : '🌙'}</span>
@@ -75,6 +121,40 @@ export function Settings({ onClose }: { onClose(): void }) {
             ))}
           </span>
         </div>
+      </div>
+
+      <div className="section-title" style={{ marginTop: 6 }}><h2 style={{ fontSize: 15 }}>Raat ka hisaab</h2></div>
+      <div className="options">
+        <div className="option" style={{ animation: 'none' }}>
+          <span className="o-emoji">🌙</span>
+          <span className="grow">
+            <span className="o-title">Roz ek line ka summary</span>
+            <span className="o-sub">
+              {nudge === 'unsupported'
+                ? 'Android app me chalta hai'
+                : nudgeOn
+                  ? `Roz ${hourLabel(nudgeHour)} — aaj kitna gaya, kal kitna safe hai`
+                  : 'Band hai. Isi se aadat banti hai — chalu rakhna behtar hai.'}
+            </span>
+          </span>
+          {nudge !== 'unsupported' && (
+            <button className={`toggle ${nudgeOn ? 'on' : ''}`} onClick={() => void applyNudge(!nudgeOn, nudgeHour)}
+                    aria-label="Summary on/off"><i /></button>
+          )}
+        </div>
+
+        {nudge !== 'unsupported' && nudgeOn && (
+          <div className="option" style={{ animation: 'none' }}>
+            <span className="o-emoji">⏰</span>
+            <span className="grow"><span className="o-title">Kis waqt</span></span>
+            <span style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+              {[20, 21, 22].map((h) => (
+                <button key={h} className="chip-p" data-on={nudgeHour === h}
+                        onClick={() => void applyNudge(true, h)}>{hourLabel(h)}</button>
+              ))}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="section-title"><h2 style={{ fontSize: 15 }}>Auto-capture</h2></div>
@@ -131,13 +211,45 @@ export function Settings({ onClose }: { onClose(): void }) {
         ))}
       </div>
 
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>Backup</h2></div>
+      <div className="options">
+        <div className="option" style={{ animation: 'none' }}>
+          <span className="o-emoji">{lastBackup ? '💾' : '⚠️'}</span>
+          <span className="grow">
+            <span className="o-title">{lastBackup ? 'Backup le lo' : 'Abhi tak backup nahi liya'}</span>
+            <span className="o-sub">
+              {lastBackup
+                ? `Pichhli baar ${lastBackup.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} ko. Sync abhi nahi hai — phone kho gaya to sab chala jayega.`
+                : 'Sab kuch sirf is phone me hai. File bana ke khud ko WhatsApp kar do — 5 second ka kaam.'}
+            </span>
+          </span>
+          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}
+                  disabled={busy} onClick={() => void backupNow()}>
+            {busy ? '…' : 'Lo'}
+          </button>
+        </div>
+
+        <label className="option" style={{ animation: 'none', cursor: 'pointer' }}>
+          <span className="o-emoji">📥</span>
+          <span className="grow">
+            <span className="o-title">Backup wapas laao</span>
+            <span className="o-sub">Purani entries jud jayengi. Jo abhi hai wo hategi nahi.</span>
+          </span>
+          <input type="file" accept="application/json,.json" style={{ display: 'none' }}
+                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void restore(f); e.target.value = ''; }} />
+        </label>
+      </div>
+
+      {restoreMsg && <div className="dev-note">{restoreMsg}</div>}
+
       <div className="section-title"><h2 style={{ fontSize: 15 }}>Tumhara data</h2></div>
       <div className="options">
         <div className="option" style={{ animation: 'none' }}>
           <span className="o-emoji">📦</span>
-          <span><span className="o-title">{entries.length} entries</span>
+          <span className="grow"><span className="o-title">{entries.length} entries</span>
             <span className="o-sub">{formatINR(entries.reduce((s, e) => s + (e.type === 'expense' ? e.amountPaise : 0), 0))} ab tak</span></span>
-          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={exportJson}>Export</button>
+          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}
+                  onClick={() => downloadCsv(entries)}>CSV</button>
         </div>
 
         <button className="option" style={{ animation: 'none' }} onClick={() => setConfirmWipe(true)}>
@@ -171,4 +283,10 @@ export function Settings({ onClose }: { onClose(): void }) {
       </div>
     </Sheet>
   );
+}
+
+/** 21 → "9 baje" */
+function hourLabel(h: number): string {
+  const twelve = h % 12 === 0 ? 12 : h % 12;
+  return `${twelve} baje`;
 }

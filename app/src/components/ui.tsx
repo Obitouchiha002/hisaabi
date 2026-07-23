@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { pushBackHandler } from '@/lib/back';
 import { formatINR } from '@engine';
 
 /* ---------- icons ---------- */
@@ -143,9 +144,14 @@ export function Sheet({ children, onClose }: { children: ReactNode; onClose(): v
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
+
+    // Back dabane pe pehle sheet band ho — screen tab tak wahi rahe
+    const off = pushBackHandler(() => { onClose(); return true; });
+
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
+      off();
     };
   }, [onClose]);
 

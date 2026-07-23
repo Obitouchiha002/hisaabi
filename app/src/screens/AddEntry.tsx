@@ -15,7 +15,10 @@ import { startVoice, voiceEngine, type VoiceSession } from '@/lib/voice';
  * save se pehle hi dikh jaye ki kya banega. Kuch bhi chupke se save nahi hota.
  */
 
-const HINTS = ['chai 20', 'auto saath', 'sabzi ek sau chalis', 'petrol 500', 'atm se do hazaar nikale'];
+/* Ek hi jagah se sab — isliye dono tarah ke ishare yahin hain.
+   Pehle sawaal ke liye alag sheet thi; do rasta hone se user confuse hota tha. */
+const HINTS = ['chai 20', 'auto saath', 'sabzi ek sau chalis', 'atm se do hazaar nikale'];
+const ASK_HINTS = ['is mahine kitna gaya', 'aaj kitna kharch hua', 'sabse bada kharcha'];
 
 type Mode = 'voice' | 'type';
 
@@ -172,11 +175,23 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
             onChange={(e) => setText(e.target.value)}
           />
           {!text && (
-            <div className="hint-row">
-              {HINTS.map((h) => (
-                <button key={h} className="hint" type="button" onClick={() => setText(h)}>{h}</button>
-              ))}
-            </div>
+            <>
+              <p className="hint-k">Kharcha likho</p>
+              <div className="hint-row">
+                {HINTS.map((h) => (
+                  <button key={h} className="hint" type="button" onClick={() => setText(h)}>{h}</button>
+                ))}
+              </div>
+
+              <p className="hint-k">…ya poochho</p>
+              <div className="hint-row">
+                {ASK_HINTS.map((h) => (
+                  <button key={h} className="hint hint-ask" type="button" onClick={() => setText(h)}>
+                    {Icon.spark} {h}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </>
       )}

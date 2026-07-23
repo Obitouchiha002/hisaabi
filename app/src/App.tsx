@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StoreProvider, useStore } from '@/lib/store';
 import { saveSession, type Session } from '@/lib/auth';
 import { Onboarding } from '@/screens/Onboarding';
@@ -7,14 +7,19 @@ import { Home } from '@/screens/Home';
 import { Review } from '@/screens/Review';
 import { Trips } from '@/screens/Trips';
 import { TripDetail } from '@/screens/TripDetail';
+import { History } from '@/screens/History';
 import type { Profile } from '@/lib/profile';
 import { isDemo } from '@/lib/demo';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { pushBackHandler } from '@/lib/back';
 
 export default function App() {
   return (
-    <StoreProvider>
-      <Flow />
-    </StoreProvider>
+    <ErrorBoundary>
+      <StoreProvider>
+        <Flow />
+      </StoreProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -27,7 +32,14 @@ function Shell({ screen, children }: { screen: string; children: React.ReactNode
  * Auth skip kiya ja sakta hai: bina account ke bhi poori app chalti hai.
  */
 function Flow() {
-  const { ready, profile, session, route, saveProfile, setSession } = useStore();
+  const { ready, profile, session, route, setRoute, saveProfile, setSession } = useStore();
+
+  /* Back dabane pe app band nahi, screen wapas. Home pe ho to hi band ho. */
+  useEffect(() => pushBackHandler(() => {
+    if (route === 'home') return false;
+    setRoute(route === 'trip' ? 'trips' : 'home');
+    return true;
+  }), [route, setRoute]);
   const [authSkipped, setAuthSkipped] = useState(
     () => isDemo() || localStorage.getItem('hisaabi-auth-skipped') === '1',
   );
@@ -72,6 +84,7 @@ function Flow() {
       {route === 'review' ? <Review />
         : route === 'trips' ? <Trips />
         : route === 'trip' ? <TripDetail />
+        : route === 'history' ? <History />
         : <Home />}
     </Shell>
   );

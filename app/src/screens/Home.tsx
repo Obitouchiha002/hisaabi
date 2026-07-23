@@ -5,8 +5,8 @@ import { EntryEditor } from '@/components/EntryEditor';
 import { useStore } from '@/lib/store';
 import { addressWord, greeting } from '@/lib/profile';
 import { AddSheet } from './AddEntry';
-import { AskSheet } from './Ask';
 import { Settings } from './Settings';
+import { buildBackup, needsBackup, saveBackup } from '@/lib/backup';
 
 export function Home() {
   const store = useStore();
@@ -16,6 +16,7 @@ export function Home() {
   } = store;
   const [editing, setEditing] = useState<Entry | null>(null);
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') ?? 'dark');
+  const [showBackup, setShowBackup] = useState(() => needsBackup(store.entries.length));
 
   function toggleTheme() {
     const next = theme === 'light' ? 'dark' : 'light';
@@ -30,13 +31,21 @@ export function Home() {
     toast.show(`${name} ka hisaab barabar ✅`);
   }
 
+  async function takeBackup() {
+    const res = await saveBackup(buildBackup({ profile, entries, trips: store.trips }));
+    if (res !== 'failed') {
+      setShowBackup(false);
+      toast.show('Backup ho gaya ✅');
+    }
+  }
+
   async function quickAdd(line: string) {
     const parsed = await store.engine.ingestText(line, { source: 'manual' });
     if (!parsed.length) return;
     await store.commitDrafts(parsed);
     toast.show(`${parsed[0]!.title} · ${formatINR(parsed[0]!.amountPaise)} add ho gaya`);
   }
-  const [sheet, setSheet] = useState<'type' | 'voice' | 'ask' | 'settings' | null>(null);
+  const [sheet, setSheet] = useState<'type' | 'voice' | 'settings' | null>(null);
   const toast = useToast();
 
   const today = useMemo(() => {
@@ -104,11 +113,26 @@ export function Home() {
             {formatINR(cashPaise !== 0 ? cashPaise : Math.max(0, budget.leftPaise))}
           </div>
         </div>
-        <div className="stat" style={{ animationDelay: '160ms' }}>
+        <button className="stat stat-tap" style={{ animationDelay: '160ms' }} onClick={() => setRoute('history')}>
           <div className="k">Is mahine</div>
           <div className="v num">{formatINR(budget.spentThisMonthPaise)}</div>
-        </div>
+          <div className="stat-more">Poora hisaab →</div>
+        </button>
       </div>
+
+      {showBackup && (
+        <div className="nudge-card">
+          <span className="nudge-ico">💾</span>
+          <span className="grow">
+            <b>Backup le lo</b>
+            <i>{entries.length} entries sirf is phone me hain. Sync abhi nahi hai — file bana ke khud ko bhej do.</i>
+          </span>
+          <span className="nudge-acts">
+            <button className="btn btn-primary btn-sm" onClick={() => void takeBackup()}>Lo</button>
+            <button className="nudge-skip" onClick={() => setShowBackup(false)}>Baad me</button>
+          </span>
+        </div>
+      )}
 
       {udhaar.people.length > 0 && (
         <div className="udhaar-card">
@@ -145,7 +169,9 @@ export function Home() {
       <div>
       <div className="section-title">
         <h2>{today.length ? 'Aaj ke kharche' : 'Pichhle kharche'}</h2>
-        {entries.length > 0 && <span>{entries.length} total</span>}
+        {entries.length > 0 && (
+          <button className="see-all" onClick={() => setRoute('history')}>Sab dekho →</button>
+        )}
       </div>
 
       {recent.length === 0 ? (
@@ -184,7 +210,7 @@ export function Home() {
 
       <nav className="dock">
         <div className="dock-bar">
-          <button className="dock-spark" onClick={() => setSheet('ask')} aria-label="Poocho kuch bhi">
+          <button className="dock-spark" onClick={() => setSheet('type')} aria-label="Likho ya poocho">
             {Icon.spark}
           </button>
           <button className="dock-input" onClick={() => setSheet('type')}>
@@ -222,7 +248,6 @@ export function Home() {
         />
       )}
 
-      {sheet === 'ask' && <AskSheet onClose={() => setSheet(null)} />}
       {sheet === 'settings' && <Settings onClose={() => setSheet(null)} />}
 
       {toast.node}

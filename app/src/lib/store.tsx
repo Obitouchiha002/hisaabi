@@ -11,6 +11,7 @@ import { DEMO_ENTRIES, DEMO_PENDING, DEMO_PROFILE, DEMO_TRIPS, isDemo } from './
 import { getSession, type Session } from './auth';
 import { checkAi, remoteAi, type AiStatus } from './ai';
 import { handleNotification, startNativeCapture } from './capture';
+import { scheduleNightlySummary } from './nudge';
 
 interface Store {
   ready: boolean;
@@ -57,7 +58,7 @@ interface Store {
   reload(): Promise<void>;
 }
 
-export type Route = 'home' | 'review' | 'trips' | 'trip';
+export type Route = 'home' | 'review' | 'trips' | 'trip' | 'history';
 
 const Ctx = createContext<Store | null>(null);
 
@@ -76,7 +77,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [route, setRoute] = useState<Route>(
     () => {
       const r = new URLSearchParams(location.search).get('route');
-      return r === 'review' || r === 'trips' || r === 'trip' ? (r as Route) : 'home';
+      return r === 'review' || r === 'trips' || r === 'trip' || r === 'history' ? (r as Route) : 'home';
     },
   );
 
@@ -126,6 +127,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     reload().finally(() => setReady(true));
   }, [reload]);
+
+  /* Raat ke summary hamesha taza rahein — entries ya budget badle to dobara lagao.
+     Thoda ruk kar chalate hain, warna har chhoti entry pe schedule hota rahega. */
+  useEffect(() => {
+    if (!ready || !profile) return;
+    const t = setTimeout(() => {
+      void scheduleNightlySummary({
+        entries: entriesRef.current,
+        monthlyBudgetPaise: profile.monthlyBudgetPaise,
+        name: profile.name,
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [ready, profile, entries]);
 
   const saveProfile = useCallback(async (p: Profile) => {
     await db.setMeta('profile', p);
