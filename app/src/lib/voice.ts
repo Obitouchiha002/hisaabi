@@ -25,6 +25,18 @@ function isNative(): boolean {
   return cap?.isNativePlatform?.() === true;
 }
 
+/** Plugin ready hone tak thoda ruk jao — app khulte hi listener lagana crash karta tha. */
+let ready: Promise<void> | null = null;
+function whenReady(): Promise<void> {
+  if (!ready) {
+    ready = new Promise<void>((resolve) => {
+      if (document.readyState === 'complete') { setTimeout(resolve, 60); return; }
+      window.addEventListener('load', () => setTimeout(resolve, 60), { once: true });
+    });
+  }
+  return ready;
+}
+
 function webCtor(): (new () => WebSpeech) | undefined {
   const w = window as unknown as { SpeechRecognition?: new () => WebSpeech; webkitSpeechRecognition?: new () => WebSpeech };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition;
@@ -56,6 +68,7 @@ export async function startVoice(handlers: VoiceHandlers): Promise<VoiceSession 
 
 async function startNative(handlers: VoiceHandlers): Promise<VoiceSession | null> {
   try {
+    await whenReady();
     const perm = await SpeechRecognition.checkPermissions();
     if (perm.speechRecognition !== 'granted') {
       const asked = await SpeechRecognition.requestPermissions();

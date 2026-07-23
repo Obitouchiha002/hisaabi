@@ -35,6 +35,11 @@ public class HisaabiCapturePlugin extends Plugin {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                // Bridge ready na ho to notifyListeners andar se phat jata hai
+                // ("Cannot read properties of undefined (reading 'triggerEvent')").
+                // Notification tab tak raw store me hai, isliye kuch khota nahi.
+                if (getBridge() == null || getBridge().getWebView() == null) return;
+
                 JSObject data = new JSObject();
                 data.put("packageName", intent.getStringExtra("packageName"));
                 data.put("title", intent.getStringExtra("title"));
