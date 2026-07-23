@@ -178,6 +178,10 @@ export default async function handler(req, res) {
         // key ya upstream ka message kabhi client ko mat bhejo
         console.error('[ai]', provider.name, `try ${attempt}/${tries}`, err?.message);
         lastError = err;
+
+        // 429 ka matlab hai "abhi mat pucho" — usi provider se dobara puchne pe
+        // wahi jawab milega aur 400ms bekaar jayenge. Seedha agle provider pe.
+        if (isRateLimited(err)) break;
         if (attempt < tries) await sleep(RETRY_DELAY_MS);
       }
     }
@@ -282,6 +286,11 @@ function safeJson(text) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Provider ne "429" bola — quota bhar gaya, thoda ruko. */
+function isRateLimited(err) {
+  return /\b429\b/.test(String(err?.message ?? ''));
 }
 
 function withTimeout(promise, ms) {
