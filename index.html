@@ -20,6 +20,9 @@
 
 <!-- Fonts yahin se — Google ko har visitor ki request bhejne ki zaroorat nahi -->
 <link rel="stylesheet" href="/fonts/fonts.css">
+<!-- Emoji ka font 10 MB ka hai — page dikhne ke baad load hota hai, warna
+     pehla paint uske intezaar me atak jata hai. -->
+<link rel="stylesheet" href="/fonts/fonts-heavy.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/assets/css/site.css?v=5fa0418d">
 
 <script>
@@ -230,7 +233,7 @@
       <h2>Aaj raat se<br>hisaab shuru.</h2>
       <p class="msub">Ek minute me setup. Play Store pe nahi — seedha yahin se.</p>
       <div class="mchips">
-        <span>Android 8+</span><span>3.5 MB</span><span>Koi ad nahi</span><span>Signup optional</span>
+        <span>Android 8+</span><span>14 MB</span><span>Koi ad nahi</span><span>Signup optional</span>
       </div>
       <div class="mtrust">
         <b>Tumhara data tumhare phone me</b>
@@ -784,7 +787,7 @@
       <span class="dl-icon" aria-hidden="true">₹</span>
       <div>
         <h3 id="dlTitle">Hisaabi</h3>
-        <p class="dl-ver"><span id="dlVersion">v0.1.0</span> · <span id="dlSize">3.5 MB</span> · <span id="dlDate">22 Jul 2026</span></p>
+        <p class="dl-ver"><span id="dlVersion">v0.1.0</span> · <span id="dlSize">14 MB</span> · <span id="dlDate">22 Jul 2026</span></p>
       </div>
     </div>
 
@@ -818,7 +821,7 @@
         <b>“Install anyway”</b> dabana padega. Baaki sab (voice, manual, reports)
         normal build me bhi poora chalta hai.
       </p>
-      <a class="btn btn-ghost btn-sm" href="/hisaabi-auto.apk" download>Auto-capture build (3.5 MB)</a>
+      <a class="btn btn-ghost btn-sm" href="/hisaabi-auto.apk" download>Auto-capture build</a>
     </details>
 
     <details class="dl-sum">

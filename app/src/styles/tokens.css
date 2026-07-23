@@ -24,9 +24,11 @@
 
   --r-xs: 8px; --r-sm: 12px; --r-md: 18px; --r-lg: 26px; --r-xl: 34px; --r-pill: 999px;
 
-  --font-display: "Bricolage Grotesque", "Inter Tight", system-ui, sans-serif;
-  --font-body: "Inter Tight", system-ui, -apple-system, sans-serif;
-  --font-serif: "Instrument Serif", Georgia, serif;
+  /* 'Hisaabi Emoji' aur Devanagari saath me — purane phone pe emoji tofu (▯)
+     aur Hindi ka bhadda fallback, dono se bachne ke liye. */
+  --font-display: "Bricolage Grotesque", "Inter Tight", "Hisaabi Devanagari", "Noto Sans Devanagari", "Hisaabi Emoji", system-ui, sans-serif;
+  --font-body: "Inter Tight", "Hisaabi Devanagari", "Noto Sans Devanagari", "Hisaabi Emoji", system-ui, -apple-system, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, "Hisaabi Emoji", serif;
 
   --ease: cubic-bezier(.22, .9, .3, 1);
   --ease-out: cubic-bezier(.16, 1, .3, 1);
