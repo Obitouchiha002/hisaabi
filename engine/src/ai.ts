@@ -30,9 +30,39 @@ export interface AiAdapter {
 /** Isse neeche confidence ho to hi AI ko bulao. Warna paisa aur time dono bachta hai. */
 export const AI_CONFIDENCE_THRESHOLD = 0.6;
 
+/**
+ * Rishte wale shabd. Inke hone ka matlab hai ki line seedhi "cheez + daam" nahi hai —
+ * kisi se liya, kisi ko diya, kahin se nikala. Rules aise me bharosemand nahi rehte:
+ * "20 tea 500 ATM se dost se 12 lene hain" me rules ne "Tea ₹500" bana diya tha,
+ * jabki chai 20 ki thi aur 500 ATM se nikale the.
+ */
+const RELATION_RE =
+  /\b(se|ko|ke liye|lene|dene|dena|lena|udhaar|udhar|wapas|wale|wala|nikale|nikala|bacha|bache|baaki|milne|mila)\b/i;
+
+/**
+ * AI kab bulana hai.
+ *
+ * Sirf confidence dekhna kaafi nahi tha — rules poore vishwas ke saath GALAT
+ * jawab de sakte hain. Isliye ab shaq ke aur ishare bhi dekhte hain.
+ */
 export function needsAi(drafts: DraftEntry[], rawText: string): boolean {
-  if (drafts.length === 0) return rawText.trim().length > 0;
-  return drafts.some((d) => d.confidence < AI_CONFIDENCE_THRESHOLD);
+  const text = rawText.trim();
+  if (!text) return false;
+  if (drafts.length === 0) return true;
+
+  // koi bhi entry pe shaq
+  if (drafts.some((d) => d.confidence < AI_CONFIDENCE_THRESHOLD)) return true;
+
+  // naam hi nahi mila — matlab line samajh nahi aayi
+  if (drafts.some((d) => d.warnings.includes('title_missing'))) return true;
+
+  // "Atm Dost Lene Hi" jaisa lamba title = kachra, asli naam chhote hote hain
+  if (drafts.some((d) => d.title.split(/\s+/).length > 3)) return true;
+
+  // rishte wale shabd — kisse liya, kisko diya, kahan se nikala
+  if (RELATION_RE.test(text) && drafts.length > 1) return true;
+
+  return false;
 }
 
 export const PARSE_SYSTEM_PROMPT = `Tum ek Hinglish expense parser ho.

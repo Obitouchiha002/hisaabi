@@ -38,9 +38,21 @@ Rules:
 - WAQT: aaj=daysAgo 0, kal=1, parso=2. subah=hour 9, dopahar=13, shaam=18, raat=21.
   "5 baje shaam" = hour 17. Waqt na bataya ho to ye field chhod do.
   Ek baar waqt bola jaye to aage ke kharchon pe bhi wahi lagta hai, jab tak naya na aaye.
-- ATM se paisa nikalna "cash_in" hai (kharcha nahi). Salary/refund "income" hai.
+- KYA CHEEZ HAI, ye dhyan se dekho:
+  · "chai 20"           → kharcha (expense)
+  · "500 ATM se nikale" → cash_in (kharcha NAHI — paisa jeb me aaya)
+  · "salary mili 25000" → income
+  · "dost se 500 lene hain" / "Rahul ko 200 dene hain" → UDHAAR hai, kharcha nahi.
+    Iski entry mat banao — chhod do. (App me udhaar ka hisaab alag se aa raha hai.)
+  · "dost ne khilaya", "usne pay kiya" → user ne paisa nahi diya, entry mat banao.
+- AMOUNT KISKA HAI, ye pakka karo. Number cheez ke pehle bhi aa sakta hai aur baad me bhi:
+  "20 tea"  = Tea, 20      (tea 20 ka hai)
+  "tea 20"  = Tea, 20
+  Ek line me kai number hon to har number ko uski SAHI cheez se jodo, aage-peeche
+  ke shabd dekh kar. Galat jodne se accha hai ki us hisse ko chhod do.
 - Amount na mile to us hisse ko chhod do. Number kabhi invent mat karo.
 - title 1-3 shabd, jaisa user ne bola waisa hi (English me translate mat karo).
+  "Atm Dost Lene Hi" jaisa lamba/bematlab title kabhi mat banao.
 
 Misal 1 — chhoti line:
 "chai bees auto saath sabzi ek sau chalis"
@@ -54,7 +66,14 @@ pilai, aur raat ko ghar aate hue sabzi li ek sau chalis ki"
  {"title":"Auto","amount":60,"type":"expense","daysAgo":0,"hour":9},
  {"title":"Canteen khana","amount":80,"type":"expense","daysAgo":0,"hour":13},
  {"title":"Sabzi","amount":140,"type":"expense","daysAgo":0,"hour":21}]
-(dost ne chai pilai — uska paisa user ne nahi diya, isliye entry nahi bani)`;
+(dost ne chai pilai — uska paisa user ne nahi diya, isliye entry nahi bani)
+
+Misal 3 — ulti-seedhi line, sab kuch mila-jula:
+"20 tea 500 ATM se dost se 12 lene hi"
+[{"title":"Tea","amount":20,"type":"expense"},
+ {"title":"ATM se nikale","amount":500,"type":"cash_in"}]
+(chai 20 ki thi — 500 nahi. 500 ATM se nikale, wo cash_in hai.
+ "dost se 12 lene hain" udhaar hai — uski entry nahi bani.)`;
 
 const ASK_SYSTEM = `Tum ek query planner ho. User apne kharchon ke baare me sawaal poochta hai.
 SIRF ek JSON QueryPlan return karo — koi number, koi jawab nahi. Total database nikalega.
