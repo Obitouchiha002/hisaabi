@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 
-const LANDING = ['index.html', 'assets', 'robots.txt'];
+const LANDING = ['index.html', 'assets', 'robots.txt', 'fonts'];
 
 // public/ ka sab kuch waise ka waisa dist ki jad me (APK yahin se serve hoti hai)
 const PUBLIC_DIR = 'public';
