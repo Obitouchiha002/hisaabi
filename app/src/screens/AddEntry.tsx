@@ -130,6 +130,30 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
     onSaved(drafts.length, total);
   }
 
+  /**
+   * Send button ka kaam — jo samajh aaya wahi karo.
+   * Kharcha ho to save, sawaal ho to jawab dikhao (keyboard hata ke),
+   * abhi tak kuch samjha na ho to samajhne ka intezaar karo.
+   */
+  async function send() {
+    if (!text.trim() || saving) return;
+
+    if (drafts.length) { await save(); return; }
+
+    // sawaal ya trip — natija neeche hai, keyboard hata do taki dikh jaye
+    areaRef.current?.blur();
+
+    if (answer || tripDraft) return;
+
+    // abhi tak kuch nahi samjha — ek baar aur poocho
+    setThinking(true);
+    const res = await engine.handle(text, entries, { source: 'manual' });
+    setDrafts(res.intent === 'expense' ? res.drafts : []);
+    setAnswer(res.intent === 'question' ? res.answer : null);
+    setTripDraft(res.intent === 'trip' ? res.trip : null);
+    setThinking(false);
+  }
+
   return (
     <Sheet onClose={onClose}>
       {/* mode switch */}
@@ -166,14 +190,29 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
         </div>
       ) : (
         <>
-          <textarea
-            ref={areaRef}
-            className="compose"
-            value={text}
-            rows={3}
-            placeholder={'Poore din ka haal likh do —\n“subah chai bees, dopahar khana assi”\n\nYa poocho — “is mahine kitna gaya?”'}
-            onChange={(e) => setText(e.target.value)}
-          />
+          <div className="compose-row">
+            <textarea
+              ref={areaRef}
+              className="compose"
+              value={text}
+              rows={2}
+              placeholder={'Likho ya poocho…\n“subah chai bees, dopahar khana assi”'}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                // Enter se bhej do; nayi line ke liye Shift+Enter
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); }
+              }}
+            />
+
+            {/* Keyboard khula ho to neeche wala button dikhta hi nahi tha —
+                isliye bhejne ka rasta input ke andar hi hona chahiye. */}
+            <button className="send-btn" onClick={() => void send()}
+                    disabled={!text.trim() || saving}
+                    data-ready={drafts.length > 0 || !!answer || !!tripDraft}
+                    aria-label={drafts.length ? 'Add karo' : 'Bhejo'}>
+              {saving ? <span className="send-spin" /> : Icon.send}
+            </button>
+          </div>
           {!text && (
             <>
               <p className="hint-k">Kharcha likho</p>
@@ -254,17 +293,20 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
         <p className="ai-note">{Icon.spark} Poore din ki kahani likh do — AI usme se kharche khud nikal lega</p>
       )}
 
+      {/* Bada button sirf tab jab kuch samajh aaya ho — warna send button ke
+          saath do button dikhte hain aur samajh nahi aata kaunsa dabana hai. */}
       <div className="q-foot">
-        {tripDraft ? null : answer && !drafts.length ? (
-          <button className="btn btn-primary btn-block" onClick={onClose}>Theek hai</button>
-        ) : (
-          <button className="btn btn-primary btn-block" onClick={() => void save()} disabled={!drafts.length || saving}>
-            {drafts.length
-              ? `${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'} add karo · ${formatINR(total)}`
-              : mode === 'voice' ? 'Bolo, phir add karna' : 'Kuch likho ya poocho'}
+        {drafts.length > 0 && (
+          <button className="btn btn-primary btn-block" onClick={() => void save()} disabled={saving}>
+            {`${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'} add karo · ${formatINR(total)}`}
           </button>
         )}
-        <button className="btn btn-quiet btn-block" onClick={onClose}>Rehne do</button>
+        {answer && !drafts.length && !tripDraft && (
+          <button className="btn btn-primary btn-block" onClick={onClose}>Theek hai</button>
+        )}
+        <button className="btn btn-quiet btn-block" onClick={onClose}>
+          {drafts.length || answer || tripDraft ? 'Rehne do' : 'Band karo'}
+        </button>
       </div>
     </Sheet>
   );
