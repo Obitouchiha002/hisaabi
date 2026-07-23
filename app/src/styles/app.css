@@ -299,6 +299,15 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 }
 @keyframes blink { 50% { opacity: 0; } }
 
+/* Code me ab akshar bhi aate hain — 6 chaure box 360px phone pe bahar
+   nikalne lagte the, isliye gap aur font thoda kam. */
+@media (max-width: 400px) {
+  .otp-row { gap: 6px; }
+  .otp-box { height: 56px; font-size: 22px; }
+}
+
+.auth-err { color: var(--bad); font-size: 14px; margin-top: 10px; }
+
 .dev-note {
   margin-top: 14px;
   padding: 12px 14px;

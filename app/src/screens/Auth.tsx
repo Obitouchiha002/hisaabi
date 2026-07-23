@@ -1,49 +1,69 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/components/ui';
-import { isValidEmail, localAuth, type Session } from '@/lib/auth';
+import {
+  AuthError, isValidEmail, pickAuth,
+  type AuthAdapter, type SendResult, type Session,
+} from '@/lib/auth';
 import type { Profile } from '@/lib/profile';
 
 /**
- * Email + 6-digit code. Password nahi — kyunki password bhoolna bhi friction hai.
+ * Email + code. Password nahi — password bhoolna bhi friction hai.
  *
- * Abhi local mode hai (code screen pe hi dikhta hai). Backend lagte hi
- * sirf lib/auth.ts badalna hai, ye screen waisi hi rahegi.
+ * Code 6 akshar ka hai (ginti + capital), sirf ank ka nahi: server bina kisi
+ * database ke code jaanchta hai, aur usme sirf 6 ank andaza lagane layak hote.
+ * Akshar milane se 88 crore possibilities ho jaati hain.
+ *
+ * Server na ho ya net na ho to bhi ye screen chalti hai — tab code yahin dikh
+ * jata hai. Login ki wajah se app kabhi rukni nahi chahiye.
  */
+
+const CODE_LEN = 6;
 
 export function Auth({ profile, onDone }: { profile: Profile; onDone(session: Session | null): void }) {
   const [stage, setStage] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [devCode, setDevCode] = useState<string | null>(null);
+  const [sent, setSent] = useState<SendResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resentAt, setResentAt] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
+  const adapter = useRef<AuthAdapter | null>(null);
 
   useEffect(() => {
     if (stage === 'code') setTimeout(() => codeRef.current?.focus(), 300);
   }, [stage]);
 
+  async function auth(): Promise<AuthAdapter> {
+    adapter.current ??= await pickAuth();
+    return adapter.current;
+  }
+
   async function send() {
     if (!isValidEmail(email)) { setError('Email theek se likho'); return; }
     setBusy(true); setError(null);
     try {
-      const res = await localAuth.sendCode(email);
-      setDevCode(res.devCode ?? null);
+      const a = await auth();
+      setSent(await a.sendCode(email));
       setStage('code');
-    } catch {
-      setError('Code nahi bhej paya. Dobara try karo.');
+      setResentAt(Date.now());
+    } catch (err) {
+      setError(err instanceof AuthError ? err.message : 'Code nahi bhej paya. Dobara try karo.');
     } finally {
       setBusy(false);
     }
   }
 
   async function verify(value: string) {
+    if (!sent) return;
     setBusy(true); setError(null);
     try {
-      onDone(await localAuth.verify(email, value));
-    } catch {
-      setError('Code galat hai');
+      const a = await auth();
+      onDone(await a.verify(email, value, sent));
+    } catch (err) {
+      setError(err instanceof AuthError ? err.message : 'Code galat hai');
       setCode('');
+      codeRef.current?.focus();
     } finally {
       setBusy(false);
     }
@@ -53,7 +73,8 @@ export function Auth({ profile, onDone }: { profile: Profile; onDone(session: Se
     <div className="screen" key={stage}>
       <div className="row" style={{ marginBottom: 18 }}>
         {stage === 'code' && (
-          <button className="icon-btn" onClick={() => { setStage('email'); setCode(''); }} aria-label="Peeche">
+          <button className="icon-btn" onClick={() => { setStage('email'); setCode(''); setError(null); }}
+                  aria-label="Peeche">
             {Icon.back}
           </button>
         )}
@@ -80,7 +101,7 @@ export function Auth({ profile, onDone }: { profile: Profile; onDone(session: Se
               value={email}
               onChange={(e) => { setEmail(e.target.value); setError(null); }}
             />
-            {error && <p style={{ color: 'var(--bad)', fontSize: 14, marginTop: 10 }}>{error}</p>}
+            {error && <p className="auth-err">{error}</p>}
 
             <div className="q-foot">
               <button className="btn btn-primary btn-block" type="submit" disabled={busy || !email.trim()}>
@@ -96,28 +117,31 @@ export function Auth({ profile, onDone }: { profile: Profile; onDone(session: Se
         <>
           <div className="q-head">
             <div className="q-step">Code daalo</div>
-            <h1>6 ank ka code</h1>
-            <p>{email} pe bheja hai.</p>
+            <h1>{CODE_LEN} akshar ka code</h1>
+            <p>{email} pe bheja hai. Spam folder bhi dekh lena.</p>
           </div>
 
           <div style={{ position: 'relative' }}>
             <input
               ref={codeRef}
               value={code}
-              inputMode="numeric"
+              inputMode="text"
+              autoCapitalize="characters"
               autoComplete="one-time-code"
-              maxLength={6}
+              spellCheck={false}
+              maxLength={CODE_LEN}
               onChange={(e) => {
-                const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                // email me capital me dikhta hai; chhote akshar bhi chal jayein
+                const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LEN);
                 setCode(v);
                 setError(null);
-                if (v.length === 6) void verify(v);
+                if (v.length === CODE_LEN) void verify(v);
               }}
               style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%' }}
               aria-label="Code"
             />
             <div className="otp-row" onClick={() => codeRef.current?.focus()}>
-              {[0, 1, 2, 3, 4, 5].map((i) => (
+              {Array.from({ length: CODE_LEN }, (_, i) => (
                 <div key={i} className="otp-box" data-filled={!!code[i]} data-active={code.length === i}>
                   {code[i] ?? ''}
                 </div>
@@ -125,16 +149,19 @@ export function Auth({ profile, onDone }: { profile: Profile; onDone(session: Se
             </div>
           </div>
 
-          {error && <p style={{ color: 'var(--bad)', fontSize: 14, marginTop: 12 }}>{error}</p>}
+          {error && <p className="auth-err">{error}</p>}
+          {busy && !error && <p className="hint-line">Jaanch raha hoon…</p>}
 
-          {devCode && (
+          {sent?.devCode && (
             <div className="dev-note">
-              Abhi email server nahi laga hai, isliye code yahin dikha raha hoon: <b>{devCode}</b>
+              Abhi email server nahi laga hai, isliye code yahin dikha raha hoon: <b>{sent.devCode}</b>
             </div>
           )}
 
           <div className="q-foot">
-            <button className="btn btn-ghost btn-block" type="button" disabled={busy} onClick={() => void send()}>
+            <button className="btn btn-ghost btn-block" type="button"
+                    disabled={busy || Date.now() - resentAt < 20_000}
+                    onClick={() => void send()}>
               Code dobara bhejo
             </button>
             <button className="btn btn-quiet btn-block" type="button" onClick={() => onDone(null)}>
