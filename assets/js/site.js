@@ -8,6 +8,50 @@
   var root = document.documentElement;
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ---------- 0. bhasha (English default, Hindi switch) ----------
+     HTML me English likha hai — wahi default hai, isliye page turant sahi
+     dikhta hai (koi flash nahi). Hindi har element ke `data-hi` me pada hai;
+     switch karne pe wahi lag jata hai. English wapas laane ke liye pehli baar
+     ka innerHTML `data-en` me sambhal lete hain.
+
+     innerHTML isliye (textContent nahi) kyunki copy me <b>, <strong>, <code>
+     jaise tag hain. Text hamara apna likha hua hai, user ka nahi. */
+  var LANG_KEY = 'hisaabi-site-lang';
+  var siteLang = 'en';
+
+  /* JS se bane text (phone demo, ticker) ke liye — HTML wale data-hi se
+     alag, kyunki ye har loop pe naye sire se banta hai. */
+  function L(en, hi) { return siteLang === 'hi' ? hi : en; }
+
+  function applyLang(lang) {
+    var nodes = document.querySelectorAll('[data-hi]');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (el.dataset.en === undefined) el.dataset.en = el.innerHTML;
+      el.innerHTML = lang === 'hi' ? el.dataset.hi : el.dataset.en;
+    }
+    siteLang = lang;
+    root.setAttribute('lang', lang === 'hi' ? 'hi' : 'en');
+    root.setAttribute('data-lang', lang);
+
+    var btns = document.querySelectorAll('[data-lang-set]');
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].setAttribute('aria-pressed', btns[j].dataset.langSet === lang ? 'true' : 'false');
+    }
+  }
+
+  var savedLang = 'en';
+  try { if (localStorage.getItem(LANG_KEY) === 'hi') savedLang = 'hi'; } catch (e) { /* storage band */ }
+  if (savedLang === 'hi') applyLang('hi'); else applyLang('en');
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-lang-set]');
+    if (!btn) return;
+    var next = btn.dataset.langSet;
+    try { localStorage.setItem(LANG_KEY, next); } catch (err) { /* koi baat nahi */ }
+    applyLang(next);
+  });
+
   /* ---------- 1. theme ---------- */
   var themeBtn = document.getElementById('themeBtn');
   themeBtn.addEventListener('click', function () {
@@ -278,7 +322,7 @@
     ['GPay', '₹85 · Chai Point'],
     ['Telegram', '"petrol 500"'],
     ['Paytm', '₹49 · Recharge'],
-    ['🎤 bola', '"sabzi ek sau chalis"'],
+    ['🎤', '"sabzi ek sau chalis"'],
     ['HDFC', '₹2,499 · Amazon'],
     ['Swiggy', '₹318 · Dinner'],
     ['GPay', '₹30 · Auto'],
@@ -295,12 +339,12 @@
   var SPOKEN = 'aaj chai bees, auto saath, sabzi ek sau chalis, aur dopahar khana assi';
 
   var ENTRIES = [
-    { icon: '🍵', name: 'Chai',          cat: 'Khana-peena',   amt: 20 },
-    { icon: '🛺', name: 'Auto',          cat: 'Aana-jaana',    amt: 60 },
-    { icon: '🥬', name: 'Sabzi',         cat: 'Ghar ka saman', amt: 140 },
-    { icon: '🍛', name: 'Dopahar khana', cat: 'Khana-peena',   amt: 80 }
+    { icon: '🍵', name: 'Chai',   catEn: 'Food & drink', catHi: 'Khana-peena',   amt: 20 },
+    { icon: '🛺', name: 'Auto',   catEn: 'Travel',       catHi: 'Aana-jaana',    amt: 60 },
+    { icon: '🥬', name: 'Sabzi',  catEn: 'Groceries',    catHi: 'Ghar ka saman', amt: 140 },
+    { icon: '🍛', name: 'Lunch',  catEn: 'Food & drink', catHi: 'Khana-peena',   amt: 80 }
   ];
-  var AUTO_ENTRY = { icon: '🛒', name: 'Blinkit', cat: 'PhonePe · auto', amt: 240, auto: true };
+  var AUTO_ENTRY = { icon: '🛒', name: 'Blinkit', catEn: 'PhonePe · auto', catHi: 'PhonePe · auto', amt: 240, auto: true };
 
   var mic        = document.getElementById('pMic');
   var transcript = document.getElementById('pTranscript');
@@ -319,7 +363,7 @@
   function rowHTML(e) {
     return '<span class="p-emoji">' + e.icon + '</span>' +
            '<span><span class="p-name">' + e.name + '</span>' +
-           '<span class="p-cat">' + e.cat + '</span></span>' +
+           '<span class="p-cat">' + L(e.catEn, e.catHi) + '</span></span>' +
            (e.auto ? '<span class="p-tag">auto</span>' : '') +
            '<span class="p-amt num">' + rupees(e.amt) + '</span>';
   }
@@ -327,8 +371,8 @@
   var EMPTY_HTML =
     '<div class="p-empty">' +
       '<span class="e-ico" aria-hidden="true">👋</span>' +
-      '<span class="e-t">Namaste!</span>' +
-      '<span class="e-s">Aaj ka hisaab abhi khaali hai. Mic dabao aur jitne kharche hain, ek saath bol do.</span>' +
+      '<span class="e-t">' + L('Hello!', 'Namaste!') + '</span>' +
+      '<span class="e-s">' + L("Today's log is empty. Tap the mic and say all your spends at once.", 'Aaj ka hisaab abhi khaali hai. Mic dabao aur jitne kharche hain, ek saath bol do.') + '</span>' +
       '<span class="e-chip">“chai bees, auto saath…”</span>' +
     '</div>';
 
@@ -400,7 +444,7 @@
     // samajhna
     statusEl.textContent = 'Samajh raha hoon…';
     await wait(750);
-    statusEl.textContent = '4 kharche mile';
+    statusEl.textContent = L('4 spends found', '4 kharche mile');
 
     // entries
     var running = 0;

@@ -2001,3 +2001,33 @@ em.serif {
   }
   .reveal { opacity: 1; transform: none; }
 }
+
+/* ---------- bhasha switch (EN / हिं) ---------- */
+
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill, 999px);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  flex: none;
+}
+.lang-switch button {
+  padding: 5px 10px;
+  border-radius: var(--r-pill, 999px);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-3);
+  transition: background .15s, color .15s;
+}
+.lang-switch button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* mobile app-shell ke top bar me thoda aur compact */
+@media (max-width: 900px) {
+  .lang-switch button { padding: 4px 8px; font-size: 11px; }
+}
