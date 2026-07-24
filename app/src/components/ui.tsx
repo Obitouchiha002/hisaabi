@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { pushBackHandler } from '@/lib/back';
 import { formatINR } from '@engine';
+import { useT } from '@/lib/i18n';
 
 /* ---------- icons ---------- */
 
@@ -126,11 +127,13 @@ export function Amount({ paise, className = '' }: { paise: number; className?: s
 export function OptionRow<T extends string>({
   option, selected, onSelect, index = 0,
 }: {
-  option: { id: T; emoji: string; title: string; sub?: string };
+  option: { id: T; emoji: string; title: string; titleHi?: string; sub?: string; subHi?: string };
   selected: boolean;
   onSelect(id: T): void;
   index?: number;
 }) {
+  const t = useT();
+  const sub = option.sub ? t(option.sub, option.subHi ?? option.sub) : null;
   return (
     <button
       className="option"
@@ -141,8 +144,8 @@ export function OptionRow<T extends string>({
     >
       <span className="o-emoji" aria-hidden="true">{option.emoji}</span>
       <span>
-        <span className="o-title">{option.title}</span>
-        {option.sub && <span className="o-sub">{option.sub}</span>}
+        <span className="o-title">{t(option.title, option.titleHi ?? option.title)}</span>
+        {sub && <span className="o-sub">{sub}</span>}
       </span>
       <span className="o-tick">{Icon.check}</span>
     </button>

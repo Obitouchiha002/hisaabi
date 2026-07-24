@@ -7,6 +7,7 @@
 
 import type { PaidWith } from '@engine';
 import { toPaise } from '@engine';
+import { getLang, t } from './i18n';
 
 export type WorkId = 'student' | 'job' | 'business' | 'ghar';
 export type ToneId = 'dosti' | 'professional';
@@ -27,47 +28,60 @@ export interface Profile {
 export interface Option<T extends string> {
   id: T;
   emoji: string;
+  /** English (default) */
   title: string;
+  /** Hindi (Roman) */
+  titleHi?: string;
   sub?: string;
+  subHi?: string;
+}
+
+/** Option ki abhi ki bhasha me text. OptionRow aur baaki jagah yahi use karte hain. */
+export function optTitle<T extends string>(o: Option<T>): string {
+  return t(o.title, o.titleHi ?? o.title);
+}
+export function optSub<T extends string>(o: Option<T>): string | undefined {
+  if (!o.sub) return undefined;
+  return t(o.sub, o.subHi ?? o.sub);
 }
 
 export const WORK_OPTIONS: Option<WorkId>[] = [
-  { id: 'student',  emoji: '🎓', title: 'Student hoon',      sub: 'Pocket money, mess, recharge' },
-  { id: 'job',      emoji: '💼', title: 'Job karta hoon',    sub: 'Salary, EMI, rozana kharche' },
-  { id: 'business', emoji: '🏪', title: 'Dukaan / business', sub: 'Rozana lena-dena zyada' },
-  { id: 'ghar',     emoji: '🏠', title: 'Ghar sambhalta hoon', sub: 'Ration, bijli, bacchon ka kharcha' },
+  { id: 'student',  emoji: '🎓', title: "I'm a student",        titleHi: 'Student hoon',        sub: 'Pocket money, mess, recharge' },
+  { id: 'job',      emoji: '💼', title: 'I have a job',         titleHi: 'Job karta hoon',      sub: 'Salary, EMI, daily spends',  subHi: 'Salary, EMI, rozana kharche' },
+  { id: 'business', emoji: '🏪', title: 'Shop / business',      titleHi: 'Dukaan / business',   sub: 'Lots of daily transactions', subHi: 'Rozana lena-dena zyada' },
+  { id: 'ghar',     emoji: '🏠', title: 'I run the home',       titleHi: 'Ghar sambhalta hoon', sub: 'Ration, bills, kids',        subHi: 'Ration, bijli, bacchon ka kharcha' },
 ];
 
 export const TONE_OPTIONS: Option<ToneId>[] = [
-  { id: 'dosti',        emoji: '🤝', title: 'Dost jaisa',   sub: '"Bhai, aaj thoda zyada ho gaya"' },
-  { id: 'professional', emoji: '🎩', title: 'Seedha-saada', sub: '"Aaj ₹340 kharch hua"' },
+  { id: 'dosti',        emoji: '🤝', title: 'Like a friend', titleHi: 'Dost jaisa',   sub: '"Bhai, that was a bit much today"', subHi: '"Bhai, aaj thoda zyada ho gaya"' },
+  { id: 'professional', emoji: '🎩', title: 'Plain & simple', titleHi: 'Seedha-saada', sub: '"You spent ₹340 today"',            subHi: '"Aaj ₹340 kharch hua"' },
 ];
 
 export const ADDRESS_OPTIONS: Option<AddressId>[] = [
-  { id: 'bhai',  emoji: '🙋‍♂️', title: 'Bhai' },
-  { id: 'behen', emoji: '🙋‍♀️', title: 'Behen' },
-  { id: 'naam',  emoji: '✨',   title: 'Sirf naam se bulao' },
+  { id: 'bhai',  emoji: '🙋‍♂️', title: 'Bhai',           titleHi: 'Bhai' },
+  { id: 'behen', emoji: '🙋‍♀️', title: 'Behen',          titleHi: 'Behen' },
+  { id: 'naam',  emoji: '✨',   title: 'Just my name',    titleHi: 'Sirf naam se bulao' },
 ];
 
 export const BUDGET_OPTIONS: Option<string>[] = [
-  { id: '5000',  emoji: '🌱', title: '₹5,000 tak',       sub: 'Chhota kharcha' },
+  { id: '5000',  emoji: '🌱', title: 'Up to ₹5,000',    titleHi: '₹5,000 tak', sub: 'Small spends', subHi: 'Chhota kharcha' },
   { id: '12000', emoji: '🍃', title: '₹5,000 – ₹15,000' },
   { id: '25000', emoji: '🌳', title: '₹15,000 – ₹35,000' },
-  { id: '50000', emoji: '🏔️', title: '₹35,000 se zyada' },
+  { id: '50000', emoji: '🏔️', title: 'More than ₹35,000', titleHi: '₹35,000 se zyada' },
 ];
 
 export const PAY_OPTIONS: Option<PaidWith>[] = [
-  { id: 'digital', emoji: '📲', title: 'UPI zyada',   sub: 'GPay, PhonePe, Paytm' },
-  { id: 'cash',    emoji: '💵', title: 'Cash zyada',  sub: 'Note-paise se' },
-  { id: 'unknown', emoji: '⚖️', title: 'Dono barabar' },
+  { id: 'digital', emoji: '📲', title: 'Mostly UPI',   titleHi: 'UPI zyada',  sub: 'GPay, PhonePe, Paytm' },
+  { id: 'cash',    emoji: '💵', title: 'Mostly cash',  titleHi: 'Cash zyada', sub: 'Notes & coins', subHi: 'Note-paise se' },
+  { id: 'unknown', emoji: '⚖️', title: 'About equal',  titleHi: 'Dono barabar' },
 ];
 
 export const DISCOVERY_OPTIONS: Option<DiscoveryId>[] = [
-  { id: 'instagram', emoji: '📱', title: 'Instagram / YouTube' },
-  { id: 'dost',      emoji: '👋', title: 'Dost ne bataya' },
-  { id: 'google',    emoji: '🔍', title: 'Google pe search karke' },
-  { id: 'github',    emoji: '🐙', title: 'GitHub / dev community' },
-  { id: 'aur',       emoji: '🤷', title: 'Kahin aur se' },
+  { id: 'instagram', emoji: '📱', title: 'Instagram / YouTube', titleHi: 'Instagram / YouTube' },
+  { id: 'dost',      emoji: '👋', title: 'A friend told me',    titleHi: 'Dost ne bataya' },
+  { id: 'google',    emoji: '🔍', title: 'Searched on Google',  titleHi: 'Google pe search karke' },
+  { id: 'github',    emoji: '🐙', title: 'GitHub / dev community', titleHi: 'GitHub / dev community' },
+  { id: 'aur',       emoji: '🤷', title: 'Somewhere else',      titleHi: 'Kahin aur se' },
 ];
 
 export const DEFAULT_PROFILE: Profile = {
@@ -85,15 +99,21 @@ export const DEFAULT_PROFILE: Profile = {
 export function addressWord(p: Profile): string {
   if (p.address === 'bhai') return 'Bhai';
   if (p.address === 'behen') return 'Behen';
-  return p.name || 'dost';
+  return p.name || t('friend', 'dost');
 }
 
 export function greeting(p: Profile, now = new Date()): string {
   const h = now.getHours();
-  if (h < 12) return 'Subah bakhair';
-  if (h < 17) return 'Namaste';
-  if (h < 21) return 'Shaam bakhair';
-  return 'Raat ho gayi';
+  if (getLang() === 'hi') {
+    if (h < 12) return 'Subah bakhair';
+    if (h < 17) return 'Namaste';
+    if (h < 21) return 'Shaam bakhair';
+    return 'Raat ho gayi';
+  }
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Hello';
+  if (h < 21) return 'Good evening';
+  return 'Good night';
 }
 
 /**

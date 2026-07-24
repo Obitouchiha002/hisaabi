@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  calculate, categoryMeta, fillMembers, formatINR, looksLikeMath, tripDraftMessage,
+  calculate, fillMembers, formatINR, looksLikeMath, tripDraftMessage,
   type AskAnswer, type DraftEntry, type TripDraft,
 } from '@engine';
 import { Icon, Sheet } from '@/components/ui';
 import { useStore } from '@/lib/store';
+import { useT } from '@/lib/i18n';
+import { catEmoji, catLabel } from '@/lib/labels';
 import { startVoice, voiceEngine, type VoiceSession } from '@/lib/voice';
 
 /**
@@ -27,6 +29,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
   onClose(): void;
   onSaved(count: number, total: number): void;
 }) {
+  const t = useT();
   const { engine, commitDrafts, ai, entries, profile, createTrip, openTrip, saveTrip } = useStore();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [text, setText] = useState('');
@@ -168,24 +171,24 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       <div className="seg" role="tablist">
         <button role="tab" aria-selected={mode === 'voice'} data-on={mode === 'voice'}
                 onClick={() => switchTo('voice')} disabled={!canVoice}>
-          {Icon.mic} Bolo
+          {Icon.mic} {t('Speak', 'Bolo')}
         </button>
         <button role="tab" aria-selected={mode === 'type'} data-on={mode === 'type'}
                 onClick={() => switchTo('type')}>
-          {Icon.keyboard} Likho
+          {Icon.keyboard} {t('Type', 'Likho')}
         </button>
       </div>
 
       {mode === 'voice' ? (
         <div className="voice-stage">
           <button className={`orb ${listening ? 'on' : ''}`} onClick={() => (listening ? void stopVoice() : void beginVoice())}
-                  aria-label={listening ? 'Rok do' : 'Bolo'}>
+                  aria-label={listening ? t('Stop', 'Rok do') : t('Speak', 'Bolo')}>
             <span className="orb-ring" /><span className="orb-ring d2" /><span className="orb-ring d3" />
             <span className="orb-core">{Icon.mic}</span>
           </button>
 
           <p className="voice-hint">
-            {listening ? 'Sun raha hoon… ek saath sab bol do' : text ? 'Ho gaya — neeche dekh lo' : 'Dabao aur bolo'}
+            {listening ? t('Listening… say it all at once', 'Sun raha hoon… ek saath sab bol do') : text ? t('Done — take a look below', 'Ho gaya — neeche dekh lo') : t('Tap and speak', 'Dabao aur bolo')}
           </p>
 
           {listening && (
@@ -204,7 +207,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
               className="compose"
               value={text}
               rows={2}
-              placeholder={'Likho ya poocho…\n“subah chai bees, dopahar khana assi”'}
+              placeholder={t('Write or ask…\n"morning chai 20, lunch 80"', 'Likho ya poocho…\n“subah chai bees, dopahar khana assi”')}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
                 // Enter se bhej do; nayi line ke liye Shift+Enter
@@ -217,20 +220,20 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
             <button className="send-btn" onClick={() => void send()}
                     disabled={!text.trim() || saving}
                     data-ready={drafts.length > 0 || !!answer || !!tripDraft}
-                    aria-label={drafts.length ? 'Add karo' : 'Bhejo'}>
+                    aria-label={drafts.length ? t('Add', 'Add karo') : t('Send', 'Bhejo')}>
               {saving ? <span className="send-spin" /> : Icon.send}
             </button>
           </div>
           {!text && (
             <>
-              <p className="hint-k">Kharcha likho</p>
+              <p className="hint-k">{t('Note a spend', 'Kharcha likho')}</p>
               <div className="hint-row">
                 {HINTS.map((h) => (
                   <button key={h} className="hint" type="button" onClick={() => setText(h)}>{h}</button>
                 ))}
               </div>
 
-              <p className="hint-k">…ya poochho</p>
+              <p className="hint-k">{t('…or ask', '…ya poochho')}</p>
               <div className="hint-row">
                 {ASK_HINTS.map((h) => (
                   <button key={h} className="hint hint-ask" type="button" onClick={() => setText(h)}>
@@ -255,7 +258,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
             <>
               <span className="calc-val num">= {formatINR(Math.round(math.value * 100))}</span>
               <button className="btn btn-primary btn-sm" onClick={() => setText(String(math.value))}>
-                Isko kharcha banao
+                {t('Make it a spend', 'Isko kharcha banao')}
               </button>
             </>
           )}
@@ -267,7 +270,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
         <div className="trip-suggest">
           <p className="trip-msg">{tripDraftMessage(tripDraft)}</p>
           <button className="btn btn-primary btn-block" onClick={() => void makeTrip(tripDraft)}>
-            Haan, trip bana do
+            {t('Yes, make the trip', 'Haan, trip bana do')}
           </button>
         </div>
       )}
@@ -275,7 +278,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       {/* sawaal ka jawab */}
       {answer && !thinking && (
         <div className="ask-answer">
-          <span className="tile-k">Jawab</span>
+          <span className="tile-k">{t('Answer', 'Jawab')}</span>
           <p>{answer.answer}</p>
         </div>
       )}
@@ -284,7 +287,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       {(drafts.length > 0 || thinking) && (
         <div className="parse-block">
           <div className="parse-head">
-            <span className="tile-k">{thinking ? 'Samajh raha hoon…' : `${drafts.length} kharcha mila`}</span>
+            <span className="tile-k">{thinking ? t('Reading…', 'Samajh raha hoon…') : t(`${drafts.length} ${drafts.length === 1 ? 'spend' : 'spends'} found`, `${drafts.length} kharcha mila`)}</span>
             {!thinking && drafts.length > 0 && <span className="parse-total num">{formatINR(total)}</span>}
           </div>
 
@@ -293,16 +296,15 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
           ) : (
             <div className="parse-out">
               {drafts.map((d, i) => {
-                const meta = categoryMeta(d.category ?? 'other');
                 return (
                   <div className="entry" key={`${d.title}-${i}`} data-type={d.type} style={{ animationDelay: `${i * 55}ms` }}>
-                    <span className="e-ico" aria-hidden="true">{meta.emoji}</span>
+                    <span className="e-ico" aria-hidden="true">{catEmoji(d.category ?? 'other')}</span>
                     <span>
                       <span className="e-t">{d.title}</span>
                       <span className="e-s">
-                        {meta.label}
-                        {d.warnings.includes('ai_parsed') && ' · AI ne samjha'}
-                        {d.confidence < 0.6 && ' · pakka nahi, dekh lo'}
+                        {catLabel(d.category ?? 'other')}
+                        {d.warnings.includes('ai_parsed') && t(' · read by AI', ' · AI ne samjha')}
+                        {d.confidence < 0.6 && t(' · not sure, check it', ' · pakka nahi, dekh lo')}
                       </span>
                     </span>
                     <span className="e-a num">{formatINR(d.amountPaise)}</span>
@@ -315,7 +317,7 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       )}
 
       {!text && mode === 'type' && ai.status === 'on' && (
-        <p className="ai-note">{Icon.spark} Poore din ki kahani likh do — AI usme se kharche khud nikal lega</p>
+        <p className="ai-note">{Icon.spark} {t('Write the whole day — AI pulls out each spend', 'Poore din ki kahani likh do — AI usme se kharche khud nikal lega')}</p>
       )}
 
       {/* Bada button sirf tab jab kuch samajh aaya ho — warna send button ke
@@ -323,14 +325,14 @@ export function AddSheet({ mode: initialMode, onClose, onSaved }: {
       <div className="q-foot">
         {drafts.length > 0 && (
           <button className="btn btn-primary btn-block" onClick={() => void save()} disabled={saving}>
-            {`${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'} add karo · ${formatINR(total)}`}
+            {t(`Add ${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'} · ${formatINR(total)}`, `${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'} add karo · ${formatINR(total)}`)}
           </button>
         )}
         {answer && !drafts.length && !tripDraft && (
-          <button className="btn btn-primary btn-block" onClick={onClose}>Theek hai</button>
+          <button className="btn btn-primary btn-block" onClick={onClose}>{t('Got it', 'Theek hai')}</button>
         )}
         <button className="btn btn-quiet btn-block" onClick={onClose}>
-          {drafts.length || answer || tripDraft ? 'Rehne do' : 'Band karo'}
+          {drafts.length || answer || tripDraft ? t('Keep it', 'Rehne do') : t('Close', 'Band karo')}
         </button>
       </div>
     </Sheet>

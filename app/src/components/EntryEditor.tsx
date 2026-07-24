@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { CATEGORIES, categoryMeta, formatINR, toPaise, toRupees, type CategoryId, type DraftEntry } from '@engine';
+import { CATEGORIES, formatINR, toPaise, toRupees, type CategoryId, type DraftEntry } from '@engine';
 import { Sheet } from './ui';
+import { useT } from '@/lib/i18n';
+import { catLabel } from '@/lib/labels';
 
 /**
  * Ek entry / draft ko theek karne wali sheet.
@@ -8,7 +10,7 @@ import { Sheet } from './ui';
  */
 
 export function EntryEditor({
-  draft, title = 'Theek kar lo', onSave, onDelete, onClose,
+  draft, title, onSave, onDelete, onClose,
 }: {
   draft: DraftEntry;
   title?: string;
@@ -16,6 +18,7 @@ export function EntryEditor({
   onDelete?(): void;
   onClose(): void;
 }) {
+  const t = useT();
   const [name, setName] = useState(draft.title);
   const [amount, setAmount] = useState(String(toRupees(draft.amountPaise)));
   const [category, setCategory] = useState<CategoryId>(draft.category ?? 'other');
@@ -33,15 +36,15 @@ export function EntryEditor({
 
   return (
     <Sheet onClose={onClose}>
-      <h2>{title}</h2>
+      <h2>{title ?? t('Fix it', 'Theek kar lo')}</h2>
 
       <div className="field-row">
         <label>
-          <span className="f-k">Kis cheez ka</span>
+          <span className="f-k">{t('For what', 'Kis cheez ka')}</span>
           <input className="text-field" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
         </label>
         <label style={{ maxWidth: 150 }}>
-          <span className="f-k">Kitne ka</span>
+          <span className="f-k">{t('How much', 'Kitne ka')}</span>
           <input
             className="text-field num"
             value={amount}
@@ -51,7 +54,7 @@ export function EntryEditor({
         </label>
       </div>
 
-      <div className="section-title"><h2 style={{ fontSize: 15 }}>Category</h2></div>
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Category', 'Category')}</h2></div>
       <div className="cat-grid">
         {CATEGORIES.filter((c) => c.id !== 'income' || draft.type === 'income').map((c) => (
           <button
@@ -62,28 +65,30 @@ export function EntryEditor({
             type="button"
           >
             <span aria-hidden="true">{c.emoji}</span>
-            {c.label}
+            {catLabel(c.id)}
           </button>
         ))}
       </div>
 
       {category !== draft.category && (
         <div className="dev-note">
-          Do baar yahi badloge to Hisaabi <b>{name || 'is dukaan'}</b> ko hamesha ke liye{' '}
-          {categoryMeta(category).label} me daalne lagega.
+          {t(
+            `Change this twice and Hisaabi will always file ${name || 'this shop'} under ${catLabel(category)}.`,
+            `Do baar yahi badloge to Hisaabi ${name || 'is dukaan'} ko hamesha ke liye ${catLabel(category)} me daalne lagega.`,
+          )}
         </div>
       )}
 
       <div className="q-foot">
         <button className="btn btn-primary btn-block" onClick={save} disabled={!valid}>
-          Save karo · {valid ? formatINR(toPaise(amountNum)) : '—'}
+          {t('Save', 'Save karo')} · {valid ? formatINR(toPaise(amountNum)) : '—'}
         </button>
         {onDelete && (
           <button className="btn btn-quiet btn-block" style={{ color: 'var(--bad)' }} onClick={onDelete}>
-            Ye entry hata do
+            {t('Delete this entry', 'Ye entry hata do')}
           </button>
         )}
-        <button className="btn btn-quiet btn-block" onClick={onClose}>Rehne do</button>
+        <button className="btn btn-quiet btn-block" onClick={onClose}>{t('Keep it', 'Rehne do')}</button>
       </div>
     </Sheet>
   );

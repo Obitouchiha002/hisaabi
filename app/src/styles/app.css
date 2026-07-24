@@ -308,6 +308,72 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 
 .auth-err { color: var(--bad); font-size: 14px; margin-top: 10px; }
 
+/* ---------- PIN lock ---------- */
+
+.lock-screen { display: flex; flex-direction: column; }
+.pin-row {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  margin: 8px 0 20px;
+}
+.pin-dot {
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  transition: background .18s, border-color .18s, transform .2s var(--spring);
+}
+.pin-dot[data-on="true"] { background: var(--accent); border-color: var(--accent); transform: scale(1.12); }
+
+.pin-pad {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 320px;
+  width: 100%;
+  align-self: center;
+}
+.pin-key {
+  aspect-ratio: 1.7;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s var(--ease), background .15s;
+}
+.pin-key:active:not(:disabled) { transform: scale(.93); background: var(--surface-2); }
+.pin-key:disabled { opacity: .4; cursor: default; }
+.pin-key[data-quiet] { font-size: 22px; color: var(--ink-3); background: transparent; border-color: transparent; }
+
+/* Settings me se PIN banate waqt Lock poore parde pe */
+.lock-overlay { position: fixed; inset: 0; z-index: 80; background: var(--bg); overflow: auto; }
+
+/* Hello screen ka bhasha toggle — upar daayen kone me */
+.hello-lang {
+  position: absolute;
+  top: calc(18px + var(--safe-top));
+  right: 18px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+.hello-lang button {
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.hello-lang button[data-on="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
 .dev-note {
   margin-top: 14px;
   padding: 12px 14px;

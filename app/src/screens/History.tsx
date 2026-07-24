@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  buildPlan, categoryMeta, formatINR, formatShort, monthRange,
+  buildPlan, formatINR, formatShort, monthRange,
   type CategoryId, type Entry,
 } from '@engine';
 import { Icon, useToast } from '@/components/ui';
@@ -8,6 +8,8 @@ import { EntryEditor } from '@/components/EntryEditor';
 import { SwipeRow } from '@/components/SwipeRow';
 import { CalcButton } from '@/components/CalcButton';
 import { useStore } from '@/lib/store';
+import { useT, useLang } from '@/lib/i18n';
+import { catEmoji, catLabel } from '@/lib/labels';
 
 /**
  * Poora hisaab — mahine ka.
@@ -20,6 +22,8 @@ import { useStore } from '@/lib/store';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function History() {
+  const t = useT();
+  const lang = useLang();
   const { entries, profile, setRoute, updateEntry, removeEntry, restoreEntry, teachCategory } = useStore();
   const [offset, setOffset] = useState(0);          // 0 = is mahine, 1 = pichhla…
   const [category, setCategory] = useState<CategoryId | null>(null);
@@ -29,7 +33,7 @@ export function History() {
   /** Swipe se hataya — 5 second tak wapas laya ja sakta hai. */
   async function deleteWithUndo(e: Entry) {
     await removeEntry(e.id);
-    toast.show(`${e.title} hata di`, { label: 'Wapas lao', run: () => void restoreEntry(e) });
+    toast.show(t(`${e.title} removed`, `${e.title} hata di`), { label: t('Undo', 'Wapas lao'), run: () => void restoreEntry(e) });
   }
 
   const when = useMemo(() => {
@@ -85,17 +89,17 @@ export function History() {
   return (
     <div className="screen">
       <header className="home-top">
-        <button className="icon-btn" onClick={() => setRoute('home')} aria-label="Peeche">{Icon.back}</button>
+        <button className="icon-btn" onClick={() => setRoute('home')} aria-label={t('Back', 'Peeche')}>{Icon.back}</button>
         <div className="grow" style={{ marginLeft: 4 }}>
-          <div className="greet">Poora hisaab</div>
+          <div className="greet">{t('Full breakdown', 'Poora hisaab')}</div>
           <div className="name">{monthName}</div>
         </div>
         <CalcButton />
-        <button className="icon-btn" onClick={() => setOffset((o) => o + 1)} aria-label="Pichhla mahina">
+        <button className="icon-btn" onClick={() => setOffset((o) => o + 1)} aria-label={t('Previous month', 'Pichhla mahina')}>
           {Icon.back}
         </button>
         <button className="icon-btn" disabled={offset === 0} style={{ opacity: offset === 0 ? .35 : 1 }}
-                onClick={() => setOffset((o) => Math.max(0, o - 1))} aria-label="Agla mahina">
+                onClick={() => setOffset((o) => Math.max(0, o - 1))} aria-label={t('Next month', 'Agla mahina')}>
           <span style={{ transform: 'rotate(180deg)', display: 'grid' }}>{Icon.back}</span>
         </button>
       </header>
@@ -103,33 +107,35 @@ export function History() {
       {list.length === 0 ? (
         <div className="empty">
           <div className="big">📭</div>
-          <p>{monthName} me koi kharcha nahi mila.</p>
+          <p>{t(`No spends in ${monthName}.`, `${monthName} me koi kharcha nahi mila.`)}</p>
         </div>
       ) : (
         <>
           <div className="hero-card">
-            <div className="k">{category ? categoryMeta(category).label : 'Kul kharcha'}</div>
+            <div className="k">{category ? catLabel(category) : t('Total spend', 'Kul kharcha')}</div>
             <div className="big num">{formatINR(total)}</div>
             <div className="sub">
-              {list.length} {list.length === 1 ? 'kharcha' : 'kharche'}
+              {t(`${list.length} ${list.length === 1 ? 'spend' : 'spends'}`, `${list.length} ${list.length === 1 ? 'kharcha' : 'kharche'}`)}
               {offset === 0 && plan.burnPerDayPaise > 0 &&
-                ` · rozana ${formatINR(Math.round(plan.burnPerDayPaise / 100) * 100)}`}
+                t(` · ${formatINR(Math.round(plan.burnPerDayPaise / 100) * 100)}/day`, ` · rozana ${formatINR(Math.round(plan.burnPerDayPaise / 100) * 100)}`)}
             </div>
             {offset === 0 && plan.projectedOverPaise > 0 && (
               <div className="hist-warn">
-                Isi raftaar se mahina ₹{Math.round(plan.projectedMonthEndPaise / 100).toLocaleString('en-IN')} pe khatam hoga —
-                budget se {formatINR(plan.projectedOverPaise)} zyada.
+                {t(
+                  `At this pace the month ends at ₹${Math.round(plan.projectedMonthEndPaise / 100).toLocaleString('en-IN')} — ${formatINR(plan.projectedOverPaise)} over budget.`,
+                  `Isi raftaar se mahina ₹${Math.round(plan.projectedMonthEndPaise / 100).toLocaleString('en-IN')} pe khatam hoga — budget se ${formatINR(plan.projectedOverPaise)} zyada.`,
+                )}
               </div>
             )}
             {offset === 0 && plan.runOutDay && plan.projectedOverPaise > 0 && (
-              <div className="hist-warn">Isi hisaab se {plan.runOutDay} tarikh ko paisa khatam.</div>
+              <div className="hist-warn">{t(`At this rate money runs out by the ${plan.runOutDay}th.`, `Isi hisaab se ${plan.runOutDay} tarikh ko paisa khatam.`)}</div>
             )}
           </div>
 
           {/* kis pe gaya */}
           <div className="section-title">
-            <h2>Kis pe gaya</h2>
-            {category && <button className="chip-clear" onClick={() => setCategory(null)}>× filter hatao</button>}
+            <h2>{t('Where it went', 'Kis pe gaya')}</h2>
+            {category && <button className="chip-clear" onClick={() => setCategory(null)}>× {t('clear filter', 'filter hatao')}</button>}
           </div>
 
           <div className="cat-bars">
@@ -138,12 +144,12 @@ export function History() {
                       style={{ animationDelay: `${i * 50}ms` }}
                       onClick={() => setCategory(category === c.id ? null : c.id)}>
                 <span className="cb-top">
-                  <span className="cb-name">{c.emoji} {c.label}</span>
+                  <span className="cb-name">{catEmoji(c.id)} {catLabel(c.id)}</span>
                   <span className="cb-amt num">{formatINR(c.paise)}</span>
                 </span>
                 <span className="cb-track"><i style={{ width: `${Math.round(c.share * 100)}%` }} /></span>
                 <span className="cb-foot">
-                  {Math.round(c.share * 100)}% · {c.count} {c.count === 1 ? 'baar' : 'baar'}
+                  {Math.round(c.share * 100)}% · {t(`${c.count} ${c.count === 1 ? 'time' : 'times'}`, `${c.count} baar`)}
                   {c.lastMonthPaise > 0 && (
                     <b data-tone={c.paise > c.lastMonthPaise ? 'up' : 'down'}>
                       {c.paise > c.lastMonthPaise ? '↑' : '↓'} {formatShort(Math.abs(c.paise - c.lastMonthPaise))}
@@ -155,24 +161,23 @@ export function History() {
           </div>
 
           {/* kis din */}
-          <div className="section-title"><h2>Kis din</h2></div>
+          <div className="section-title"><h2>{t('Which day', 'Kis din')}</h2></div>
           <div className="day-list">
             {byDay.map((d, i) => (
               <div className="day" key={d.date.toISOString()} style={{ animationDelay: `${i * 35}ms` }}>
                 <div className="day-head">
                   <span className="day-when">
-                    {d.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' })}
+                    {d.date.toLocaleDateString(lang === 'hi' ? 'en-IN' : 'en-US', { day: 'numeric', month: 'short', weekday: 'short' })}
                   </span>
                   <span className="day-bar"><i style={{ width: `${busiest ? (d.paise / busiest) * 100 : 0}%` }} /></span>
                   <span className="day-amt num">{formatINR(d.paise)}</span>
                 </div>
 
                 {d.entries.map((e) => {
-                  const meta = categoryMeta(e.category ?? 'other');
                   return (
                     <SwipeRow key={e.id} onDelete={() => void deleteWithUndo(e)}>
                       <button className="day-entry" onClick={() => setEditing(e)}>
-                        <span className="de-ico">{meta.emoji}</span>
+                        <span className="de-ico">{catEmoji(e.category ?? 'other')}</span>
                         <span className="de-name">{e.merchant ?? e.title}</span>
                         <span className="de-amt num">{formatINR(e.amountPaise)}</span>
                       </button>
@@ -188,14 +193,14 @@ export function History() {
       {editing && (
         <EntryEditor
           draft={editing}
-          title="Entry theek karo"
+          title={t('Fix the entry', 'Entry theek karo')}
           onClose={() => setEditing(null)}
-          onDelete={() => { void removeEntry(editing.id); setEditing(null); toast.show('Entry hata di'); }}
+          onDelete={() => { void removeEntry(editing.id); setEditing(null); toast.show(t('Entry removed', 'Entry hata di')); }}
           onSave={(next, changed) => {
             if (changed && next.category) void teachCategory(next.merchant ?? next.title, next.category);
             void updateEntry({ ...editing, ...next });
             setEditing(null);
-            toast.show('Update ho gaya');
+            toast.show(t('Updated', 'Update ho gaya'));
           }}
         />
       )}

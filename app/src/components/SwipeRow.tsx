@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { useT } from '@/lib/i18n';
 
 /**
  * Entry ko baayen swipe karke hatao.
@@ -13,13 +14,15 @@ import { useRef, useState, type ReactNode } from 'react';
  */
 export function SwipeRow({
   onDelete,
-  label = 'Hatao',
+  label,
   children,
 }: {
   onDelete(): void;
   label?: string;
   children: ReactNode;
 }) {
+  const t = useT();
+  const removeLabel = label ?? t('Remove', 'Hatao');
   const [dx, setDx] = useState(0);
   const [going, setGoing] = useState(false);
   const start = useRef<{ x: number; y: number; axis: 'none' | 'x' | 'y' } | null>(null);
@@ -75,7 +78,7 @@ export function SwipeRow({
   return (
     <div className="swipe" data-going={going ? '' : undefined}>
       <div className="swipe-back" data-armed={armed ? '' : undefined} aria-hidden="true">
-        <span>{label}</span>
+        <span>{removeLabel}</span>
       </div>
       <div
         className="swipe-front"

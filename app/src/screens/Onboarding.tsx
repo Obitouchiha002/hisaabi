@@ -6,6 +6,7 @@ import {
   type ToneId, type WorkId,
 } from '@/lib/profile';
 import { Icon, OptionRow } from '@/components/ui';
+import { useT, useLang, setLang } from '@/lib/i18n';
 
 /**
  * Hello → 5 sawaal → 1 feedback sawaal → shuru.
@@ -16,6 +17,7 @@ const HELLO_MS = 2300;
 const AUTO_NEXT_MS = 280;
 
 export function Onboarding({ onDone }: { onDone(profile: Profile): void }) {
+  const t = useT();
   // ?step=3 — dev/screenshot ke liye seedha kisi sawaal pe
   const [step, setStep] = useState(() => Number(new URLSearchParams(location.search).get('step') ?? 0));
   const [back, setBack] = useState(false);
@@ -56,7 +58,7 @@ export function Onboarding({ onDone }: { onDone(profile: Profile): void }) {
     <div className={`screen ${back ? 'back' : ''}`} key={step}>
       <div className="row" style={{ gap: 12, marginBottom: 18 }}>
         {step > 1 ? (
-          <button className="icon-btn" onClick={() => go(step - 1)} aria-label="Peeche">{Icon.back}</button>
+          <button className="icon-btn" onClick={() => go(step - 1)} aria-label={t('Back', 'Peeche')}>{Icon.back}</button>
         ) : (
           <span style={{ width: 44 }} />
         )}
@@ -70,9 +72,9 @@ export function Onboarding({ onDone }: { onDone(profile: Profile): void }) {
 
       {step === 2 && (
         <Question
-          step="Sawaal 2"
-          title="Aap kya karte ho?"
-          sub="Isse Hisaabi tumhare hisaab ke categories set karega."
+          step={t('Question 2', 'Sawaal 2')}
+          title={t('What do you do?', 'Aap kya karte ho?')}
+          sub={t('This sets up the right categories for you.', 'Isse Hisaabi tumhare hisaab ke categories set karega.')}
           options={WORK_OPTIONS}
           selected={draft.work}
           onSelect={(id: WorkId) => pick('work', id)}
@@ -81,9 +83,9 @@ export function Onboarding({ onDone }: { onDone(profile: Profile): void }) {
 
       {step === 3 && (
         <Question
-          step="Sawaal 3"
-          title="Baat kaise karun?"
-          sub="Hisaabi isi andaz me tumse baat karega."
+          step={t('Question 3', 'Sawaal 3')}
+          title={t('How should I talk to you?', 'Baat kaise karun?')}
+          sub={t('Hisaabi will speak to you in this style.', 'Hisaabi isi andaz me tumse baat karega.')}
           options={TONE_OPTIONS}
           selected={draft.tone}
           onSelect={(id: ToneId) => pick('tone', id)}
@@ -92,8 +94,8 @@ export function Onboarding({ onDone }: { onDone(profile: Profile): void }) {
 
       {step === 4 && (
         <Question
-          step="Sawaal 4"
-          title="Tumhe kaise bulaun?"
+          step={t('Question 4', 'Sawaal 4')}
+          title={t('What should I call you?', 'Tumhe kaise bulaun?')}
           options={ADDRESS_OPTIONS}
           selected={draft.address}
           onSelect={(id: AddressId) => pick('address', id)}
@@ -102,9 +104,9 @@ export function Onboarding({ onDone }: { onDone(profile: Profile): void }) {
 
       {step === 5 && (
         <Question
-          step="Sawaal 5"
-          title="Mahine me kitna kharch hota hai?"
-          sub="Andaza kaafi hai — baad me badal sakte ho. Isi se 'aaj kitna safe hai' banta hai."
+          step={t('Question 5', 'Sawaal 5')}
+          title={t('How much do you spend a month?', 'Mahine me kitna kharch hota hai?')}
+          sub={t("A rough guess is fine — change it later. This powers 'safe to spend today'.", "Andaza kaafi hai — baad me badal sakte ho. Isi se 'aaj kitna safe hai' banta hai.")}
           options={BUDGET_OPTIONS}
           selected={String(draft.monthlyBudgetPaise / 100)}
           onSelect={(id: string) => pick('monthlyBudgetPaise', toPaise(Number(id)))}
@@ -113,9 +115,9 @@ export function Onboarding({ onDone }: { onDone(profile: Profile): void }) {
 
       {step === 6 && (
         <Question
-          step="Aakhri sawaal"
-          title="Hisaabi ke baare me kahan se pata laga?"
-          sub="Ye sirf mere liye — jaanne ke liye ki log kahan se aa rahe hain."
+          step={t('Last question', 'Aakhri sawaal')}
+          title={t('How did you hear about Hisaabi?', 'Hisaabi ke baare me kahan se pata laga?')}
+          sub={t('Just for me — to know where people are coming from.', 'Ye sirf mere liye — jaanne ke liye ki log kahan se aa rahe hain.')}
           options={DISCOVERY_OPTIONS}
           selected={draft.discovery}
           onSelect={(id: DiscoveryId) => pick('discovery', id)}
@@ -128,16 +130,24 @@ export function Onboarding({ onDone }: { onDone(profile: Profile): void }) {
 /* ---------- hello ---------- */
 
 function Hello({ onSkip }: { onSkip(): void }) {
+  const t = useT();
+  const lang = useLang();
+  const word = t('Hello', 'Namaste');
   return (
     <div className="screen hello" onClick={onSkip}>
+      {/* Bhasha yahin badal sakte ho — baaki app usi me khulegi */}
+      <div className="hello-lang" onClick={(e) => e.stopPropagation()}>
+        <button data-on={lang === 'en'} onClick={() => setLang('en')}>EN</button>
+        <button data-on={lang === 'hi'} onClick={() => setLang('hi')}>हिं</button>
+      </div>
       <span className="mark" aria-hidden="true">₹</span>
       <h1>
-        {'Namaste'.split('').map((c, i) => (
+        {word.split('').map((c, i) => (
           <span className="word" key={i} style={{ animationDelay: `${180 + i * 45}ms` }}>{c}</span>
         ))}
         <span className="word" style={{ animationDelay: '560ms' }}>&nbsp;👋</span>
       </h1>
-      <p>Main Hisaabi hoon.<br />Do minute me tumhare hisaab ka saathi ban jaunga.</p>
+      <p>{t("I'm Hisaabi.", 'Main Hisaabi hoon.')}<br />{t('In two minutes I\'ll be your money buddy.', 'Do minute me tumhare hisaab ka saathi ban jaunga.')}</p>
     </div>
   );
 }
@@ -145,20 +155,21 @@ function Hello({ onSkip }: { onSkip(): void }) {
 /* ---------- steps ---------- */
 
 function NameStep({ value, onNext }: { value: string; onNext(name: string): void }) {
+  const t = useT();
   const [name, setName] = useState(value);
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => ref.current?.focus(), 380);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => ref.current?.focus(), 380);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <>
       <div className="q-head">
-        <div className="q-step">Sawaal 1</div>
-        <h1>Naam kya hai tumhara?</h1>
-        <p>Sirf tumhe bulane ke liye. Kahin bheja nahi jata.</p>
+        <div className="q-step">{t('Question 1', 'Sawaal 1')}</div>
+        <h1>{t("What's your name?", 'Naam kya hai tumhara?')}</h1>
+        <p>{t('Just so I can call you by it. It never leaves your phone.', 'Sirf tumhe bulane ke liye. Kahin bheja nahi jata.')}</p>
       </div>
 
       <form
@@ -167,7 +178,7 @@ function NameStep({ value, onNext }: { value: string; onNext(name: string): void
         <input
           ref={ref}
           className="text-field"
-          placeholder="Tumhara naam"
+          placeholder={t('Your name', 'Tumhara naam')}
           value={name}
           maxLength={24}
           autoComplete="given-name"
@@ -175,7 +186,7 @@ function NameStep({ value, onNext }: { value: string; onNext(name: string): void
         />
         <div className="q-foot">
           <button className="btn btn-primary btn-block" type="submit" disabled={!name.trim()}>
-            Aage badho
+            {t('Continue', 'Aage badho')}
           </button>
         </div>
       </form>

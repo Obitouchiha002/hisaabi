@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  calculate, categoryMeta, formatINR, looksLikeMath, parseText, resolveCategory, toPaise,
+  calculate, formatINR, looksLikeMath, parseText, resolveCategory, toPaise,
   tripAwards, tripShareText, tripSummary,
   type SplitMode, type Trip, type TripExpense,
 } from '@engine';
@@ -8,6 +8,8 @@ import { startVoice, voiceEngine, type VoiceSession } from '@/lib/voice';
 import { Icon, Sheet, useToast } from '@/components/ui';
 import { CalcButton } from '@/components/CalcButton';
 import { useStore } from '@/lib/store';
+import { useT } from '@/lib/i18n';
+import { catEmoji } from '@/lib/labels';
 import { newId } from '@/lib/db';
 
 /**
@@ -16,8 +18,9 @@ import { newId } from '@/lib/db';
  */
 
 export function TripDetail() {
+  const t = useT();
   const { trips, openTripId, openTrip, addTripExpense, removeTripExpense, saveTrip, deleteTrip } = useStore();
-  const trip = trips.find((t) => t.id === openTripId);
+  const trip = trips.find((tr) => tr.id === openTripId);
   const [adding, setAdding] = useState(false);
   const [tab, setTab] = useState<'kharche' | 'hisaab'>('kharche');
   const toast = useToast();
@@ -28,8 +31,8 @@ export function TripDetail() {
   if (!trip || !summary) {
     return (
       <div className="screen">
-        <div className="empty"><div className="big">🤔</div><p>Trip nahi mila</p></div>
-        <div className="q-foot"><button className="btn btn-ghost btn-block" onClick={() => openTrip(null)}>Wapas</button></div>
+        <div className="empty"><div className="big">🤔</div><p>{t('Trip not found', 'Trip nahi mila')}</p></div>
+        <div className="q-foot"><button className="btn btn-ghost btn-block" onClick={() => openTrip(null)}>{t('Back', 'Wapas')}</button></div>
       </div>
     );
   }
@@ -41,28 +44,28 @@ export function TripDetail() {
     const text = tripShareText(trip!);
     try {
       if (navigator.share) await navigator.share({ text });
-      else { await navigator.clipboard.writeText(text); toast.show('Copy ho gaya — WhatsApp me paste karo'); }
+      else { await navigator.clipboard.writeText(text); toast.show(t('Copied — paste it in WhatsApp', 'Copy ho gaya — WhatsApp me paste karo')); }
     } catch { /* user ne cancel kiya */ }
   }
 
   return (
     <div className="screen">
       <header className="home-top">
-        <button className="icon-btn" onClick={() => openTrip(null)} aria-label="Peeche">{Icon.back}</button>
+        <button className="icon-btn" onClick={() => openTrip(null)} aria-label={t('Back', 'Peeche')}>{Icon.back}</button>
         <div className="grow" style={{ marginLeft: 4 }}>
           <div className="greet">{trip.members.map((m) => m.name).join(', ')}</div>
           <div className="name">{trip.emoji} {trip.name}</div>
         </div>
         <CalcButton />
-        <button className="icon-btn" onClick={() => void share()} aria-label="Share">{Icon.share}</button>
+        <button className="icon-btn" onClick={() => void share()} aria-label={t('Share', 'Share')}>{Icon.share}</button>
       </header>
 
       {/* trip meter */}
       <div className="hero-card">
-        <div className="k">Kul kharcha</div>
+        <div className="k">{t('Total spend', 'Kul kharcha')}</div>
         <div className="big num">{formatINR(summary.totalPaise)}</div>
         <div className="sub">
-          {summary.expenseCount} kharche · har banda {formatINR(summary.perHeadPaise)}
+          {t(`${summary.expenseCount} spends · ${formatINR(summary.perHeadPaise)} each`, `${summary.expenseCount} kharche · har banda ${formatINR(summary.perHeadPaise)}`)}
         </div>
         {trip.budgetPaise ? (
           <>
@@ -70,42 +73,41 @@ export function TripDetail() {
               <i style={{ width: `${budgetUsed * 100}%` }} />
             </div>
             <div className="safe-legend" style={{ marginTop: 8 }}>
-              <span>{formatINR(trip.budgetPaise)} ka budget</span>
-              <span>{overBudget ? `${formatINR(summary.totalPaise - trip.budgetPaise)} zyada` : `${formatINR(trip.budgetPaise - summary.totalPaise)} bacha`}</span>
+              <span>{t(`${formatINR(trip.budgetPaise)} budget`, `${formatINR(trip.budgetPaise)} ka budget`)}</span>
+              <span>{overBudget ? t(`${formatINR(summary.totalPaise - trip.budgetPaise)} over`, `${formatINR(summary.totalPaise - trip.budgetPaise)} zyada`) : t(`${formatINR(trip.budgetPaise - summary.totalPaise)} left`, `${formatINR(trip.budgetPaise - summary.totalPaise)} bacha`)}</span>
             </div>
           </>
         ) : (
           <button className="chip" style={{ marginTop: 12 }}
                   onClick={() => {
-                    const val = prompt('Trip ka budget (₹)?');
+                    const val = prompt(t('Trip budget (₹)?', 'Trip ka budget (₹)?'));
                     const num = Number(val);
                     if (num > 0) void saveTrip({ ...trip, budgetPaise: toPaise(num) });
                   }}>
-            + Budget set karo
+            + {t('Set a budget', 'Budget set karo')}
           </button>
         )}
       </div>
 
       <div className="seg" style={{ marginTop: 16 }}>
-        <button data-on={tab === 'kharche'} onClick={() => setTab('kharche')}>Kharche</button>
-        <button data-on={tab === 'hisaab'} onClick={() => setTab('hisaab')}>Hisaab</button>
+        <button data-on={tab === 'kharche'} onClick={() => setTab('kharche')}>{t('Spends', 'Kharche')}</button>
+        <button data-on={tab === 'hisaab'} onClick={() => setTab('hisaab')}>{t('Settle up', 'Hisaab')}</button>
       </div>
 
       {tab === 'kharche' ? (
         trip.expenses.length === 0 ? (
-          <div className="empty"><div className="big">🧾</div><p>Abhi koi kharcha nahi. Neeche se add karo.</p></div>
+          <div className="empty"><div className="big">🧾</div><p>{t('No spends yet. Add one below.', 'Abhi koi kharcha nahi. Neeche se add karo.')}</p></div>
         ) : (
           <div className="trip-exp-list">
             {[...trip.expenses].reverse().map((e) => {
-              const meta = categoryMeta(e.category ?? 'other');
               const payer = trip.members.find((m) => m.id === e.paidBy);
               return (
-                <div className="entry" key={e.id} onClick={() => { if (confirm(`"${e.title}" hata dein?`)) void removeTripExpense(trip.id, e.id); }}>
-                  <span className="e-ico" aria-hidden="true">{meta.emoji}</span>
+                <div className="entry" key={e.id} onClick={() => { if (confirm(t(`Remove "${e.title}"?`, `"${e.title}" hata dein?`))) void removeTripExpense(trip.id, e.id); }}>
+                  <span className="e-ico" aria-hidden="true">{catEmoji(e.category ?? 'other')}</span>
                   <span>
                     <span className="e-t">{e.title}</span>
                     <span className="e-s">
-                      {payer?.name ?? '?'} ne diya · {e.splitMode === 'equal' ? 'sabme barabar' : e.splitMode === 'shares' ? 'hisse se' : 'alag-alag'}
+                      {t(`${payer?.name ?? '?'} paid`, `${payer?.name ?? '?'} ne diya`)} · {e.splitMode === 'equal' ? t('split equally', 'sabme barabar') : e.splitMode === 'shares' ? t('by shares', 'hisse se') : t('custom', 'alag-alag')}
                     </span>
                   </span>
                   <span className="e-a num">{formatINR(e.amountPaise)}</span>
@@ -118,23 +120,23 @@ export function TripDetail() {
         <div className="settle">
           {/* kaun kisko de */}
           {summary.transfers.length === 0 ? (
-            <div className="settle-done">✅ Hisaab barabar hai — kisi ko kuch dena nahi</div>
+            <div className="settle-done">{t('✅ All settled — no one owes anything', '✅ Hisaab barabar hai — kisi ko kuch dena nahi')}</div>
           ) : (
             <>
-              <div className="section-title"><h2 style={{ fontSize: 15 }}>Kaun kisko de</h2></div>
-              {summary.transfers.map((t, i) => (
+              <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Who pays whom', 'Kaun kisko de')}</h2></div>
+              {summary.transfers.map((tr, i) => (
                 <div className="transfer" key={i}>
-                  <span className="t-from">{t.from.name}</span>
+                  <span className="t-from">{tr.from.name}</span>
                   <span className="t-arrow">{Icon.arrow}</span>
-                  <span className="t-to">{t.to.name}</span>
-                  <span className="t-amt num">{formatINR(t.amountPaise)}</span>
+                  <span className="t-to">{tr.to.name}</span>
+                  <span className="t-amt num">{formatINR(tr.amountPaise)}</span>
                 </div>
               ))}
             </>
           )}
 
           {/* kisne kitna diya */}
-          <div className="section-title"><h2 style={{ fontSize: 15 }}>Kisne kitna diya</h2></div>
+          <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Who paid what', 'Kisne kitna diya')}</h2></div>
           {summary.balances.map((b) => (
             <div className="bal-row" key={b.member.id}>
               <span className="grow">{b.member.name}</span>
@@ -148,7 +150,7 @@ export function TripDetail() {
           {/* khitab */}
           {awards.length > 0 && (
             <>
-              <div className="section-title"><h2 style={{ fontSize: 15 }}>Khitab 🏆</h2></div>
+              <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Awards 🏆', 'Khitab 🏆')}</h2></div>
               <div className="awards">
                 {awards.map((a) => (
                   <div className="award" key={a.id}>
@@ -164,18 +166,18 @@ export function TripDetail() {
           )}
 
           <button className="btn btn-ghost btn-block" style={{ marginTop: 20 }} onClick={() => void share()}>
-            {Icon.share} WhatsApp pe bhejo
+            {Icon.share} {t('Send on WhatsApp', 'WhatsApp pe bhejo')}
           </button>
           <button className="btn btn-quiet btn-block" style={{ color: 'var(--bad)' }}
-                  onClick={() => { if (confirm('Poora trip hata dein?')) void deleteTrip(trip.id); }}>
-            Trip delete karo
+                  onClick={() => { if (confirm(t('Delete the whole trip?', 'Poora trip hata dein?'))) void deleteTrip(trip.id); }}>
+            {t('Delete trip', 'Trip delete karo')}
           </button>
         </div>
       )}
 
       {tab === 'kharche' && (
         <div className="q-foot">
-          <button className="btn btn-primary btn-block" onClick={() => setAdding(true)}>{Icon.plus} Kharcha add karo</button>
+          <button className="btn btn-primary btn-block" onClick={() => setAdding(true)}>{Icon.plus} {t('Add a spend', 'Kharcha add karo')}</button>
         </div>
       )}
 
@@ -183,7 +185,7 @@ export function TripDetail() {
         <AddTripExpense
           trip={trip}
           onClose={() => setAdding(false)}
-          onAdd={async (exp) => { await addTripExpense(trip.id, exp); setAdding(false); toast.show(`${exp.title} add ho gaya`); }}
+          onAdd={async (exp) => { await addTripExpense(trip.id, exp); setAdding(false); toast.show(t(`${exp.title} added`, `${exp.title} add ho gaya`)); }}
         />
       )}
 
@@ -197,6 +199,7 @@ function AddTripExpense({ trip, onClose, onAdd }: {
   onClose(): void;
   onAdd(expense: TripExpense): void;
 }) {
+  const t = useT();
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [listening, setListening] = useState(false);
@@ -268,26 +271,26 @@ function AddTripExpense({ trip, onClose, onAdd }: {
   return (
     <Sheet onClose={onClose}>
       <div className="trip-add-head">
-        <h2>Kharcha add karo</h2>
+        <h2>{t('Add a spend', 'Kharcha add karo')}</h2>
         {canVoice && (
           <button className={`mic-mini ${listening ? 'on' : ''}`} onClick={() => void bolo()}
-                  aria-label={listening ? 'Rok do' : 'Bol ke likho'}>
+                  aria-label={listening ? t('Stop', 'Rok do') : t('Speak to fill', 'Bol ke likho')}>
             {Icon.mic}
           </button>
         )}
       </div>
 
-      {listening && <p className="hint-line">Sun raha hoon… “hotel do hazaar” bol do</p>}
+      {listening && <p className="hint-line">{t('Listening… say "hotel two thousand"', 'Sun raha hoon… “hotel do hazaar” bol do')}</p>}
       {voiceMsg && <div className="dev-note">{voiceMsg}</div>}
 
       <div className="field-row">
         <label>
-          <span className="f-k">Kis cheez ka</span>
-          <input className="text-field" value={title} autoFocus placeholder="Hotel, khana, petrol…"
+          <span className="f-k">{t('For what', 'Kis cheez ka')}</span>
+          <input className="text-field" value={title} autoFocus placeholder={t('Hotel, food, petrol…', 'Hotel, khana, petrol…')}
                  onChange={(e) => setTitle(e.target.value)} />
         </label>
         <label style={{ maxWidth: 130 }}>
-          <span className="f-k">Kitne ka</span>
+          <span className="f-k">{t('How much', 'Kitne ka')}</span>
           <input className="text-field num" value={amount} inputMode="text" placeholder="0"
                  onChange={(e) => setAmount(e.target.value.replace(/[^\d+\-*/.() ]/g, ''))} />
         </label>
@@ -304,20 +307,20 @@ function AddTripExpense({ trip, onClose, onAdd }: {
         </div>
       )}
 
-      <div className="section-title"><h2 style={{ fontSize: 15 }}>Kisne diya</h2></div>
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Who paid', 'Kisne diya')}</h2></div>
       <div className="chip-pick">
         {trip.members.map((m) => (
           <button key={m.id} className="chip-p" data-on={paidBy === m.id} onClick={() => setPaidBy(m.id)}>{m.name}</button>
         ))}
       </div>
 
-      <div className="section-title"><h2 style={{ fontSize: 15 }}>Kaise baate</h2></div>
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('How to split', 'Kaise baate')}</h2></div>
       <div className="seg">
-        <button data-on={splitMode === 'equal'} onClick={() => setSplitMode('equal')}>Barabar</button>
-        <button data-on={splitMode === 'shares'} onClick={() => setSplitMode('shares')} disabled>Hisse se</button>
+        <button data-on={splitMode === 'equal'} onClick={() => setSplitMode('equal')}>{t('Equal', 'Barabar')}</button>
+        <button data-on={splitMode === 'shares'} onClick={() => setSplitMode('shares')} disabled>{t('By shares', 'Hisse se')}</button>
       </div>
 
-      <p className="hint-line">Kin logon me baate? (jinhone use kiya)</p>
+      <p className="hint-line">{t('Split among whom? (who used it)', 'Kin logon me baate? (jinhone use kiya)')}</p>
       <div className="chip-pick">
         {trip.members.map((m) => (
           <button key={m.id} className="chip-p" data-on={only.has(m.id)} onClick={() => toggleMember(m.id)}>{m.name}</button>
@@ -325,14 +328,14 @@ function AddTripExpense({ trip, onClose, onAdd }: {
       </div>
       {valid && (
         <p className="hint-line">
-          Har banda: {formatINR(Math.floor(toPaise(amountNum) / among.length))}
-          {among.length < trip.members.length ? ` (${among.length} logon me)` : ''}
+          {t('Each person:', 'Har banda:')} {formatINR(Math.floor(toPaise(amountNum) / among.length))}
+          {among.length < trip.members.length ? t(` (among ${among.length})`, ` (${among.length} logon me)`) : ''}
         </p>
       )}
 
       <div className="q-foot">
-        <button className="btn btn-primary btn-block" disabled={!valid} onClick={submit}>Add karo</button>
-        <button className="btn btn-quiet btn-block" onClick={onClose}>Rehne do</button>
+        <button className="btn btn-primary btn-block" disabled={!valid} onClick={submit}>{t('Add', 'Add karo')}</button>
+        <button className="btn btn-quiet btn-block" onClick={onClose}>{t('Keep it', 'Rehne do')}</button>
       </div>
     </Sheet>
   );
