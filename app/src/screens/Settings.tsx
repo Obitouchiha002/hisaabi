@@ -317,6 +317,16 @@ export function Settings({ onClose }: { onClose(): void }) {
         </div>
       )}
 
+      <a className="madeby-row" href="https://vanshkashyap.lzworth.in" target="_blank" rel="author noopener">
+        <img src="/vansh.jpg" alt="Vansh Kashyap" width={38} height={38}
+             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        <span className="grow">
+          <span className="o-title">{t('Made by Vansh Kashyap', 'Banaya Vansh Kashyap ne')}</span>
+          <span className="o-sub">vanshkashyap.lzworth.in →</span>
+        </span>
+        <span aria-hidden="true">↗</span>
+      </a>
+
       <div className="q-foot">
         <button className="btn btn-quiet btn-block" onClick={onClose}>{t('Close', 'Band karo')}</button>
       </div>

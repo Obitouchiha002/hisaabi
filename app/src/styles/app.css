@@ -1673,3 +1673,14 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
     transition-duration: .01ms !important;
   }
 }
+
+/* ---------- made by (settings) ---------- */
+.madeby-row {
+  display: flex; align-items: center; gap: 12px; margin-top: 18px;
+  padding: 12px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); text-decoration: none;
+}
+.madeby-row img { border-radius: 50%; object-fit: cover; background: var(--surface-2); flex: none; }
+.madeby-row .o-title { font-weight: 650; }
+.madeby-row span[aria-hidden] { color: var(--ink-3); }

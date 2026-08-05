@@ -2031,3 +2031,20 @@ em.serif {
 @media (max-width: 900px) {
   .lang-switch button { padding: 4px 8px; font-size: 11px; }
 }
+
+/* ---------- made-by credit (footer) ---------- */
+.footer-credit { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 8px 0 22px; }
+.credit-card {
+  display: inline-flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px;
+  border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface);
+  transition: border-color .15s, transform .12s;
+}
+.credit-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.credit-card img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: var(--surface-2); }
+.credit-txt { display: flex; flex-direction: column; line-height: 1.2; text-align: left; }
+.credit-k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.credit-txt b { font-size: 16px; letter-spacing: -.02em; }
+.credit-link { color: var(--accent); font-weight: 700; font-size: 13.5px; }
+.credit-socials { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; }
+.credit-socials a { color: var(--ink-2); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.credit-socials a:hover { color: var(--ink); }
