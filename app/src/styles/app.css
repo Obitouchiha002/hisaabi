@@ -1684,3 +1684,73 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 .madeby-row img { border-radius: 50%; object-fit: cover; background: var(--surface-2); flex: none; }
 .madeby-row .o-title { font-weight: 650; }
 .madeby-row span[aria-hidden] { color: var(--ink-3); }
+
+/* ================= money plan ================= */
+
+.plan-cta {
+  display: flex; align-items: center; gap: 13px; width: 100%;
+  margin-top: 12px; padding: 15px 16px; text-align: left;
+  border-radius: var(--r-md); border: 1px solid var(--accent);
+  background: linear-gradient(120deg, var(--accent-soft), transparent 70%), var(--surface);
+  animation: cardIn .5s var(--ease-out) both;
+}
+.plan-cta:active { transform: scale(.99); }
+.plan-cta .pc-ico { font-size: 24px; flex: none; }
+.plan-cta b { display: block; font-size: 15.5px; letter-spacing: -.01em; }
+.plan-cta i { display: block; font-style: normal; font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+.plan-cta .pc-arrow { color: var(--accent); font-size: 20px; font-weight: 700; }
+
+.plan-setup { display: flex; flex-direction: column; }
+.setup-lede { color: var(--ink-2); font-size: 14.5px; line-height: 1.5; margin-bottom: 20px; }
+.setup-block { margin-bottom: 18px; }
+.setup-block > .k, .sb-head .k { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 9px; }
+.sb-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.sb-head .k { margin-bottom: 0; }
+.setup-block .seg { display: flex; width: 100%; }
+.setup-block .seg button { flex: 1; }
+
+.rupee-in { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding-left: 12px; background: var(--surface); }
+.rupee-in span { color: var(--ink-3); font-size: 16px; }
+.rupee-in .text-field { border: 0; padding-left: 4px; }
+.f-k { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 7px; }
+
+.loan-row { display: grid; grid-template-columns: 1fr 84px auto auto; gap: 6px; align-items: center; margin-bottom: 8px; }
+.loan-row .seg { padding: 2px; }
+.loan-row .seg button { padding: 6px 8px; font-size: 12px; }
+.loan-x { color: var(--bad); font-size: 20px; width: 30px; }
+.goal-fields { display: grid; gap: 10px; margin-top: 4px; }
+
+/* ---- plan view ---- */
+.plan-verdict { border-radius: var(--r-md); padding: 16px; margin-bottom: 18px; border: 1px solid var(--line); background: var(--surface); }
+.plan-verdict.tone-good { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); background: color-mix(in srgb, var(--good) 8%, var(--surface)); }
+.plan-verdict.tone-warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+.plan-verdict.tone-bad { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); background: color-mix(in srgb, var(--bad) 9%, var(--surface)); }
+.pv-status { font-weight: 700; font-size: 15px; margin-bottom: 8px; letter-spacing: -.01em; }
+.plan-verdict p { font-size: 14px; line-height: 1.5; color: var(--ink); margin-top: 6px; }
+
+.split-bar { display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: var(--surface-2); border: 1px solid var(--line); }
+.split-bar i { height: 100%; }
+.split-legend { font-size: 12.5px; color: var(--ink-3); margin: 8px 0 16px; }
+
+.seg-needs { background: #6b7cff; }
+.seg-debt { background: var(--bad); }
+.seg-emergency { background: #35c4e8; }
+.seg-savings { background: var(--good); }
+.seg-fun { background: var(--accent); }
+.seg-buffer { background: var(--ink-3); }
+.b-dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+
+.bucket-list { display: grid; gap: 2px; margin-bottom: 18px; }
+.bucket { display: flex; align-items: center; gap: 11px; padding: 11px 4px; border-bottom: 1px solid var(--line); }
+.bucket:last-child { border-bottom: 0; }
+.bucket .b-name { display: block; font-weight: 600; font-size: 14.5px; }
+.bucket .b-sub { display: block; font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.bucket .b-sub[data-tone="bad"] { color: var(--bad); }
+.bucket .b-amt { font-weight: 700; font-family: var(--font-display); }
+
+.plan-card { border: 1px solid var(--line); border-radius: var(--r-md); padding: 15px 16px; margin-bottom: 12px; background: var(--surface); }
+.pc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.pc-k { font-weight: 650; font-size: 14px; }
+.pc-top .num { font-size: 13.5px; color: var(--ink-2); }
+.pc-note { font-size: 13px; color: var(--ink-2); margin-top: 9px; line-height: 1.45; }
+.plan-foot { font-size: 12px; color: var(--ink-3); margin-top: 16px; line-height: 1.45; text-align: center; }

@@ -7,6 +7,7 @@ import { useStore } from '@/lib/store';
 import { useT } from '@/lib/i18n';
 import { catEmoji, entrySubtitle } from '@/lib/labels';
 import { addressWord, greeting } from '@/lib/profile';
+import { loadMoneyProfile } from '@/lib/moneyProfile';
 import { AddSheet } from './AddEntry';
 import { Settings } from './Settings';
 import { buildBackup, needsBackup, saveBackup } from '@/lib/backup';
@@ -19,6 +20,7 @@ export function Home() {
     pending, setRoute, updateEntry, removeEntry, restoreEntry, teachCategory, settleUdhaar,
   } = store;
   const [editing, setEditing] = useState<Entry | null>(null);
+  const hasPlan = loadMoneyProfile() !== null;
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') ?? 'dark');
   const [showBackup, setShowBackup] = useState(() => needsBackup(store.entries.length));
 
@@ -130,6 +132,17 @@ export function Home() {
           <div className="stat-more">{t('Full breakdown →', 'Poora hisaab →')}</div>
         </button>
       </div>
+
+      <button className="plan-cta" onClick={() => setRoute('plan')}>
+        <span className="pc-ico">🎯</span>
+        <span className="grow">
+          <b>{hasPlan ? t('Your money plan', 'Tera paisa plan') : t('Make a money plan', 'Ek paisa plan banao')}</b>
+          <i>{hasPlan
+            ? t('See your salary split, goal & advice', 'Salary ka bantwara, goal aur salah dekho')
+            : t('Split your salary smartly — needs, savings, goal', 'Salary ko samajhdari se baato — zaroori, bachat, goal')}</i>
+        </span>
+        <span className="pc-arrow">→</span>
+      </button>
 
       {showBackup && (
         <div className="nudge-card">

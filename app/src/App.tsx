@@ -7,6 +7,7 @@ import { Review } from '@/screens/Review';
 import { Trips } from '@/screens/Trips';
 import { TripDetail } from '@/screens/TripDetail';
 import { History } from '@/screens/History';
+import { Plan } from '@/screens/Plan';
 import type { Profile } from '@/lib/profile';
 import { isDemo } from '@/lib/demo';
 import { hasLock } from '@/lib/lock';
@@ -98,6 +99,7 @@ function Flow() {
         : route === 'trips' ? <Trips />
         : route === 'trip' ? <TripDetail />
         : route === 'history' ? <History />
+        : route === 'plan' ? <Plan />
         : <Home />}
     </Shell>
   );
