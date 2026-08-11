@@ -1754,3 +1754,9 @@ em.serif { font-family: var(--font-serif); font-style: italic; font-weight: 400;
 .pc-top .num { font-size: 13.5px; color: var(--ink-2); }
 .pc-note { font-size: 13px; color: var(--ink-2); margin-top: 9px; line-height: 1.45; }
 .plan-foot { font-size: 12px; color: var(--ink-3); margin-top: 16px; line-height: 1.45; text-align: center; }
+
+.plan-cta[data-alert] {
+  border-color: color-mix(in srgb, var(--bad) 55%, var(--line));
+  background: linear-gradient(120deg, color-mix(in srgb, var(--bad) 12%, transparent), transparent 70%), var(--surface);
+}
+.plan-cta[data-alert] .pc-arrow { color: var(--bad); }

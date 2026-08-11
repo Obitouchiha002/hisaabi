@@ -4,9 +4,20 @@
  * buildMoneyPlan isi ko padh kar plan banata hai.
  */
 
-import { bucketForCategory, monthRange, type Entry, type MoneyProfile } from '@engine';
+import { bucketForCategory, monthRange, type Entry, type MoneyPlan, type MoneyProfile } from '@engine';
 
 const KEY = 'hisaabi-money';
+const GUARD_KEY = 'hisaabi-guardrail';
+
+/** Overspend pe app kitna sakht — user chunta hai. */
+export type Guardrail = 'soft' | 'strict';
+
+export function getGuardrail(): Guardrail {
+  return localStorage.getItem(GUARD_KEY) === 'strict' ? 'strict' : 'soft';
+}
+export function setGuardrail(g: Guardrail): void {
+  localStorage.setItem(GUARD_KEY, g);
+}
 
 export function loadMoneyProfile(): MoneyProfile | null {
   try {
@@ -55,4 +66,33 @@ export function monthlyBucketSpend(entries: Entry[], now = new Date()): { needs:
     out.total += e.amountPaise;
   }
   return out;
+}
+
+/** Aaj plan ke hisaab se kahan khade hain — Home pe dikhane ke liye. */
+export interface PlanPulse {
+  funAllottedPaise: number;
+  funSpentPaise: number;
+  funLeftPaise: number;         // 0 se kam nahi
+  overspentPaise: number;       // fun se kitna upar (0 = theek)
+  daysLeft: number;             // is mahine ke bache din (aaj sameत)
+  safePerDayPaise: number;      // funLeft / daysLeft
+}
+
+export function planPulse(plan: MoneyPlan, entries: Entry[], now = new Date()): PlanPulse {
+  const spend = monthlyBucketSpend(entries, now);
+  const fun = plan.buckets.find((b) => b.id === 'fun')?.allocatedPaise ?? 0;
+  const funLeft = Math.max(0, fun - spend.fun);
+  const overspent = Math.max(0, spend.fun - fun);
+
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = Math.max(1, daysInMonth - now.getDate() + 1);
+
+  return {
+    funAllottedPaise: fun,
+    funSpentPaise: spend.fun,
+    funLeftPaise: funLeft,
+    overspentPaise: overspent,
+    daysLeft,
+    safePerDayPaise: Math.floor(funLeft / daysLeft),
+  };
 }

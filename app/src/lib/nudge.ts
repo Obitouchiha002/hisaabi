@@ -141,3 +141,25 @@ export async function cancelNightlySummary(): Promise<void> {
     if (ours.length) await LocalNotifications.cancel({ notifications: ours.map((n) => ({ id: n.id })) });
   } catch { /* kuch pending nahi tha */ }
 }
+
+/**
+ * Abhi turant ek notification — plan overspend jaisi cheez ke liye.
+ * Permission na ho ya web ho to chup-chaap kuch nahi.
+ */
+export async function fireNow(title: string, body: string): Promise<void> {
+  try {
+    if ((await nudgeStatus()) !== 'granted') return;
+    await LocalNotifications.createChannel?.({
+      id: CHANNEL, name: 'Hisaabi', importance: 3, visibility: 1,
+    });
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: 9100 + Math.floor((Date.now() / 1000) % 800),
+        channelId: CHANNEL,
+        title, body,
+        schedule: { at: new Date(Date.now() + 1200) },
+        smallIcon: 'ic_stat_hisaabi',
+      }],
+    });
+  } catch { /* koi baat nahi */ }
+}

@@ -6,6 +6,7 @@ import { useStore } from '@/lib/store';
 import { db } from '@/lib/db';
 import { useT, useLang, setLang } from '@/lib/i18n';
 import { hasLock, removeLock } from '@/lib/lock';
+import { getGuardrail, setGuardrail, loadMoneyProfile, type Guardrail } from '@/lib/moneyProfile';
 import { BUDGET_OPTIONS } from '@/lib/profile';
 import { captureStatus, openCaptureSettings, type CaptureStatus } from '@/lib/capture';
 import {
@@ -38,6 +39,10 @@ export function Settings({ onClose }: { onClose(): void }) {
   const [nudgeHour, setNudgeHour] = useState(() => nudgeSettings().hour);
   const [pinOn, setPinOn] = useState(() => hasLock());
   const [pinFlow, setPinFlow] = useState(false);
+  const [guardrail, setGuard] = useState<Guardrail>(() => getGuardrail());
+  const hasMoneyPlan = loadMoneyProfile() !== null;
+
+  function applyGuardrail(g: Guardrail) { setGuardrail(g); setGuard(g); }
 
   useEffect(() => { void captureStatus().then(setCapture); }, []);
   useEffect(() => { void nudgeStatus().then(setNudge); }, []);
@@ -167,6 +172,28 @@ export function Settings({ onClose }: { onClose(): void }) {
           <button className={`toggle ${pinOn ? 'on' : ''}`} onClick={togglePin} aria-label={t('PIN on/off', 'PIN on/off')}><i /></button>
         </div>
       </div>
+
+      {hasMoneyPlan && (
+        <>
+          <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Money plan', 'Paisa plan')}</h2></div>
+          <div className="options">
+            <div className="option" style={{ animation: 'none', flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+              <span>
+                <span className="o-title">{t('When you overspend', 'Overspend pe')}</span>
+                <span className="o-sub">
+                  {guardrail === 'strict'
+                    ? t('Strict — clear "stop" and a warning when the fun budget is done.', 'Strict — fun khatam hote hi saaf "ruk ja" aur warning.')
+                    : t('Soft coach — a nudge and a new daily limit, never a block.', 'Soft coach — halka nudge aur naya daily limit, rokta nahi.')}
+                </span>
+              </span>
+              <div className="seg">
+                <button data-on={guardrail === 'soft'} onClick={() => applyGuardrail('soft')}>{t('Soft coach', 'Soft coach')}</button>
+                <button data-on={guardrail === 'strict'} onClick={() => applyGuardrail('strict')}>{t('Strict', 'Strict')}</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Nightly recap', 'Raat ka hisaab')}</h2></div>
       <div className="options">

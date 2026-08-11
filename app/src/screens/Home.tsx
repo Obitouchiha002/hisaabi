@@ -6,8 +6,10 @@ import { SwipeRow } from '@/components/SwipeRow';
 import { useStore } from '@/lib/store';
 import { useT } from '@/lib/i18n';
 import { catEmoji, entrySubtitle } from '@/lib/labels';
+import { buildMoneyPlan } from '@engine';
 import { addressWord, greeting } from '@/lib/profile';
-import { loadMoneyProfile } from '@/lib/moneyProfile';
+import { loadMoneyProfile, planPulse, getGuardrail } from '@/lib/moneyProfile';
+import { fireNow } from '@/lib/nudge';
 import { AddSheet } from './AddEntry';
 import { Settings } from './Settings';
 import { buildBackup, needsBackup, saveBackup } from '@/lib/backup';
@@ -20,7 +22,29 @@ export function Home() {
     pending, setRoute, updateEntry, removeEntry, restoreEntry, teachCategory, settleUdhaar,
   } = store;
   const [editing, setEditing] = useState<Entry | null>(null);
-  const hasPlan = loadMoneyProfile() !== null;
+  const moneyProfile = useMemo(() => loadMoneyProfile(), []);
+  const hasPlan = moneyProfile !== null;
+  const pulse = useMemo(
+    () => (moneyProfile ? planPulse(buildMoneyPlan(moneyProfile), entries) : null),
+    [moneyProfile, entries],
+  );
+
+  /* Fun budget cross ho gaya to ek baar (is mahine) notification — plan course-correct. */
+  useEffect(() => {
+    if (!pulse || pulse.overspentPaise <= 0) return;
+    const now = new Date();
+    const tag = `hisaabi-fun-alert-${now.getFullYear()}-${now.getMonth()}`;
+    if (localStorage.getItem(tag)) return;
+    localStorage.setItem(tag, '1');
+    const strict = getGuardrail() === 'strict';
+    void fireNow(
+      strict ? 'Ruk ja — fun budget khatam' : 'Masti budget khatam',
+      strict
+        ? `Is mahine ka fun kharch ho gaya. Goal bachane ke liye ab sirf zaroori kharche.`
+        : `Fun budget cross ho gaya — bache dinon me thoda dhyan, goal patri pe rahe.`,
+    );
+  }, [pulse]);
+
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') ?? 'dark');
   const [showBackup, setShowBackup] = useState(() => needsBackup(store.entries.length));
 
@@ -133,13 +157,25 @@ export function Home() {
         </button>
       </div>
 
-      <button className="plan-cta" onClick={() => setRoute('plan')}>
-        <span className="pc-ico">🎯</span>
+      <button className="plan-cta" data-alert={pulse && pulse.overspentPaise > 0 ? '' : undefined} onClick={() => setRoute('plan')}>
+        <span className="pc-ico">{pulse && pulse.overspentPaise > 0 ? '⚠️' : '🎯'}</span>
         <span className="grow">
-          <b>{hasPlan ? t('Your money plan', 'Tera paisa plan') : t('Make a money plan', 'Ek paisa plan banao')}</b>
-          <i>{hasPlan
-            ? t('See your salary split, goal & advice', 'Salary ka bantwara, goal aur salah dekho')
-            : t('Split your salary smartly — needs, savings, goal', 'Salary ko samajhdari se baato — zaroori, bachat, goal')}</i>
+          {!hasPlan ? (
+            <>
+              <b>{t('Make a money plan', 'Ek paisa plan banao')}</b>
+              <i>{t('Split your salary smartly — needs, savings, goal', 'Salary ko samajhdari se baato — zaroori, bachat, goal')}</i>
+            </>
+          ) : pulse && pulse.overspentPaise > 0 ? (
+            <>
+              <b>{t('Fun budget over', 'Masti budget khatam')}</b>
+              <i>{t(`${formatINR(pulse.overspentPaise)} over — ease up so the goal stays on track`, `${formatINR(pulse.overspentPaise)} zyada — bache dinon me dhyan, goal patri pe rahe`)}</i>
+            </>
+          ) : (
+            <>
+              <b>{t(`Fun safe today: ${formatINR(pulse?.safePerDayPaise ?? 0)}`, `Aaj masti safe: ${formatINR(pulse?.safePerDayPaise ?? 0)}`)}</b>
+              <i>{t(`${formatINR(pulse?.funLeftPaise ?? 0)} left for ${pulse?.daysLeft ?? 0} days · tap for full plan`, `${formatINR(pulse?.funLeftPaise ?? 0)} bacha ${pulse?.daysLeft ?? 0} din ke liye · poora plan dekho`)}</i>
+            </>
+          )}
         </span>
         <span className="pc-arrow">→</span>
       </button>
