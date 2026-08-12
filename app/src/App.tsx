@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { StoreProvider, useStore } from '@/lib/store';
 import { Onboarding } from '@/screens/Onboarding';
 import { Lock } from '@/screens/Lock';
-import { Home } from '@/screens/Home';
+import { CoachHome } from '@/screens/CoachHome';
 import { Review } from '@/screens/Review';
 import { Trips } from '@/screens/Trips';
 import { TripDetail } from '@/screens/TripDetail';
@@ -105,7 +105,7 @@ function Flow() {
         : route === 'history' ? <History />
         : route === 'plan' ? <Plan />
         : route === 'report' ? <Report />
-        : <Home />}
+        : <CoachHome />}
       {NAV_ROUTES.has(route) && <NavBar />}
     </Shell>
   );

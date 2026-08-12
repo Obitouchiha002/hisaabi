@@ -2033,3 +2033,50 @@ body.sheet-open .navbar { display: none; }
 
 /* bars/tracks ko halka sa gehra taaki khaali bhi dikhein (light theme pe fade the) */
 .mr-bar, .rr-bar, .cvb-track, .bar, .split-bar { background: color-mix(in srgb, var(--ink-3) 18%, var(--surface-2)); }
+
+/* ============================================================
+   COACH HOME — premium: position + coach chat + input
+   ============================================================ */
+.chome { display: flex; flex-direction: column; min-height: 0; height: 100dvh; max-height: 100dvh; overflow: hidden; }
+.app[data-nav="true"] .screen.chome { padding-bottom: calc(var(--safe-bottom) + var(--nav-h) + 10px); }
+
+.chome-top { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.chome-top .grow { flex: 1; min-width: 0; }
+.chome-top .greet { font-size: 13px; color: var(--ink-3); font-weight: 500; }
+.chome-top .name { font-size: 21px; font-weight: 800; font-family: var(--font-display); letter-spacing: -.02em; }
+
+/* position — 3 saaf numbers */
+.pos-card { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); margin-bottom: 14px; overflow: hidden; }
+.pos-cell { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; text-align: left; padding: 12px 12px 14px; background: none; border: 0; border-radius: var(--r-sm); cursor: pointer; transition: background .15s; }
+.pos-cell:active { background: var(--surface-2); }
+.pos-cell .pos-k { font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
+.pos-cell .pos-v { font-size: 19px; font-weight: 800; font-family: var(--font-display); letter-spacing: -.02em; line-height: 1.05; }
+.pos-cell .pos-v[data-tone="bad"] { color: var(--bad); }
+.pos-cell .pos-edit { font-size: 10.5px; color: var(--ink-3); opacity: .85; }
+.pos-bar { grid-column: 1 / -1; height: 4px; margin: 2px 8px 4px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.pos-bar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width .8s var(--ease-out); }
+.pos-bar i[data-tone="bad"] { background: var(--bad); }
+
+/* chat — main */
+.chome-chat { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px 8px; }
+.chome-chat .bubble { max-width: 88%; }
+.b-typing { display: inline-flex; gap: 4px; align-items: center; }
+.b-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); animation: typing 1s infinite; }
+.b-typing i:nth-child(2) { animation-delay: .15s; }
+.b-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes typing { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+.bubble .b-amt { font-family: var(--font-display); }
+
+.chome-hints { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 2px 10px; }
+.chome-hints .chip { padding: 9px 14px; font-size: 13.5px; font-weight: 600; border: 1.5px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); color: var(--ink-2); }
+.chome-hints .chip:active { transform: scale(.95); background: var(--accent-soft); }
+
+/* input dock */
+.chome-dock { display: flex; align-items: center; gap: 9px; padding: 8px 0 4px; }
+.chome-input { flex: 1; min-width: 0; height: 52px; padding: 0 18px; border-radius: var(--r-pill); border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink); font-size: 15.5px; font-family: var(--font-body); }
+.chome-input:focus { border-color: var(--accent); outline: none; }
+.chome-input::placeholder { color: var(--ink-3); }
+.chome-send, .chome-mic { width: 52px; height: 52px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+.chome-send { font-size: 24px; font-weight: 800; }
+.chome-mic svg { width: 24px; height: 24px; }
+.chome-send:active, .chome-mic:active { transform: scale(.9); }
