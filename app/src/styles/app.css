@@ -2080,3 +2080,19 @@ body.sheet-open .navbar { display: none; }
 .chome-send { font-size: 24px; font-weight: 800; }
 .chome-mic svg { width: 24px; height: 24px; }
 .chome-send:active, .chome-mic:active { transform: scale(.9); }
+
+/* editable money value — slider ke saath type bhi kar sako */
+.slider-val, .be-val { display: flex; align-items: center; justify-content: center; gap: 1px; }
+.sv-cur { font-size: 24px; font-weight: 800; font-family: var(--font-display); color: var(--ink); }
+.sv-cur.sm { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+.sv-input { border: 0; background: none; outline: none; text-align: center; font-size: 30px; font-weight: 800; font-family: var(--font-display); color: var(--ink); letter-spacing: -.02em; width: 6.5ch; border-bottom: 2px dashed color-mix(in srgb, var(--ink-3) 45%, transparent); padding-bottom: 2px; transition: border-color .2s; }
+.be-val .sv-input { font-size: 34px; width: 7ch; }
+.sv-input:focus { border-bottom-color: var(--accent); border-bottom-style: solid; }
+.sv-input::placeholder { color: var(--ink-3); }
+.ir-val { display: inline-flex; align-items: baseline; gap: 1px; }
+.ir-input { border: 0; background: none; outline: none; text-align: right; font-size: 13.5px; font-weight: 700; color: var(--ink-2); font-family: var(--font-display); width: 5.5ch; border-bottom: 1px dashed color-mix(in srgb, var(--ink-3) 40%, transparent); }
+.ir-input:focus { border-bottom-color: var(--accent); border-bottom-style: solid; color: var(--ink); }
+
+/* in-hand low → red alert */
+.pos-cell[data-low] { background: color-mix(in srgb, var(--bad) 10%, transparent); }
+.pos-cell[data-low] .pos-edit { color: var(--bad); font-weight: 600; }

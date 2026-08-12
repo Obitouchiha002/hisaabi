@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { formatINR, toPaise, toRupees, type DraftEntry } from '@engine';
+import { buildMoneyPlan, formatINR, toPaise, toRupees, type DraftEntry, type MoneyPlan } from '@engine';
 import { Icon, Sheet, useToast } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { useT } from '@/lib/i18n';
 import { addressWord } from '@/lib/profile';
-import { loadMoneyProfile } from '@/lib/moneyProfile';
+import { loadMoneyProfile, planPulse } from '@/lib/moneyProfile';
 import { getBalance, setBalance, type Balance } from '@/lib/balance';
 import { peekGap, greetedToday, markActive, markGreeted, getStreak } from '@/lib/streak';
 import { AddSheet } from './AddEntry';
@@ -18,6 +18,8 @@ import { Settings } from './Settings';
 
 interface Msg { id: number; role: 'coach' | 'me'; text: string; sub?: string }
 
+const LOW_PAISE = 10000;   // ₹100 se neeche → red alert
+
 export function CoachHome() {
   const t = useT();
   const store = useStore();
@@ -26,6 +28,8 @@ export function CoachHome() {
   const moneyProfile = useMemo(() => loadMoneyProfile(), []);
   const earning = moneyProfile?.incomePaise ?? 0;
   const spent = budget.spentThisMonthPaise;
+  const plan = useMemo(() => (moneyProfile ? buildMoneyPlan(moneyProfile) : null), [moneyProfile]);
+  const pulse = useMemo(() => (plan ? planPulse(plan, entries) : null), [plan, entries]);
 
   const [bal, setBal] = useState<Balance | null>(() => getBalance());
   const [editBal, setEditBal] = useState(false);
@@ -72,12 +76,24 @@ export function CoachHome() {
     push({ role: 'me', text });
     setBusy(true);
     try {
+      // "5000 ka phone lu?" — kharcha-salah? Log karne se pehle goal-aware jawab do.
+      const adv = spendAdviceIntent(text);
+      if (adv) {
+        push({ role: 'coach', text: spendAdvice(adv.amountPaise, plan, pulse, t) });
+        setBusy(false);
+        return;
+      }
       const res = await engine.handle(text, entries, { source: 'manual' });
       if (res.intent === 'expense' && res.drafts.length) {
         await commitDrafts(res.drafts);
         const total = res.drafts.reduce((s: number, d: DraftEntry) => s + (d.type === 'expense' ? d.amountPaise : 0), 0);
         const names = res.drafts.map((d: DraftEntry) => d.title).join(', ');
+        const newBal = applyToBalance(res.drafts);   // jeb se minus/plus
         push({ role: 'coach', text: t(`Logged ✅ ${names}`, `Likh liya ✅ ${names}`), sub: total > 0 ? formatINR(total) : undefined });
+        if (newBal !== null) {
+          if (newBal <= 0) push({ role: 'coach', text: t("😬 That's it — nothing left in hand. Add cash before you spend more.", '😬 Bas — jeb khaali. Aur kharch se pehle cash daalo.') });
+          else if (newBal < LOW_PAISE) push({ role: 'coach', text: t(`⚠️ Only ${formatINR(newBal)} left in hand — go easy now.`, `⚠️ Jeb me sirf ${formatINR(newBal)} bacha — ab sambhal ke.`) });
+        }
       } else if (res.intent === 'question') {
         push({ role: 'coach', text: res.answer?.answer ?? t("I didn't get that — try again.", 'Samajh nahi aaya — dobara likho.') });
       } else if (res.intent === 'trip') {
@@ -91,6 +107,21 @@ export function CoachHome() {
     setBusy(false);
   }
 
+  /** Jeb (in hand) ko kharche/kamai ke hisaab se badlo. balance set hai tabhi. */
+  function applyToBalance(drafts: DraftEntry[]): number | null {
+    if (!bal) return null;
+    let delta = 0;
+    for (const d of drafts) {
+      if (d.type === 'expense') delta -= d.amountPaise;
+      else if (d.type === 'income' || d.type === 'refund' || d.type === 'cash_in') delta += d.amountPaise;
+    }
+    if (delta === 0) return bal.paise;
+    const next = Math.max(0, bal.paise + delta);
+    setBal(setBalance(next));
+    return next;
+  }
+
+  const lowHand = bal !== null && bal.paise < LOW_PAISE;
   const funPct = earning > 0 ? Math.min(100, (spent / earning) * 100) : 0;
 
   return (
@@ -113,10 +144,10 @@ export function CoachHome() {
 
       {/* position — saaf: kamai / jeb me / kharch */}
       <div className="pos-card">
-        <button className="pos-cell" onClick={() => setEditBal(true)}>
+        <button className="pos-cell" data-low={lowHand ? '' : undefined} onClick={() => setEditBal(true)}>
           <span className="pos-k">💰 {t('In hand', 'Jeb me')}</span>
-          <span className="pos-v num">{bal ? formatINR(bal.paise) : t('Set', 'Set karo')}</span>
-          <span className="pos-edit">{t('tap to update', 'tap karke badlo')}</span>
+          <span className="pos-v num" data-tone={lowHand ? 'bad' : undefined}>{bal ? formatINR(bal.paise) : t('Set', 'Set karo')}</span>
+          <span className="pos-edit">{bal ? (lowHand ? t('⚠️ running low', '⚠️ kam ho raha') : t('tap to update', 'tap karke badlo')) : t('tap to set', 'tap karke set karo')}</span>
         </button>
         <div className="pos-cell" role="button" tabIndex={0} onClick={() => setRoute('plan')}>
           <span className="pos-k">📥 {t('Earning', 'Kamai')}</span>
@@ -184,6 +215,7 @@ export function CoachHome() {
           onClose={() => setSheet(null)}
           onSaved={(count, total) => {
             setSheet(null);
+            if (bal && total > 0) setBal(setBalance(Math.max(0, bal.paise - total)));   // jeb se minus
             push({ role: 'coach', text: t(`Logged ✅ ${count} ${count === 1 ? 'entry' : 'entries'}`, `Likh liya ✅ ${count} ${count === 1 ? 'entry' : 'entries'}`), sub: formatINR(total) });
           }}
         />
@@ -202,7 +234,11 @@ function BalanceEditor({ initial, onSave }: { initial: number; onSave(paise: num
   return (
     <div className="balance-editor">
       <h3>{t('Money in hand right now', 'Abhi jeb me kitna')}</h3>
-      <div className="be-val num">{formatINR(toPaise(v))}</div>
+      <label className="be-val"><span className="sv-cur">₹</span>
+        <input className="sv-input num" inputMode="numeric" placeholder="0"
+               value={v ? v.toLocaleString('en-IN') : ''}
+               onChange={(e) => setV(Math.min(max, Number(e.target.value.replace(/[^\d]/g, '')) || 0))} />
+      </label>
       <div className="slider-wrap">
         <button className="step-b" onClick={() => setV(Math.max(0, v - 500))} aria-label="−">−</button>
         <input className="slider" type="range" min={0} max={max} step={500} value={Math.min(v, max)}
@@ -215,6 +251,40 @@ function BalanceEditor({ initial, onSave }: { initial: number; onSave(paise: num
       <button className="btn btn-primary btn-block" onClick={() => onSave(toPaise(v))}>{t('Save', 'Save karo')}</button>
     </div>
   );
+}
+
+/* ---------- spend advice: "5000 ka phone lu?" → goal-aware jawab ---------- */
+
+const ADVICE_RE = /\b(lu|loon|lun|le\s*lu|le\s*lun|lena|kharid|khareed|kharee?dun|should\s*i|kar\s*(?:sakta|sakti|lu|lun)|sahi\s*(?:rahega|hai)|thik|theek|man\s*hai|chahiye|worth|afford)\b/i;
+
+/** Advice-sawaal + amount hai to nikaal do; warna null (normal log/parse). */
+function spendAdviceIntent(text: string): { amountPaise: number } | null {
+  const isAsk = text.includes('?') || ADVICE_RE.test(text);
+  if (!isAsk) return null;
+  const m = text.toLowerCase().match(/(?:₹|rs\.?|rupees?)?\s*(\d[\d,]*)\s*(k|hazaar|hazar|thousand|lakh)?/);
+  if (!m) return null;
+  let n = Number(m[1].replace(/,/g, ''));
+  if (m[2] === 'lakh') n *= 100000;
+  else if (m[2]) n *= 1000;
+  if (!n || n <= 0) return null;
+  return { amountPaise: Math.round(n * 100) };
+}
+
+function spendAdvice(amountPaise: number, plan: MoneyPlan | null, pulse: ReturnType<typeof planPulse> | null, t: (e: string, h: string) => string): string {
+  const f = formatINR;
+  if (!plan || !pulse) {
+    return t(`For ${f(amountPaise)} — set up your plan first (tap 'Earning' → make a plan) and I'll tell you if it fits your goal.`, `${f(amountPaise)} ke liye — pehle plan banao ('Kamai' tap karke), phir main batata hu goal ke hisaab se sahi hai ya nahi.`);
+  }
+  const funLeft = pulse.funLeftPaise;
+  const safeDay = pulse.safePerDayPaise;
+  if (amountPaise <= funLeft) {
+    return t(`Go for it 👍 ${f(amountPaise)} fits — you've still got ${f(funLeft)} of fun money this month.`, `Le lo 👍 ${f(amountPaise)} theek hai — is mahine abhi ${f(funLeft)} masti ka paisa bacha hai.`);
+  }
+  const over = amountPaise - funLeft;
+  const emHit = plan.emergencyFundPaise < plan.emergencyTargetPaise
+    ? t(' — the extra comes out of your savings, so your emergency fund slips back.', ' — extra bachat se jayega, matlab emergency fund peeche khisak jayega.')
+    : t(' — the extra comes out of your savings.', ' — extra bachat se jayega.');
+  return t(`Careful ⚠️ that's ${f(over)} over this month's fun budget (only ${f(funLeft)} left)${emHit} If it can wait, wait — or split it across months. Today only ${f(safeDay)} is truly safe.`, `Ruk jao ⚠️ ye is mahine ke masti-budget se ${f(over)} zyada hai (sirf ${f(funLeft)} bacha)${emHit} Ruk sakte ho to ruk jao — ya do mahine me baant lo. Aaj sirf ${f(safeDay)} tak safe hai.`);
 }
 
 /* ---------- greeting text (streak mood) ---------- */

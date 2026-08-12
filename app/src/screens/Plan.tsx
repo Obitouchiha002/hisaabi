@@ -329,7 +329,11 @@ function SliderCtl({ value, min, max, step, onNext, okLabel, disabled }: {
   const pct = ((v - min) / Math.max(1, max - min)) * 100;
   return (
     <div className="slider-ctl">
-      <div className="slider-val num">{formatINR(toPaise(v))}</div>
+      <label className="slider-val"><span className="sv-cur">₹</span>
+        <input className="sv-input num" inputMode="numeric" placeholder="0"
+               value={v ? v.toLocaleString('en-IN') : ''}
+               onChange={(e) => setV(Math.min(max, Number(e.target.value.replace(/[^\d]/g, '')) || 0))} />
+      </label>
       <div className="slider-wrap">
         <button className="step-b" onClick={() => setV(Math.max(min, v - step))} aria-label="−">−</button>
         <input
@@ -364,7 +368,11 @@ function ItemizedNeeds({ max, onNext, okLabel }: { max: number; onNext(total: nu
           <div className="item-row" key={r.key}>
             <div className="ir-top">
               <span className="ir-label">{r.emoji} {t(...r.label)}</span>
-              <span className="ir-val num">{formatINR(toPaise(vals[i]))}</span>
+              <label className="ir-val"><span className="sv-cur sm">₹</span>
+                <input className="ir-input num" inputMode="numeric" placeholder="0"
+                       value={vals[i] ? vals[i].toLocaleString('en-IN') : ''}
+                       onChange={(e) => { const n = Math.min(rowMax, Number(e.target.value.replace(/[^\d]/g, '')) || 0); setVals((vs) => vs.map((v, j) => (j === i ? n : v))); }} />
+              </label>
             </div>
             <input
               className="slider slim" type="range" min={0} max={rowMax} step={500} value={vals[i]}
