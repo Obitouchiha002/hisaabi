@@ -330,13 +330,16 @@ function spendAdvice(amountPaise: number, plan: MoneyPlan | null, pulse: ReturnT
   const funLeft = pulse.funLeftPaise;
   const safeDay = pulse.safePerDayPaise;
   if (amountPaise <= funLeft) {
-    return t(`Go for it 👍 ${f(amountPaise)} fits — you've still got ${f(funLeft)} of fun money this month.`, `Le lo 👍 ${f(amountPaise)} theek hai — is mahine abhi ${f(funLeft)} masti ka paisa bacha hai.`);
+    // bade shauk pe 48-ghante ka niyam
+    const big = amountPaise >= 100000 || amountPaise > funLeft * 0.6;
+    const tail = big ? t(' Big one though — sleep on it 48 hours; if you still want it tomorrow, go ahead.', ' Bada hai — 48 ghante ruko; kal bhi mann kare to le lo.') : '';
+    return t(`Go for it 👍 ${f(amountPaise)} fits — you've still got ${f(funLeft)} of fun money this month.${tail}`, `Le lo 👍 ${f(amountPaise)} theek hai — is mahine abhi ${f(funLeft)} masti ka paisa bacha hai.${tail}`);
   }
   const over = amountPaise - funLeft;
   const emHit = plan.emergencyFundPaise < plan.emergencyTargetPaise
     ? t(' — the extra comes out of your savings, so your emergency fund slips back.', ' — extra bachat se jayega, matlab emergency fund peeche khisak jayega.')
     : t(' — the extra comes out of your savings.', ' — extra bachat se jayega.');
-  return t(`Careful ⚠️ that's ${f(over)} over this month's fun budget (only ${f(funLeft)} left)${emHit} If it can wait, wait — or split it across months. Today only ${f(safeDay)} is truly safe.`, `Ruk jao ⚠️ ye is mahine ke masti-budget se ${f(over)} zyada hai (sirf ${f(funLeft)} bacha)${emHit} Ruk sakte ho to ruk jao — ya do mahine me baant lo. Aaj sirf ${f(safeDay)} tak safe hai.`);
+  return t(`Careful ⚠️ that's ${f(over)} over this month's fun budget (only ${f(funLeft)} left)${emHit} Try the 48-hour rule: wait 2 days — if you still want it, then buy. Today only ${f(safeDay)} is truly safe.`, `Ruk jao ⚠️ ye is mahine ke masti-budget se ${f(over)} zyada hai (sirf ${f(funLeft)} bacha)${emHit} 48-ghante ka niyam: 2 din ruko — phir bhi mann kare to lo. Aaj sirf ${f(safeDay)} tak safe hai.`);
 }
 
 /* ---------- greeting text (streak mood) ---------- */
