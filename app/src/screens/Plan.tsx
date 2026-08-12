@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildMoneyPlan, formatINR, formatShort, toPaise, toRupees,
-  type BucketId, type Loan, type MoneyPlan, type MoneyProfile,
+  type BucketId, type CategoryId, type DraftEntry, type Loan, type MoneyPlan, type MoneyProfile,
 } from '@engine';
+
+interface PaidNeed { title: string; amountPaise: number; category: CategoryId }
 import { Icon } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { useT } from '@/lib/i18n';
@@ -15,7 +17,7 @@ import { loadMoneyProfile, saveMoneyProfile, monthlyBucketSpend, planPulse } fro
  */
 export function Plan() {
   const t = useT();
-  const { entries, setRoute } = useStore();
+  const { entries, setRoute, commitDrafts } = useStore();
   const [profile, setProfile] = useState<MoneyProfile | null>(() => loadMoneyProfile());
   const [editing, setEditing] = useState(() => loadMoneyProfile() === null);
 
@@ -23,10 +25,18 @@ export function Plan() {
   const spend = useMemo(() => monthlyBucketSpend(entries), [entries]);
   const pulse = useMemo(() => (plan ? planPulse(plan, entries) : null), [plan, entries]);
 
-  function save(p: MoneyProfile) {
+  function save(p: MoneyProfile, paid: PaidNeed[] = []) {
     saveMoneyProfile(p);
     setProfile(p);
     setEditing(false);
+    // "ho chuka" wale fixed kharche is mahine ke spends me daal do
+    if (paid.length) {
+      const now = new Date().toISOString();
+      void commitDrafts(paid.map((pn): DraftEntry => ({
+        title: pn.title, amountPaise: pn.amountPaise, type: 'expense', paidWith: 'unknown',
+        occurredAt: now, source: 'manual', category: pn.category, confidence: 1, warnings: [],
+      })));
+    }
   }
 
   return (
@@ -73,6 +83,7 @@ interface Answers {
   goalPreset: string;    // emoji+label key
   goalTarget: number;
   goalMonths: number;
+  paidNeeds: PaidNeed[]; // "ho chuka" wale fixed kharche → is mahine ke spends
 }
 
 const GOAL_PRESETS: { key: string; emoji: string; label: [string, string] }[] = [
@@ -98,6 +109,7 @@ function defaultAnswers(p: MoneyProfile | null): Answers {
     goalPreset: 'other',
     goalTarget: p?.goal ? toRupees(p.goal.targetPaise) : 20000,
     goalMonths: p?.goal?.deadlineMonths ?? 12,
+    paidNeeds: [],
   };
 }
 
@@ -111,7 +123,7 @@ function activeSteps(a: Answers): StepId[] {
   return s;
 }
 
-function CoachChat({ initial, onDone, onCancel }: { initial: MoneyProfile | null; onDone(p: MoneyProfile): void; onCancel?(): void }) {
+function CoachChat({ initial, onDone, onCancel }: { initial: MoneyProfile | null; onDone(p: MoneyProfile, paid: PaidNeed[]): void; onCancel?(): void }) {
   const t = useT();
   const [ans, setAns] = useState<Answers>(() => defaultAnswers(initial));
   const [idx, setIdx] = useState(0);
@@ -134,7 +146,7 @@ function CoachChat({ initial, onDone, onCancel }: { initial: MoneyProfile | null
   useEffect(() => {
     if (!done) return;
     setPlanning(true);
-    const id = setTimeout(() => onDone(toProfile(ans)), 2400);
+    const id = setTimeout(() => onDone(toProfile(ans), ans.paidNeeds), 2400);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
@@ -172,7 +184,7 @@ function CoachChat({ initial, onDone, onCancel }: { initial: MoneyProfile | null
       {/* active control — coach ke type karne ke baad */}
       {!done && ready && (
         <div className="coach-input" key={`ctl-${current}`}>
-          <Control step={current} ans={ans} answer={answer} advance={advance} onCancel={idx === 0 ? onCancel : undefined} />
+          <Control step={current} ans={ans} answer={answer} advance={advance} setPaid={(p) => setAns((a) => ({ ...a, paidNeeds: p }))} onCancel={idx === 0 ? onCancel : undefined} />
         </div>
       )}
     </div>
@@ -260,10 +272,10 @@ function monthsLabel(m: number, t: (e: string, h: string) => string): string {
 
 /* ---------- controls (tap / slider) ---------- */
 
-function Control({ step, ans, answer, advance, onCancel }: {
+function Control({ step, ans, answer, advance, setPaid, onCancel }: {
   step: StepId; ans: Answers;
   answer<K extends keyof Answers>(k: K, v: Answers[K]): void;
-  advance(): void; onCancel?(): void;
+  advance(): void; setPaid(p: PaidNeed[]): void; onCancel?(): void;
 }) {
   const t = useT();
 
@@ -283,7 +295,7 @@ function Control({ step, ans, answer, advance, onCancel }: {
     case 'needs':
       return <SliderCtl value={ans.needs} min={0} max={Math.max(2000, ans.income)} step={500} onNext={(v) => answer('needs', v)} okLabel={t('Next →', 'Aage →')} />;
     case 'needsItems':
-      return <ItemizedNeeds max={Math.max(2000, ans.income)} onNext={(total) => answer('needs', total)} okLabel={t('Next →', 'Aage →')} />;
+      return <ItemizedNeeds max={Math.max(2000, ans.income)} onNext={(total, paid) => { setPaid(paid); answer('needs', total); }} okLabel={t('Next →', 'Aage →')} />;
     case 'loanEmi':
       return <SliderCtl value={ans.loanEmi} min={0} max={50000} step={500} onNext={(v) => answer('loanEmi', v)} okLabel={t('Next →', 'Aage →')} />;
     case 'ef':
@@ -348,18 +360,24 @@ function SliderCtl({ value, min, max, step, onNext, okLabel, disabled }: {
   );
 }
 
-function ItemizedNeeds({ max, onNext, okLabel }: { max: number; onNext(total: number): void; okLabel: string }) {
+function ItemizedNeeds({ max, onNext, okLabel }: { max: number; onNext(total: number, paid: PaidNeed[]): void; okLabel: string }) {
   const t = useT();
-  const rows: { key: string; emoji: string; label: [string, string]; init: number }[] = [
-    { key: 'rent', emoji: '🏠', label: ['Rent / home', 'Ghar / rent'], init: 5000 },
-    { key: 'bills', emoji: '📱', label: ['Bills / recharge', 'Bill / recharge'], init: 1000 },
-    { key: 'ration', emoji: '🛒', label: ['Ration / grocery', 'Ration / grocery'], init: 3000 },
-    { key: 'travel', emoji: '🚌', label: ['Travel', 'Aana-jaana'], init: 1000 },
-    { key: 'other', emoji: '➕', label: ['Other', 'Aur kuch'], init: 0 },
+  const rows: { key: string; emoji: string; label: [string, string]; init: number; cat: CategoryId }[] = [
+    { key: 'rent', emoji: '🏠', label: ['Rent / home', 'Ghar / rent'], init: 5000, cat: 'rent' },
+    { key: 'bills', emoji: '📱', label: ['Bills / recharge', 'Bill / recharge'], init: 1000, cat: 'bills' },
+    { key: 'ration', emoji: '🛒', label: ['Ration / grocery', 'Ration / grocery'], init: 3000, cat: 'grocery' },
+    { key: 'travel', emoji: '🚌', label: ['Travel', 'Aana-jaana'], init: 1000, cat: 'travel' },
+    { key: 'other', emoji: '➕', label: ['Other', 'Aur kuch'], init: 0, cat: 'other' },
   ];
   const [vals, setVals] = useState<number[]>(rows.map((r) => Math.min(r.init, max)));
+  const [done, setDone] = useState<boolean[]>(rows.map(() => false));
   const total = vals.reduce((s, v) => s + v, 0);
   const rowMax = Math.max(2000, max);
+  function finish() {
+    const paid: PaidNeed[] = [];
+    rows.forEach((r, i) => { if (done[i] && vals[i] > 0) paid.push({ title: t(...r.label), amountPaise: toPaise(vals[i]), category: r.cat }); });
+    onNext(total, paid);
+  }
   return (
     <div className="items-ctl">
       <div className="items-total"><span className="it-k">{t('Total fixed', 'Kul pakka')}</span><span className="num">{formatINR(toPaise(total))}</span></div>
@@ -379,10 +397,17 @@ function ItemizedNeeds({ max, onNext, okLabel }: { max: number; onNext(total: nu
               style={{ ['--pct' as string]: `${(vals[i] / rowMax) * 100}%` }}
               onChange={(e) => setVals((vs) => vs.map((v, j) => (j === i ? Number(e.target.value) : v)))}
             />
+            {vals[i] > 0 && (
+              <div className="ir-done seg">
+                <button data-on={!done[i]} onClick={() => setDone((d) => d.map((x, j) => (j === i ? false : x)))}>⏳ {t('upcoming', 'hoga')}</button>
+                <button data-on={done[i]} onClick={() => setDone((d) => d.map((x, j) => (j === i ? true : x)))}>✅ {t('already paid', 'ho chuka')}</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <button className="btn btn-primary btn-block" onClick={() => onNext(total)}>{okLabel}</button>
+      <p className="hint-line">{t("'Already paid' ones get logged as this month's spends.", "'Ho chuka' wale is mahine ke kharche me add ho jayenge.")}</p>
+      <button className="btn btn-primary btn-block" onClick={finish}>{okLabel}</button>
     </div>
   );
 }

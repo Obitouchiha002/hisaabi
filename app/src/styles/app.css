@@ -2114,3 +2114,7 @@ body.sheet-open .navbar { display: none; }
 .cv-why summary::-webkit-details-marker { display: none; }
 .cv-why p { padding: 2px 14px 10px; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
 .cv-why p b { color: var(--ink); font-weight: 650; }
+
+/* itemized needs: ho-chuka / hoga toggle */
+.ir-done.seg { margin-top: 8px; padding: 2px; }
+.ir-done.seg button { padding: 7px 8px; font-size: 12.5px; font-weight: 600; }
