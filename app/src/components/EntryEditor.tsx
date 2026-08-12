@@ -22,6 +22,7 @@ export function EntryEditor({
   const [name, setName] = useState(draft.title);
   const [amount, setAmount] = useState(String(toRupees(draft.amountPaise)));
   const [category, setCategory] = useState<CategoryId>(draft.category ?? 'other');
+  const [when, setWhen] = useState(() => toDateInput(draft.occurredAt));
 
   const amountNum = Number(amount);
   const valid = name.trim().length > 0 && isFinite(amountNum) && amountNum > 0;
@@ -29,7 +30,7 @@ export function EntryEditor({
   function save() {
     if (!valid) return;
     onSave(
-      { ...draft, title: name.trim(), amountPaise: toPaise(amountNum), category, categorySource: 'learned' },
+      { ...draft, title: name.trim(), amountPaise: toPaise(amountNum), category, categorySource: 'learned', occurredAt: fromDateInput(when, draft.occurredAt) },
       category !== draft.category,
     );
   }
@@ -53,6 +54,11 @@ export function EntryEditor({
           />
         </label>
       </div>
+
+      <label className="field" style={{ display: 'block' }}>
+        <span className="f-k">{t('Date — change it to log a missed day', 'Tareekh — miss kiya din yahan badlo')}</span>
+        <input className="text-field" type="date" value={when} max={toDateInput(new Date().toISOString())} onChange={(e) => setWhen(e.target.value)} />
+      </label>
 
       <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Category', 'Category')}</h2></div>
       <div className="cat-grid">
@@ -92,4 +98,17 @@ export function EntryEditor({
       </div>
     </Sheet>
   );
+}
+
+function toDateInput(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function fromDateInput(ymd: string, origIso: string): string {
+  const orig = new Date(origIso);
+  const [y, m, d] = ymd.split('-').map(Number);
+  if (!y || !m || !d) return origIso;
+  const next = new Date(orig);
+  next.setFullYear(y, m - 1, d);
+  return next.toISOString();
 }
