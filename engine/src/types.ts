@@ -15,7 +15,15 @@ export type EntryType =
   | 'income'     // paisa aaya, kamai
   | 'cash_in'    // ATM se nikala — kharcha nahi, sirf cash wallet me aaya
   | 'lent'       // maine kisi ko diya — paisa gaya PAR kharcha nahi, wapas milna hai
-  | 'borrowed';  // maine kisi se liya — paisa aaya PAR kamai nahi, wapas dena hai
+  | 'borrowed'   // maine kisi se liya — paisa aaya PAR kamai nahi, wapas dena hai
+  | 'transfer'   // apne hi account/wallet me idhar-udhar — na kharcha na kamai (double-count se bachao)
+  | 'refund';    // wapasi — is mahine ke kharche ko ghatata hai
+
+/**
+ * Transaction ki haalat. Ledger me sirf 'successful' (ya undefined = successful)
+ * ginte hain — failed/pending/reversed total me nahi jate.
+ */
+export type TxState = 'successful' | 'pending' | 'failed' | 'reversed';
 
 /**
  * Lena-dena kharcha nahi hai.
@@ -69,6 +77,10 @@ export interface DraftEntry {
   warnings: DraftWarning[];
   note?: string;
   rawEventId?: string;
+  /** ek hi payment ke kai source (UPI app + bank + SMS) — merge pe sab yahan */
+  rawEventIds?: string[];
+  /** transaction safal hui ya failed/pending/reversed — ledger sirf successful gine */
+  txState?: TxState;
   /** notification se aaya transaction reference, duplicate check ke liye */
   ref?: string;
   /** kis app se aaya — PhonePe / GPay / SBI */

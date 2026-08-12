@@ -10,7 +10,7 @@
  */
 
 import type { Entry, Paise } from './types.js';
-import { dayRange, monthRange, safeToSpend, spentBetween } from './budget.js';
+import { dayRange, monthRange, safeToSpend, spentBetween, isCounted } from './budget.js';
 import { categoryMeta } from './categories.js';
 import { formatINR } from './money.js';
 
@@ -63,7 +63,7 @@ export function dailySummary(input: SummaryInput): DailySummary {
   });
 
   const todayEntries = input.entries.filter((e) => {
-    if (e.status !== 'confirmed' || e.type !== 'expense') return false;
+    if (e.status !== 'confirmed' || e.type !== 'expense' || !isCounted(e)) return false;
     const at = new Date(e.occurredAt).getTime();
     return at >= today.from.getTime() && at <= today.to.getTime();
   });

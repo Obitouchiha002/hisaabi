@@ -97,6 +97,43 @@ describe('spentBetween', () => {
     ];
     expect(spentBetween(entries, from, to)).toBe(toPaise(100));
   });
+
+  it('refund kharche ko ghatata hai (paisa wapas aaya)', () => {
+    const { from, to } = monthRange(new Date(2026, 6, 15));
+    const entries = [
+      entry({ id: '1', amountPaise: toPaise(500) }),
+      entry({ id: '2', type: 'refund', amountPaise: toPaise(200) }),
+    ];
+    expect(spentBetween(entries, from, to)).toBe(toPaise(300));
+  });
+
+  it('refund kharche se zyada ho to 0 pe rukta hai, negative nahi', () => {
+    const { from, to } = monthRange(new Date(2026, 6, 15));
+    const entries = [
+      entry({ id: '1', amountPaise: toPaise(100) }),
+      entry({ id: '2', type: 'refund', amountPaise: toPaise(400) }),
+    ];
+    expect(spentBetween(entries, from, to)).toBe(0);
+  });
+
+  it('transfer (apne hi paise) kharche me nahi ginta', () => {
+    const { from, to } = monthRange(new Date(2026, 6, 15));
+    const entries = [
+      entry({ id: '1', amountPaise: toPaise(100) }),
+      entry({ id: '2', type: 'transfer', amountPaise: toPaise(5000) }),
+    ];
+    expect(spentBetween(entries, from, to)).toBe(toPaise(100));
+  });
+
+  it('failed/pending transaction total me nahi jata', () => {
+    const { from, to } = monthRange(new Date(2026, 6, 15));
+    const entries = [
+      entry({ id: '1', amountPaise: toPaise(100) }),
+      entry({ id: '2', amountPaise: toPaise(999), txState: 'failed' }),
+      entry({ id: '3', amountPaise: toPaise(999), txState: 'pending' }),
+    ];
+    expect(spentBetween(entries, from, to)).toBe(toPaise(100));
+  });
 });
 
 describe('money formatting', () => {

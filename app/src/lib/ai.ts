@@ -68,15 +68,30 @@ export const remoteAi: AiAdapter = {
 
 /* ---------- AI ka JSON → engine ka type ---------- */
 
+const KNOWN_TYPES = ['income', 'cash_in', 'lent', 'borrowed', 'refund', 'transfer'] as const;
+const KNOWN_CATEGORIES = [
+  'food', 'grocery', 'travel', 'bills', 'shopping',
+  'health', 'rent', 'education', 'fun', 'other', 'income',
+] as const;
+// ₹1 crore se upar ki entry qariban hamesha parse-error — AI ka aisa jawab block.
+const MAX_PAISE = 10_00_00_000 * 100;
+
 function toDraft(row: Record<string, unknown>, now: string): DraftEntry | null {
   const amount = Number(row.amount);
   const title = String(row.title ?? '').trim();
   if (!isFinite(amount) || amount <= 0 || !title) return null;
 
-  const KNOWN = ['income', 'cash_in', 'lent', 'borrowed'] as const;
-  const type = (KNOWN as readonly string[]).includes(String(row.type))
-    ? (row.type as (typeof KNOWN)[number])
+  const amountPaise = toPaise(amount);
+  // paise hamesha poora integer aur sane range me — warna AI ka kachra ledger me na jaye
+  if (!Number.isInteger(amountPaise) || amountPaise <= 0 || amountPaise > MAX_PAISE) return null;
+
+  const type = (KNOWN_TYPES as readonly string[]).includes(String(row.type))
+    ? (row.type as (typeof KNOWN_TYPES)[number])
     : 'expense';
+
+  const category = (KNOWN_CATEGORIES as readonly string[]).includes(String(row.category))
+    ? (row.category as (typeof KNOWN_CATEGORIES)[number])
+    : undefined;
 
   const counterparty = typeof row.counterparty === 'string' && row.counterparty.trim()
     ? row.counterparty.trim().slice(0, 24)
@@ -96,8 +111,9 @@ function toDraft(row: Record<string, unknown>, now: string): DraftEntry | null {
 
   return {
     title: title.slice(0, 40),
-    amountPaise: toPaise(amount),
+    amountPaise,
     type,
+    category,
     paidWith: type === 'cash_in' ? 'cash' : 'unknown',
     counterparty,
     occurredAt: when.toISOString(),

@@ -159,6 +159,7 @@ export function Sheet({ children, onClose }: { children: ReactNode; onClose(): v
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('sheet-open');   // nav bar chhup jaye — warna sheet ke neeche dikhta hai
 
     // Back dabane pe pehle sheet band ho — screen tab tak wahi rahe
     const off = pushBackHandler(() => { onClose(); return true; });
@@ -166,6 +167,7 @@ export function Sheet({ children, onClose }: { children: ReactNode; onClose(): v
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
+      document.body.classList.remove('sheet-open');
       off();
     };
   }, [onClose]);

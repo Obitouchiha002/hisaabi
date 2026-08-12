@@ -6,7 +6,7 @@
  * andar hi chalta hai.
  */
 
-import type { DraftEntry, DraftWarning, RawEvent } from './types.js';
+import type { DraftEntry, DraftWarning, EntryType, RawEvent } from './types.js';
 import { scrubPII, titleCase } from './normalize.js';
 import { toPaise } from './money.js';
 
@@ -40,6 +40,13 @@ const IGNORE_RE = new RegExp(
 
 /** Kharcha */
 const DEBIT_RE = /\b(debited|debit|paid|payment of|sent|spent|purchase|deducted|withdrawn|dr\b)\b/i;
+
+// Failed/declined transaction — ledger me daalna hi galat hai (paisa gaya hi nahi).
+const FAILED_RE = /\b(failed|declined|unsuccessful|not\s+(?:processed|completed)|couldn'?t be)\b/i;
+// Paisa wapas aaya — kharche ko ghatata hai, income nahi.
+const REFUND_RE = /\b(refund(?:ed)?|reversed|reversal|cashback|money\s*back)\b/i;
+// Apne hi paise ka idhar-udhar — na kharcha na kamai (double-count se bachao).
+const TRANSFER_RE = /\b(added to (?:your )?(?:paytm |amazon |phonepe )?wallet|wallet (?:top-?up|load(?:ed)?)|credit card bill|card bill paid|to your own account|self[- ]?transfer)\b/i;
 /** Aamdani / wapas */
 const CREDIT_RE = /\b(credited|credit|received|refund(?:ed)?|added to|cr\b)\b/i;
 
@@ -72,9 +79,23 @@ export function parseNotification(event: RawEvent, opts: NotificationParseOption
   const value = parseFloat(amountMatch[1].replace(/,/g, ''));
   if (!isFinite(value) || value <= 0) return null;
 
+  // Failed/declined — paisa gaya hi nahi, ledger me daalna galat.
+  if (FAILED_RE.test(raw)) return null;
+
+  const isRefund = REFUND_RE.test(raw);
+  const isTransfer = TRANSFER_RE.test(raw);
   const isCredit = CREDIT_RE.test(raw);
   const isDebit = DEBIT_RE.test(raw);
-  if (!isCredit && !isDebit) return null; // direction hi nahi pata → chhod do
+  if (!isCredit && !isDebit && !isTransfer) return null; // direction hi nahi pata → chhod do
+
+  // refund kharche ko ghatata hai; transfer apne hi paise ka move — dono income/expense nahi.
+  const type: EntryType = isTransfer
+    ? 'transfer'
+    : isRefund
+      ? 'refund'
+      : isCredit && !isDebit
+        ? 'income'
+        : 'expense';
 
   const warnings: DraftWarning[] = [];
   const merchant = extractMerchant(raw);
@@ -93,9 +114,17 @@ export function parseNotification(event: RawEvent, opts: NotificationParseOption
   if (refMatch) confidence += 0.05;
 
   return {
-    title: merchant ? titleCase(merchant) : isCredit ? 'Paisa aaya' : 'Kharcha',
+    title: merchant
+      ? titleCase(merchant)
+      : type === 'refund'
+        ? 'Refund'
+        : type === 'transfer'
+          ? 'Transfer'
+          : type === 'income'
+            ? 'Paisa aaya'
+            : 'Kharcha',
     amountPaise: toPaise(value),
-    type: isCredit && !isDebit ? 'income' : 'expense',
+    type,
     paidWith: 'digital',
     occurredAt: (opts.now ?? new Date(event.receivedAt)).toISOString(),
     source: 'notification',
@@ -103,6 +132,7 @@ export function parseNotification(event: RawEvent, opts: NotificationParseOption
     confidence: Math.min(0.97, Math.round(confidence * 100) / 100),
     warnings,
     rawEventId: event.id,
+    rawEventIds: [event.id],
     ref: refMatch?.[1],
     sourceApp,
     note: scrubPII(raw).slice(0, 160),

@@ -8,6 +8,8 @@ import { Trips } from '@/screens/Trips';
 import { TripDetail } from '@/screens/TripDetail';
 import { History } from '@/screens/History';
 import { Plan } from '@/screens/Plan';
+import { Report } from '@/screens/Report';
+import { NavBar } from '@/components/Nav';
 import type { Profile } from '@/lib/profile';
 import { isDemo } from '@/lib/demo';
 import { hasLock } from '@/lib/lock';
@@ -24,9 +26,11 @@ export default function App() {
   );
 }
 
-function Shell({ screen, children }: { screen: string; children: React.ReactNode }) {
-  return <div className="app" data-screen={screen}>{children}</div>;
+function Shell({ screen, nav, children }: { screen: string; nav?: boolean; children: React.ReactNode }) {
+  return <div className="app" data-screen={screen} data-nav={nav ? 'true' : undefined}>{children}</div>;
 }
+
+const NAV_ROUTES = new Set(['home', 'plan', 'history', 'report']);
 
 const LOCK_OFFERED = 'hisaabi-lock-offered';
 
@@ -94,13 +98,15 @@ function Flow() {
   }
 
   return (
-    <Shell screen={route}>
+    <Shell screen={route} nav={NAV_ROUTES.has(route)}>
       {route === 'review' ? <Review />
         : route === 'trips' ? <Trips />
         : route === 'trip' ? <TripDetail />
         : route === 'history' ? <History />
         : route === 'plan' ? <Plan />
+        : route === 'report' ? <Report />
         : <Home />}
+      {NAV_ROUTES.has(route) && <NavBar />}
     </Shell>
   );
 }

@@ -1,18 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  buildMoneyPlan, formatINR, toPaise, toRupees,
+  buildMoneyPlan, formatINR, formatShort, toPaise, toRupees,
   type BucketId, type Loan, type MoneyPlan, type MoneyProfile, type PlanFlag,
 } from '@engine';
 import { Icon } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { useT } from '@/lib/i18n';
-import { loadMoneyProfile, saveMoneyProfile, blankProfile, monthlyBucketSpend } from '@/lib/moneyProfile';
+import { loadMoneyProfile, saveMoneyProfile, monthlyBucketSpend, planPulse } from '@/lib/moneyProfile';
 
 /**
- * Plan — Hisaabi ka naya dil. Money profile → engine → salary ka bantwara +
- * seedhi salah. Har banda ki situation pe alag.
+ * Plan — Hisaabi ka dil. Ek chat-coach jaisa: coach personal sawal puchhta hai
+ * (bas tap ya slider, kuch type nahi), phir "tumhari condition dekh ke" plan
+ * banata hai. Har banda alag — plan uski situation pe, fixed rules pe nahi.
  */
-
 export function Plan() {
   const t = useT();
   const { entries, setRoute } = useStore();
@@ -21,6 +21,7 @@ export function Plan() {
 
   const plan = useMemo(() => (profile ? buildMoneyPlan(profile) : null), [profile]);
   const spend = useMemo(() => monthlyBucketSpend(entries), [entries]);
+  const pulse = useMemo(() => (plan ? planPulse(plan, entries) : null), [plan, entries]);
 
   function save(p: MoneyProfile) {
     saveMoneyProfile(p);
@@ -29,95 +30,525 @@ export function Plan() {
   }
 
   return (
-    <div className="screen">
+    <div className="screen plan-screen">
       <header className="home-top">
         <button className="icon-btn" onClick={() => setRoute('home')} aria-label={t('Back', 'Peeche')}>{Icon.back}</button>
         <div className="grow" style={{ marginLeft: 4 }}>
-          <div className="greet">{t('Your money plan', 'Tera paisa plan')}</div>
-          <div className="name">{t('Salary, split smartly', 'Salary, samajhdari se baati')}</div>
+          <div className="greet">{t('Your money coach', 'Tera paisa coach')}</div>
+          <div className="name">{t('A plan made for you', 'Sirf tere liye plan')}</div>
         </div>
         {profile && !editing && (
-          <button className="icon-btn" onClick={() => setEditing(true)} aria-label={t('Edit', 'Badlo')}>{Icon.settings}</button>
+          <button className="icon-btn" onClick={() => setEditing(true)} aria-label={t('Redo', 'Dobara')}>{Icon.settings}</button>
         )}
       </header>
 
       {editing || !profile || !plan
-        ? <Setup initial={profile} onSave={save} onCancel={profile ? () => setEditing(false) : undefined} />
-        : <PlanView plan={plan} profile={profile} spend={spend} />}
+        ? <CoachChat initial={profile} onDone={save} onCancel={profile ? () => setEditing(false) : undefined} />
+        : <CoachView plan={plan} profile={profile} spend={spend} pulse={pulse} />}
     </div>
   );
 }
 
-/* ---------- plan view ---------- */
+/* ============================================================
+   CHAT COACH ONBOARDING — sirf tap + slider, koi typing nahi
+   ============================================================ */
+
+type StepId =
+  | 'intro' | 'income' | 'needsMode' | 'needs' | 'needsItems' | 'loanHas' | 'loanKind' | 'loanEmi'
+  | 'dependents' | 'stability' | 'insurance' | 'ef'
+  | 'goalHas' | 'goalPreset' | 'goalTarget' | 'goalMonths';
+
+interface Answers {
+  income: number;        // rupees
+  needsMode: 'total' | 'items';
+  needs: number;         // final fixed-needs total (rupees)
+  loanHas: 'yes' | 'no';
+  loanKind: 'high_interest' | 'low_interest';
+  loanEmi: number;
+  dependents: number;
+  stability: 'stable' | 'irregular';
+  insurance: 'yes' | 'no';
+  ef: number;
+  goalHas: 'yes' | 'no';
+  goalPreset: string;    // emoji+label key
+  goalTarget: number;
+  goalMonths: number;
+}
+
+const GOAL_PRESETS: { key: string; emoji: string; label: [string, string] }[] = [
+  { key: 'phone', emoji: '📱', label: ['New phone', 'Naya phone'] },
+  { key: 'trip', emoji: '✈️', label: ['A trip', 'Ek trip'] },
+  { key: 'bike', emoji: '🏍️', label: ['Bike / vehicle', 'Bike / gaadi'] },
+  { key: 'other', emoji: '🎯', label: ['Something else', 'Aur kuch'] },
+];
+
+function defaultAnswers(p: MoneyProfile | null): Answers {
+  return {
+    income: p ? toRupees(p.incomePaise) : 20000,
+    needsMode: 'total',
+    needs: p ? toRupees(p.fixedNeedsPaise) : 10000,
+    loanHas: p && p.loans.length ? 'yes' : 'no',
+    loanKind: p?.loans[0]?.kind ?? 'high_interest',
+    loanEmi: p?.loans[0] ? toRupees(p.loans[0].emiPaise) : 3000,
+    dependents: p?.dependents ?? 0,
+    stability: p?.incomeStability ?? 'stable',
+    insurance: p?.hasHealthInsurance ? 'yes' : 'no',
+    ef: p ? toRupees(p.emergencyFundPaise) : 0,
+    goalHas: p?.goal ? 'yes' : 'no',
+    goalPreset: 'other',
+    goalTarget: p?.goal ? toRupees(p.goal.targetPaise) : 20000,
+    goalMonths: p?.goal?.deadlineMonths ?? 12,
+  };
+}
+
+function activeSteps(a: Answers): StepId[] {
+  const s: StepId[] = ['intro', 'income', 'needsMode'];
+  s.push(a.needsMode === 'items' ? 'needsItems' : 'needs');
+  s.push('loanHas');
+  if (a.loanHas === 'yes') s.push('loanKind', 'loanEmi');
+  s.push('dependents', 'stability', 'insurance', 'ef', 'goalHas');
+  if (a.goalHas === 'yes') s.push('goalPreset', 'goalTarget', 'goalMonths');
+  return s;
+}
+
+function CoachChat({ initial, onDone, onCancel }: { initial: MoneyProfile | null; onDone(p: MoneyProfile): void; onCancel?(): void }) {
+  const t = useT();
+  const [ans, setAns] = useState<Answers>(() => defaultAnswers(initial));
+  const [idx, setIdx] = useState(0);
+  const [ready, setReady] = useState(false);   // coach type kar chuka? tabhi options aaye
+  const [planning, setPlanning] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const steps = activeSteps(ans);
+  const done = idx >= steps.length;
+
+  // naya sawal → pehle coach type karega, phir options
+  useEffect(() => { setReady(false); }, [idx]);
+
+  // naya sawal / typing / options aane pe neeche scroll
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [idx, planning, ready]);
+
+  // sab jawab ho gaye → planning animation → plan
+  useEffect(() => {
+    if (!done) return;
+    setPlanning(true);
+    const id = setTimeout(() => onDone(toProfile(ans)), 2400);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done]);
+
+  function answer<K extends keyof Answers>(key: K, val: Answers[K]) {
+    setAns((a) => ({ ...a, [key]: val }));
+    setIdx((i) => i + 1);
+  }
+  function advance() { setIdx((i) => i + 1); }
+
+  const current = steps[idx];
+
+  return (
+    <div className="coach">
+      <div className="coach-scroll" ref={scrollRef}>
+        {/* answered transcript */}
+        {steps.slice(0, idx).map((s) => (
+          <div className="coach-turn" key={s}>
+            <Bubble who="coach">{ask(s, ans, t)}</Bubble>
+            {answerLabel(s, ans, t) && <Bubble who="me">{answerLabel(s, ans, t)}</Bubble>}
+          </div>
+        ))}
+
+        {/* current question — typewriter */}
+        {!done && (
+          <div className="coach-turn" key={`cur-${current}`}>
+            <Bubble who="coach" fresh><Typewriter text={ask(current, ans, t)} onDone={() => setReady(true)} /></Bubble>
+          </div>
+        )}
+
+        {/* planning animation */}
+        {planning && <Planning />}
+      </div>
+
+      {/* active control — coach ke type karne ke baad */}
+      {!done && ready && (
+        <div className="coach-input" key={`ctl-${current}`}>
+          <Control step={current} ans={ans} answer={answer} advance={advance} onCancel={idx === 0 ? onCancel : undefined} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Bubble({ who, fresh, children }: { who: 'coach' | 'me'; fresh?: boolean; children: React.ReactNode }) {
+  return <div className={`bubble b-${who} ${fresh ? 'b-fresh' : ''}`}>{who === 'coach' && <span className="b-face">🦉</span>}<span className="b-text">{children}</span></div>;
+}
+
+function Planning() {
+  const t = useT();
+  const lines = [
+    t('Reading your income…', 'Tumhari kamai dekh raha hu…'),
+    t('Understanding your fixed costs…', 'Zaroori kharche samajh raha hu…'),
+    t('Sizing your safety net…', 'Emergency fund set kar raha hu…'),
+    t('Shaping a plan for you…', 'Tumhare hisaab se plan bana raha hu…'),
+  ];
+  const [n, setN] = useState(1);
+  useEffect(() => {
+    const id = setInterval(() => setN((x) => Math.min(lines.length, x + 1)), 550);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div className="coach-turn">
+      <div className="planning">
+        <div className="plan-orbit"><i /><i /><i /></div>
+        {lines.slice(0, n).map((l, i) => <p key={i} style={{ animationDelay: `${i * 60}ms` }}>{l}</p>)}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- questions ---------- */
+
+function ask(s: StepId, a: Answers, t: (e: string, h: string) => string): string {
+  switch (s) {
+    case 'intro': return t("Hi! I'm your money coach 👋 A few quick taps — no typing — and I'll build a plan just for you.", 'Hi! Main tera paisa-coach 👋 Bas kuch tap — kuch type nahi karna — aur main sirf tere liye plan bana dunga.');
+    case 'income': return t('First — how much comes in every month, in hand?', 'Sabse pehle — mahine me haath me kitna aata hai?');
+    case 'needsMode': return t('Your fixed monthly costs — tell me one total, or break it down?', 'Mahine ke pakke kharche — ek total bata do, ya ek-ek karke?');
+    case 'needs': return t('Roughly how much is fixed every month? Rent, bills, ration, travel.', 'Lagbhag pakka kitna nikal jaata hai? Rent, bill, ration, aana-jaana.');
+    case 'needsItems': return t('Set each one — I\'ll add them up for you.', 'Ek-ek set karo — main khud jod dunga.');
+    case 'loanHas': return t('Any loan or EMI running?', 'Koi loan ya EMI chalti hai?');
+    case 'loanKind': return t('What kind of loan?', 'Kaisa loan hai?');
+    case 'loanEmi': return t('How much is the EMI each month?', 'Har mahine EMI kitni jaati hai?');
+    case 'dependents': return t('How many people depend on you?', 'Tumpe kitne log depend karte hain?');
+    case 'stability': return t('Is your income steady or up-and-down?', 'Kamai pakki hai ya upar-neeche?');
+    case 'insurance': return t('Do you have health insurance?', 'Health insurance hai?');
+    case 'ef': return t('Anything saved for emergencies already?', 'Emergency ke liye abhi kuch jama hai?');
+    case 'goalHas': return t('Any dream you want to save for?', 'Koi sapna jiske liye bachat karni hai?');
+    case 'goalPreset': return t('Nice — what is it for?', 'Badhiya — kiske liye?');
+    case 'goalTarget': return t('Roughly how much will it cost?', 'Lagbhag kitne ka hai?');
+    case 'goalMonths': return t('By when do you want it?', 'Kab tak chahiye?');
+  }
+}
+
+function answerLabel(s: StepId, a: Answers, t: (e: string, h: string) => string): string | null {
+  switch (s) {
+    case 'intro': return null;
+    case 'income': return formatINR(toPaise(a.income));
+    case 'needsMode': return a.needsMode === 'items' ? t('Break it down', 'Ek-ek karke') : t('One total', 'Ek total');
+    case 'needs': return formatINR(toPaise(a.needs));
+    case 'needsItems': return formatINR(toPaise(a.needs));
+    case 'loanHas': return a.loanHas === 'yes' ? t('Yes', 'Haan') : t('No loan', 'Koi nahi');
+    case 'loanKind': return a.loanKind === 'high_interest' ? t('Costly (card/personal)', 'Mehnga (card/personal)') : t('Cheap (home/education)', 'Sasta (home/education)');
+    case 'loanEmi': return formatINR(toPaise(a.loanEmi)) + '/mo';
+    case 'dependents': return a.dependents === 3 ? '3+' : String(a.dependents);
+    case 'stability': return a.stability === 'stable' ? t('Steady', 'Pakki') : t('Up-and-down', 'Upar-neeche');
+    case 'insurance': return a.insurance === 'yes' ? t('Yes', 'Haan') : t('No', 'Nahi');
+    case 'ef': return a.ef > 0 ? formatINR(toPaise(a.ef)) : t('Nothing yet', 'Abhi kuch nahi');
+    case 'goalHas': return a.goalHas === 'yes' ? t('Yes', 'Haan') : t('Not now', 'Abhi nahi');
+    case 'goalPreset': { const g = GOAL_PRESETS.find((x) => x.key === a.goalPreset); return g ? `${g.emoji} ${t(...g.label)}` : null; }
+    case 'goalTarget': return formatINR(toPaise(a.goalTarget));
+    case 'goalMonths': return monthsLabel(a.goalMonths, t);
+  }
+}
+
+function monthsLabel(m: number, t: (e: string, h: string) => string): string {
+  if (m <= 6) return t('6 months', '6 mahine');
+  if (m <= 12) return t('1 year', '1 saal');
+  if (m <= 24) return t('2 years', '2 saal');
+  return t('3 years', '3 saal');
+}
+
+/* ---------- controls (tap / slider) ---------- */
+
+function Control({ step, ans, answer, advance, onCancel }: {
+  step: StepId; ans: Answers;
+  answer<K extends keyof Answers>(k: K, v: Answers[K]): void;
+  advance(): void; onCancel?(): void;
+}) {
+  const t = useT();
+
+  switch (step) {
+    case 'intro':
+      return (
+        <div className="ctl-row">
+          {onCancel && <button className="btn btn-quiet" onClick={onCancel}>{t('Cancel', 'Rehne do')}</button>}
+          <button className="btn btn-primary btn-block" onClick={advance}>{t("Let's go →", 'Chalo shuru →')}</button>
+        </div>
+      );
+
+    case 'income':
+      return <SliderCtl value={ans.income} min={0} max={200000} step={1000} onNext={(v) => answer('income', v)} okLabel={t('Next →', 'Aage →')} disabled={(v) => v <= 0} />;
+    case 'needsMode':
+      return <Chips options={[[t('💯 Just a total', '💯 Ek total'), 'total'], [t('🧾 Break it down', '🧾 Ek-ek karke'), 'items']]} onPick={(v) => answer('needsMode', v as 'total' | 'items')} />;
+    case 'needs':
+      return <SliderCtl value={ans.needs} min={0} max={Math.max(2000, ans.income)} step={500} onNext={(v) => answer('needs', v)} okLabel={t('Next →', 'Aage →')} />;
+    case 'needsItems':
+      return <ItemizedNeeds max={Math.max(2000, ans.income)} onNext={(total) => answer('needs', total)} okLabel={t('Next →', 'Aage →')} />;
+    case 'loanEmi':
+      return <SliderCtl value={ans.loanEmi} min={0} max={50000} step={500} onNext={(v) => answer('loanEmi', v)} okLabel={t('Next →', 'Aage →')} />;
+    case 'ef':
+      return <SliderCtl value={ans.ef} min={0} max={200000} step={1000} onNext={(v) => answer('ef', v)} okLabel={t('Next →', 'Aage →')} />;
+    case 'goalTarget':
+      return <SliderCtl value={ans.goalTarget} min={1000} max={500000} step={1000} onNext={(v) => answer('goalTarget', v)} okLabel={t('Next →', 'Aage →')} />;
+
+    case 'loanHas':
+      return <Chips options={[[t('No loan', 'Koi loan nahi'), 'no'], [t('Yes, I have one', 'Haan, hai'), 'yes']]} onPick={(v) => answer('loanHas', v as 'yes' | 'no')} />;
+    case 'loanKind':
+      return <Chips options={[[t('💳 Card / personal', '💳 Card / personal'), 'high_interest'], [t('🏠 Home / education', '🏠 Home / education'), 'low_interest']]} onPick={(v) => answer('loanKind', v as 'high_interest' | 'low_interest')} />;
+    case 'dependents':
+      return <Chips wrap options={[['0', '0'], ['1', '1'], ['2', '2'], ['3+', '3']]} onPick={(v) => answer('dependents', Number(v))} />;
+    case 'stability':
+      return <Chips options={[[t('💼 Steady salary', '💼 Pakki salary'), 'stable'], [t('🔀 Up-and-down', '🔀 Upar-neeche'), 'irregular']]} onPick={(v) => answer('stability', v as 'stable' | 'irregular')} />;
+    case 'insurance':
+      return <Chips options={[[t('✅ Yes', '✅ Haan'), 'yes'], [t('❌ No', '❌ Nahi'), 'no']]} onPick={(v) => answer('insurance', v as 'yes' | 'no')} />;
+    case 'goalHas':
+      return <Chips options={[[t('Not now', 'Abhi nahi'), 'no'], [t('Yes, a dream ✨', 'Haan, ek sapna ✨'), 'yes']]} onPick={(v) => answer('goalHas', v as 'yes' | 'no')} />;
+    case 'goalPreset':
+      return <Chips wrap options={GOAL_PRESETS.map((g) => [`${g.emoji} ${t(...g.label)}`, g.key] as [string, string])} onPick={(v) => answer('goalPreset', v)} />;
+    case 'goalMonths':
+      return <Chips wrap options={[[t('6 months', '6 mahine'), '6'], [t('1 year', '1 saal'), '12'], [t('2 years', '2 saal'), '24'], [t('3 years', '3 saal'), '36']]} onPick={(v) => answer('goalMonths', Number(v))} />;
+  }
+}
+
+function Chips({ options, onPick, wrap }: { options: [string, string][]; onPick(v: string): void; wrap?: boolean }) {
+  return (
+    <div className={`chips ${wrap ? 'chips-wrap' : ''}`}>
+      {options.map(([label, val]) => (
+        <button key={val} className="chip" onClick={() => onPick(val)}>{label}</button>
+      ))}
+    </div>
+  );
+}
+
+function SliderCtl({ value, min, max, step, onNext, okLabel, disabled }: {
+  value: number; min: number; max: number; step: number;
+  onNext(v: number): void; okLabel: string; disabled?(v: number): boolean;
+}) {
+  const [v, setV] = useState(value);
+  const blocked = disabled ? disabled(v) : false;
+  const pct = ((v - min) / Math.max(1, max - min)) * 100;
+  return (
+    <div className="slider-ctl">
+      <div className="slider-val num">{formatINR(toPaise(v))}</div>
+      <div className="slider-wrap">
+        <button className="step-b" onClick={() => setV(Math.max(min, v - step))} aria-label="−">−</button>
+        <input
+          className="slider" type="range" min={min} max={max} step={step} value={v}
+          style={{ ['--pct' as string]: `${pct}%` }}
+          onChange={(e) => setV(Number(e.target.value))}
+        />
+        <button className="step-b" onClick={() => setV(Math.min(max, v + step))} aria-label="+">+</button>
+      </div>
+      <button className="btn btn-primary btn-block" disabled={blocked} onClick={() => onNext(v)}>{okLabel}</button>
+    </div>
+  );
+}
+
+function ItemizedNeeds({ max, onNext, okLabel }: { max: number; onNext(total: number): void; okLabel: string }) {
+  const t = useT();
+  const rows: { key: string; emoji: string; label: [string, string]; init: number }[] = [
+    { key: 'rent', emoji: '🏠', label: ['Rent / home', 'Ghar / rent'], init: 5000 },
+    { key: 'bills', emoji: '📱', label: ['Bills / recharge', 'Bill / recharge'], init: 1000 },
+    { key: 'ration', emoji: '🛒', label: ['Ration / grocery', 'Ration / grocery'], init: 3000 },
+    { key: 'travel', emoji: '🚌', label: ['Travel', 'Aana-jaana'], init: 1000 },
+    { key: 'other', emoji: '➕', label: ['Other', 'Aur kuch'], init: 0 },
+  ];
+  const [vals, setVals] = useState<number[]>(rows.map((r) => Math.min(r.init, max)));
+  const total = vals.reduce((s, v) => s + v, 0);
+  const rowMax = Math.max(2000, max);
+  return (
+    <div className="items-ctl">
+      <div className="items-total"><span className="it-k">{t('Total fixed', 'Kul pakka')}</span><span className="num">{formatINR(toPaise(total))}</span></div>
+      <div className="items-rows">
+        {rows.map((r, i) => (
+          <div className="item-row" key={r.key}>
+            <div className="ir-top">
+              <span className="ir-label">{r.emoji} {t(...r.label)}</span>
+              <span className="ir-val num">{formatINR(toPaise(vals[i]))}</span>
+            </div>
+            <input
+              className="slider slim" type="range" min={0} max={rowMax} step={500} value={vals[i]}
+              style={{ ['--pct' as string]: `${(vals[i] / rowMax) * 100}%` }}
+              onChange={(e) => setVals((vs) => vs.map((v, j) => (j === i ? Number(e.target.value) : v)))}
+            />
+          </div>
+        ))}
+      </div>
+      <button className="btn btn-primary btn-block" onClick={() => onNext(total)}>{okLabel}</button>
+    </div>
+  );
+}
+
+/** Coach ka text ek-ek akshar type hoke aata hai. */
+function Typewriter({ text, onDone }: { text: string; onDone?(): void }) {
+  const [n, setN] = useState(0);
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
+  useEffect(() => {
+    setN(0);
+    let i = 0;
+    const id = setInterval(() => {
+      i += 1;
+      setN(i);
+      if (i >= text.length) { clearInterval(id); doneRef.current?.(); }
+    }, 16);
+    return () => clearInterval(id);
+  }, [text]);
+  return <>{text.slice(0, n)}{n < text.length && <span className="tw-caret" />}</>;
+}
+
+function toProfile(a: Answers): MoneyProfile {
+  const preset = GOAL_PRESETS.find((g) => g.key === a.goalPreset);
+  const loans: Loan[] = a.loanHas === 'yes' && a.loanEmi > 0
+    ? [{ name: 'Loan', emiPaise: toPaise(a.loanEmi), kind: a.loanKind }]
+    : [];
+  return {
+    incomePaise: toPaise(a.income),
+    fixedNeedsPaise: toPaise(a.needs),
+    loans,
+    dependents: a.dependents,
+    incomeStability: a.stability,
+    hasHealthInsurance: a.insurance === 'yes',
+    emergencyFundPaise: toPaise(a.ef),
+    goal: a.goalHas === 'yes' && a.goalTarget > 0
+      ? { name: preset ? preset.label[0] : undefined, targetPaise: toPaise(a.goalTarget), savedPaise: 0, deadlineMonths: a.goalMonths }
+      : undefined,
+  };
+}
+
+/* ============================================================
+   COACH PLAN VIEW — samjha-samjha ke, tumhari condition pe
+   ============================================================ */
 
 const BUCKET_LABEL: Record<BucketId, [string, string]> = {
   needs: ['Needs', 'Zaroori'],
-  debt: ['Loan', 'Loan'],
+  debt: ['Loan payoff', 'Loan chukana'],
   emergency: ['Emergency fund', 'Emergency fund'],
-  savings: ['Savings & goal', 'Bachat & goal'],
+  savings: ['Invest / goal', 'Invest / goal'],
   fun: ['Fun', 'Masti'],
   buffer: ['Buffer', 'Buffer'],
 };
-const BUCKET_EMOJI: Record<BucketId, string> = {
-  needs: '🏠', debt: '💳', emergency: '🛟', savings: '📈', fun: '🎉', buffer: '🧰',
-};
+const BUCKET_EMOJI: Record<BucketId, string> = { needs: '🏠', debt: '💳', emergency: '🛟', savings: '📈', fun: '🎉', buffer: '🧰' };
 
-const FLAG_TEXT: Record<PlanFlag, [string, string]> = {
-  income_below_needs: ["Your income doesn't cover fixed costs yet. Cut needs or grow income first.", 'Kamai abhi fixed kharche bhi cover nahi karti. Pehle needs ghatao ya income badhao.'],
-  high_interest_debt: ['Clear the high-interest loan first — before saving or investing.', 'Pehle mehnga loan khatam karo — bachat/invest baad me.'],
-  no_health_insurance: ['No health cover with dependents is a big risk — sort insurance first.', 'Dependents hain aur health cover nahi — bada risk. Pehle insurance.'],
-  building_emergency: ['Building your emergency fund first — the goal starts after that.', 'Pehle emergency fund ban raha hai — goal uske baad shuru hoga.'],
-  goal_unrealistic: ["This goal won't hit its deadline on this income — extend it or aim lower.", 'Ye goal is salary pe deadline pe nahi milega — deadline badhao ya goal chhota karo.'],
-  goal_on_track: ['Your goal is on track. Keep going ✅', 'Goal theek chal raha hai. Aise hi chalte raho ✅'],
-  golden: ['Low fixed costs, no debt — a great spot to save & invest aggressively.', 'Kam kharche, koi loan nahi — aggressively bachat aur invest ka mauka.'],
-  tight_fun: ['Your fun budget is very tight — the plan is aggressive right now.', 'Fun bahut kam hai — plan abhi aggressive hai.'],
-};
-
-function PlanView({ plan, profile, spend }: { plan: MoneyPlan; profile: MoneyProfile; spend: { needs: number; fun: number } }) {
+function CoachView({ plan, profile, spend, pulse }: {
+  plan: MoneyPlan; profile: MoneyProfile;
+  spend: { needs: number; fun: number };
+  pulse: ReturnType<typeof planPulse> | null;
+}) {
   const t = useT();
   const income = plan.incomePaise;
   const statusTone = plan.status === 'red' ? 'bad' : plan.status === 'tight' ? 'warn' : 'good';
 
+  // invest bucket locked? (EF ban raha ya mehnga loan) — dikhao taaki user samjhe
+  const hasSavings = plan.buckets.some((b) => b.id === 'savings');
+  const investLocked = !hasSavings && (plan.flags.includes('building_emergency') || plan.flags.includes('high_interest_debt'));
+
+  // overspend shift (fun)
+  const funAlloc = plan.buckets.find((b) => b.id === 'fun')?.allocatedPaise ?? 0;
+  const overFun = Math.max(0, spend.fun - funAlloc);
+  const nextMonthFun = Math.max(plan.funFloorPaise, funAlloc - overFun);
+
   return (
-    <>
-      {/* verdict */}
-      <div className={`plan-verdict tone-${statusTone}`}>
-        <div className="pv-status">
-          {plan.status === 'healthy' ? t('On track', 'Sahi raaste pe') : plan.status === 'tight' ? t('A bit tight', 'Thoda tight') : t('Needs attention', 'Dhyan chahiye')}
+    <div className="coachview">
+      {/* coach reads your situation */}
+      <div className={`cv-intro tone-${statusTone}`}>
+        <span className="cv-face">🦉</span>
+        <p>{readSituation(plan, t)}</p>
+      </div>
+
+      {/* verdict lines */}
+      {plan.flags.length > 0 && (
+        <div className="cv-verdict">
+          {plan.flags.filter((f) => FLAG_TEXT[f]).map((f) => (
+            <p key={f}><span className="dot" />{t(FLAG_TEXT[f][0], FLAG_TEXT[f][1])}</p>
+          ))}
         </div>
-        {plan.flags.map((f) => <p key={f}>{t(FLAG_TEXT[f][0], FLAG_TEXT[f][1])}</p>)}
-      </div>
+      )}
 
-      {/* salary split bar */}
-      <div className="split-bar" aria-hidden="true">
-        {plan.buckets.map((b) => (
-          <i key={b.id} className={`seg-${b.id}`} style={{ width: `${(b.allocatedPaise / Math.max(1, income)) * 100}%` }} />
-        ))}
+      {/* salary graph — donut */}
+      <div className="salary-graph">
+        <Donut buckets={plan.buckets} income={income} />
+        <div className="sg-legend">
+          {plan.buckets.map((b) => (
+            <span className="sgl" key={b.id}>
+              <i className={`sgl-dot seg-${b.id}`} />
+              <span className="sgl-name">{t(...BUCKET_LABEL[b.id])}</span>
+              <b className="num">{Math.round((b.allocatedPaise / Math.max(1, income)) * 100)}%</b>
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="split-legend">{t(`${formatINR(income)} / month, split:`, `${formatINR(income)} / mahina, aise baата:`)}</div>
+      <div className="split-legend">{t(`${formatINR(income)} a month, split like this:`, `${formatINR(income)} mahina — aise baata:`)}</div>
 
-      {/* buckets */}
-      <div className="bucket-list">
-        {plan.buckets.map((b) => {
+      {/* buckets with WHY */}
+      <div className="cv-buckets">
+        {plan.buckets.map((b, i) => {
           const used = b.id === 'needs' ? spend.needs : b.id === 'fun' ? spend.fun : null;
-          const overspent = used !== null && used > b.allocatedPaise;
+          const over = used !== null && used > b.allocatedPaise;
           return (
-            <div className="bucket" key={b.id}>
-              <span className={`b-dot seg-${b.id}`} />
-              <span className="grow">
-                <span className="b-name">{BUCKET_EMOJI[b.id]} {t(...BUCKET_LABEL[b.id])}</span>
+            <div className="cvb" key={b.id} style={{ animationDelay: `${i * 70}ms` }}>
+              <span className={`cvb-dot seg-${b.id}`} />
+              <div className="grow">
+                <div className="cvb-top">
+                  <span className="cvb-name">{BUCKET_EMOJI[b.id]} {t(...BUCKET_LABEL[b.id])}</span>
+                  <span className="cvb-amt num">{formatINR(b.allocatedPaise)}</span>
+                </div>
+                <p className="cvb-why">{t(...bucketWhy(b.id, plan, profile))}</p>
                 {used !== null && (
-                  <span className="b-sub" data-tone={overspent ? 'bad' : undefined}>
-                    {t(`${formatINR(used)} spent of ${formatINR(b.allocatedPaise)}`, `${formatINR(used)} kharch / ${formatINR(b.allocatedPaise)}`)}
-                    {overspent ? t(' · over!', ' · zyada!') : ''}
-                  </span>
+                  <div className="cvb-track" data-tone={over ? 'bad' : undefined}>
+                    <div className="cvb-fill" style={{ width: `${Math.min(100, (used / Math.max(1, b.allocatedPaise)) * 100)}%` }} />
+                    <span>{t(`${formatINR(used)} spent of ${formatINR(b.allocatedPaise)}`, `${formatINR(used)} kharch / ${formatINR(b.allocatedPaise)}`)}{over ? t(' · over!', ' · zyada!') : ''}</span>
+                  </div>
                 )}
-              </span>
-              <span className="b-amt num">{formatINR(b.allocatedPaise)}</span>
+              </div>
             </div>
           );
         })}
+
+        {/* locked invest row */}
+        {investLocked && (
+          <div className="cvb cvb-locked" style={{ animationDelay: `${plan.buckets.length * 70}ms` }}>
+            <span className="cvb-dot seg-savings" />
+            <div className="grow">
+              <div className="cvb-top">
+                <span className="cvb-name">📈 {t('Invest / goal', 'Invest / goal')}</span>
+                <span className="cvb-amt">🔒</span>
+              </div>
+              <p className="cvb-why">
+                {plan.flags.includes('high_interest_debt')
+                  ? t('Unlocks after the costly loan is cleared.', 'Mehnga loan khatam hote hi khulega.')
+                  : t('Unlocks once your emergency fund is full.', 'Emergency fund poora hote hi khulega.')}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* aaj ka rule */}
+      {pulse && funAlloc > 0 && (
+        <div className="cv-rule">
+          <span className="cvr-ico">🎯</span>
+          <div className="grow">
+            <b>{overFun > 0
+              ? t('Fun budget is over for this month', 'Is mahine masti-budget khatam')
+              : t(`Today you can spend ${formatINR(pulse.safePerDayPaise)} on fun`, `Aaj masti pe ${formatINR(pulse.safePerDayPaise)} tak theek`)}</b>
+            <i>{overFun > 0
+              ? t('Hold off till next month so the goal stays on track.', 'Agle mahine tak ruk jao — goal patri pe rahe.')
+              : t(`${formatINR(pulse.funLeftPaise)} left for ${pulse.daysLeft} days`, `${formatINR(pulse.funLeftPaise)} bacha ${pulse.daysLeft} din ke liye`)}</i>
+          </div>
+        </div>
+      )}
+
+      {/* overspend → plan shift (hard rule + reminder) */}
+      {overFun > 0 && (
+        <div className="cv-shift">
+          <span className="cvs-ico">⚠️</span>
+          <div className="grow">
+            <b>{t(`You went ${formatINR(overFun)} over on fun`, `Masti me ${formatINR(overFun)} zyada ho gaya`)}</b>
+            <p>{t(`New rule: fun stops for now. Next month I'll cap fun at ${formatINR(nextMonthFun)} so your goal doesn't slip. I'll remind you.`, `Naya niyam: abhi masti band. Agle mahine main masti ${formatINR(nextMonthFun)} pe rok dunga taaki goal na tootre. Yaad bhi dila dunga.`)}</p>
+          </div>
+        </div>
+      )}
 
       {/* emergency fund */}
       <div className="plan-card">
@@ -128,10 +559,10 @@ function PlanView({ plan, profile, spend }: { plan: MoneyPlan; profile: MoneyPro
         <div className="bar"><i style={{ width: `${Math.min(100, (plan.emergencyFundPaise / Math.max(1, plan.emergencyTargetPaise)) * 100)}%` }} /></div>
         <p className="pc-note">
           {plan.emergencyFundPaise >= plan.emergencyTargetPaise
-            ? t('Fully funded — great safety net.', 'Poora bhar gaya — badhiya safety.')
+            ? t('Fully funded — a solid safety net. 💪', 'Poora bhar gaya — mazboot safety. 💪')
             : plan.emergencyMonthsToFull
-              ? t(`At this rate, full in ~${plan.emergencyMonthsToFull} months.`, `Is rate pe ~${plan.emergencyMonthsToFull} mahine me full.`)
-              : t('Add a little each month.', 'Har mahine thoda daalo.')}
+              ? t(`At this pace, full in about ${plan.emergencyMonthsToFull} months.`, `Is rate pe ~${plan.emergencyMonthsToFull} mahine me full.`)
+              : t('Add a little every month.', 'Har mahine thoda daalo.')}
         </p>
       </div>
 
@@ -139,7 +570,7 @@ function PlanView({ plan, profile, spend }: { plan: MoneyPlan; profile: MoneyPro
       {profile.goal && plan.goalMonthlyNeededPaise > 0 && (
         <div className="plan-card">
           <div className="pc-top">
-            <span className="pc-k">🎯 {profile.goal.name || t('Savings goal', 'Bachat goal')}</span>
+            <span className="pc-k">🎯 {profile.goal.name || t('Your goal', 'Tumhara goal')}</span>
             <span className="num">{formatINR(profile.goal.savedPaise)} / {formatINR(profile.goal.targetPaise)}</span>
           </div>
           <div className="bar"><i style={{ width: `${Math.min(100, (profile.goal.savedPaise / Math.max(1, profile.goal.targetPaise)) * 100)}%` }} /></div>
@@ -147,149 +578,101 @@ function PlanView({ plan, profile, spend }: { plan: MoneyPlan; profile: MoneyPro
             {plan.goalMonthlyPlannedPaise <= 0
               ? t('Starts once your emergency fund / loan is handled.', 'Emergency fund / loan nipatne ke baad shuru hoga.')
               : plan.goalRealisticMonths && plan.goalRealisticMonths > profile.goal.deadlineMonths
-                ? t(`Need ${formatINR(plan.goalMonthlyNeededPaise)}/mo but only ${formatINR(plan.goalMonthlyPlannedPaise)} fits — realistically ~${plan.goalRealisticMonths} months.`, `Chahiye ${formatINR(plan.goalMonthlyNeededPaise)}/mahina, par sirf ${formatINR(plan.goalMonthlyPlannedPaise)} fit hota — sach me ~${plan.goalRealisticMonths} mahine.`)
-                : t(`Putting ${formatINR(plan.goalMonthlyPlannedPaise)}/month — on track.`, `${formatINR(plan.goalMonthlyPlannedPaise)}/mahina ja raha — on track.`)}
+                ? t(`You wanted it in ${profile.goal.deadlineMonths} months, but ${formatINR(plan.goalMonthlyPlannedPaise)}/mo fits — realistically about ${plan.goalRealisticMonths} months.`, `Tumne ${profile.goal.deadlineMonths} mahine socha tha, par ${formatINR(plan.goalMonthlyPlannedPaise)}/mahina fit hota — sach me ~${plan.goalRealisticMonths} mahine.`)
+                : t(`Putting ${formatINR(plan.goalMonthlyPlannedPaise)} a month — on track. ✅`, `${formatINR(plan.goalMonthlyPlannedPaise)}/mahina ja raha — on track. ✅`)}
           </p>
+
+          {/* daily-save + time-to-reach — specific, general nahi */}
+          <div className="goal-analysis">
+            <div className="ga-cell">
+              <span className="ga-k">{t('Save daily', 'Roz bachao')}</span>
+              <b className="num">{formatINR(Math.ceil(plan.goalMonthlyNeededPaise / 30))}</b>
+              <span className="ga-s">{t(`to hit ${profile.goal.deadlineMonths}-mo target`, `${profile.goal.deadlineMonths}-mah target ke liye`)}</span>
+            </div>
+            <div className="ga-cell">
+              <span className="ga-k">{t('At your rate', 'Is rate pe')}</span>
+              <b className="num">{plan.goalMonthlyPlannedPaise > 0 && plan.goalRealisticMonths ? t(`~${plan.goalRealisticMonths} mo`, `~${plan.goalRealisticMonths} mah`) : '—'}</b>
+              <span className="ga-s">{t('to reach it', 'me poora hoga')}</span>
+            </div>
+          </div>
         </div>
       )}
 
       <p className="plan-foot">{t('This is guidance from simple money rules — not licensed financial advice.', 'Ye seedhe paise-niyam se salah hai — koi licensed financial advice nahi.')}</p>
-    </>
-  );
-}
-
-/* ---------- setup form ---------- */
-
-function Setup({ initial, onSave, onCancel }: { initial: MoneyProfile | null; onSave(p: MoneyProfile): void; onCancel?(): void }) {
-  const t = useT();
-  const start = initial ?? blankProfile();
-  const [income, setIncome] = useState(rupeeStr(start.incomePaise));
-  const [needs, setNeeds] = useState(rupeeStr(start.fixedNeedsPaise));
-  const [loans, setLoans] = useState<Loan[]>(start.loans);
-  const [dependents, setDependents] = useState(start.dependents);
-  const [stability, setStability] = useState(start.incomeStability);
-  const [insurance, setInsurance] = useState(start.hasHealthInsurance);
-  const [ef, setEf] = useState(rupeeStr(start.emergencyFundPaise));
-  const [hasGoal, setHasGoal] = useState(!!start.goal);
-  const [goalName, setGoalName] = useState(start.goal?.name ?? '');
-  const [goalTarget, setGoalTarget] = useState(rupeeStr(start.goal?.targetPaise ?? 0));
-  const [goalSaved, setGoalSaved] = useState(rupeeStr(start.goal?.savedPaise ?? 0));
-  const [goalMonths, setGoalMonths] = useState(String(start.goal?.deadlineMonths || 12));
-
-  function addLoan() { setLoans([...loans, { name: '', emiPaise: 0, kind: 'high_interest' }]); }
-  function setLoan(i: number, patch: Partial<Loan>) { setLoans(loans.map((l, j) => (j === i ? { ...l, ...patch } : l))); }
-
-  function submit() {
-    onSave({
-      incomePaise: toPaise(num(income)),
-      fixedNeedsPaise: toPaise(num(needs)),
-      loans: loans.filter((l) => l.emiPaise > 0),
-      dependents,
-      incomeStability: stability,
-      hasHealthInsurance: insurance,
-      emergencyFundPaise: toPaise(num(ef)),
-      goal: hasGoal && num(goalTarget) > 0
-        ? { name: goalName.trim() || undefined, targetPaise: toPaise(num(goalTarget)), savedPaise: toPaise(num(goalSaved)), deadlineMonths: Math.max(1, num(goalMonths)) }
-        : undefined,
-    });
-  }
-
-  const valid = num(income) > 0;
-
-  return (
-    <div className="plan-setup">
-      <p className="setup-lede">{t('Tell me your real situation once — I\'ll build a plan just for you. Everything stays on this phone.', 'Apni asli situation ek baar bata do — main sirf tere liye plan banaunga. Sab kuch is phone me rehta hai.')}</p>
-
-      <Money k={t('Monthly income (take-home)', 'Mahine ki kamai (haath me)')} v={income} set={setIncome} />
-      <Money k={t('Fixed monthly needs — rent, bills, ration, commute', 'Fixed mahine ke kharche — rent, bill, ration, aana-jaana')} v={needs} set={setNeeds} />
-
-      <div className="setup-block">
-        <div className="sb-head">
-          <span className="k">{t('Loans / EMIs', 'Loan / EMI')}</span>
-          <button className="btn btn-ghost btn-sm" onClick={addLoan}>+ {t('Add', 'Jodo')}</button>
-        </div>
-        {loans.length === 0 && <p className="hint-line">{t('No loan? Skip this.', 'Koi loan nahi? Chhod do.')}</p>}
-        {loans.map((l, i) => (
-          <div className="loan-row" key={i}>
-            <input className="text-field" placeholder={t('Name', 'Naam')} value={l.name} onChange={(e) => setLoan(i, { name: e.target.value })} />
-            <input className="text-field num" inputMode="numeric" placeholder={t('EMI', 'EMI')} value={l.emiPaise ? String(toRupees(l.emiPaise)) : ''}
-                   onChange={(e) => setLoan(i, { emiPaise: toPaise(num(e.target.value)) })} />
-            <div className="seg">
-              <button data-on={l.kind === 'high_interest'} onClick={() => setLoan(i, { kind: 'high_interest' })}>{t('Costly', 'Mehnga')}</button>
-              <button data-on={l.kind === 'low_interest'} onClick={() => setLoan(i, { kind: 'low_interest' })}>{t('Cheap', 'Sasta')}</button>
-            </div>
-            <button className="loan-x" onClick={() => setLoans(loans.filter((_, j) => j !== i))} aria-label={t('Remove', 'Hatao')}>×</button>
-          </div>
-        ))}
-        <p className="hint-line">{t('Costly = credit card / personal loan. Cheap = home / education loan.', 'Mehnga = card / personal loan. Sasta = home / education loan.')}</p>
-      </div>
-
-      <div className="setup-block">
-        <span className="k">{t('People depending on you', 'Tumpe nirbhar log')}</span>
-        <div className="seg">
-          {[0, 1, 2, 3].map((n) => (
-            <button key={n} data-on={dependents === n} onClick={() => setDependents(n)}>{n === 3 ? '3+' : n}</button>
-          ))}
-        </div>
-      </div>
-
-      <div className="setup-block">
-        <span className="k">{t('Income type', 'Kamai ka type')}</span>
-        <div className="seg">
-          <button data-on={stability === 'stable'} onClick={() => setStability('stable')}>{t('Salary (steady)', 'Salary (pakki)')}</button>
-          <button data-on={stability === 'irregular'} onClick={() => setStability('irregular')}>{t('Irregular', 'Upar-neeche')}</button>
-        </div>
-      </div>
-
-      <div className="setup-block">
-        <span className="k">{t('Health insurance?', 'Health insurance hai?')}</span>
-        <div className="seg">
-          <button data-on={insurance} onClick={() => setInsurance(true)}>{t('Yes', 'Haan')}</button>
-          <button data-on={!insurance} onClick={() => setInsurance(false)}>{t('No', 'Nahi')}</button>
-        </div>
-      </div>
-
-      <Money k={t('Emergency fund saved so far', 'Emergency fund abhi kitna')} v={ef} set={setEf} />
-
-      <div className="setup-block">
-        <div className="sb-head">
-          <span className="k">{t('A savings goal?', 'Koi bachat goal?')}</span>
-          <button className={`toggle ${hasGoal ? 'on' : ''}`} onClick={() => setHasGoal(!hasGoal)}><i /></button>
-        </div>
-        {hasGoal && (
-          <div className="goal-fields">
-            <input className="text-field" placeholder={t('e.g. New phone, trip', 'jaise naya phone, trip')} value={goalName} onChange={(e) => setGoalName(e.target.value)} />
-            <div className="field-row">
-              <Money k={t('Target', 'Target')} v={goalTarget} set={setGoalTarget} />
-              <Money k={t('Already saved', 'Ab tak jama')} v={goalSaved} set={setGoalSaved} />
-            </div>
-            <label>
-              <span className="f-k">{t('In how many months?', 'Kitne mahine me?')}</span>
-              <input className="text-field num" inputMode="numeric" value={goalMonths} onChange={(e) => setGoalMonths(e.target.value.replace(/\D/g, ''))} />
-            </label>
-          </div>
-        )}
-      </div>
-
-      <div className="q-foot">
-        <button className="btn btn-primary btn-block" onClick={submit} disabled={!valid}>{t('Build my plan', 'Mera plan banao')}</button>
-        {onCancel && <button className="btn btn-quiet btn-block" onClick={onCancel}>{t('Cancel', 'Rehne do')}</button>}
-      </div>
     </div>
   );
 }
 
-function Money({ k, v, set }: { k: string; v: string; set(s: string): void }) {
+/* ---------- salary donut graph ---------- */
+
+const BUCKET_HEX: Record<BucketId, string> = {
+  needs: '#6b7cff', debt: '#ef4444', emergency: '#35c4e8', savings: '#22c55e', fun: '#a3e635', buffer: '#9ca3af',
+};
+
+function Donut({ buckets, income }: { buckets: MoneyPlan['buckets']; income: number }) {
+  const total = Math.max(1, income);
+  const R = 42;
+  const C = 2 * Math.PI * R;
+  let acc = 0;
   return (
-    <label className="field" style={{ display: 'block' }}>
-      <span className="f-k">{k}</span>
-      <div className="rupee-in">
-        <span>₹</span>
-        <input className="text-field num" inputMode="numeric" value={v} onChange={(e) => set(e.target.value.replace(/[^\d]/g, ''))} placeholder="0" />
-      </div>
-    </label>
+    <svg viewBox="0 0 100 100" className="donut" role="img" aria-hidden="true">
+      <circle cx="50" cy="50" r={R} className="donut-track" fill="none" strokeWidth="13" />
+      {buckets.map((b) => {
+        const len = (b.allocatedPaise / total) * C;
+        const seg = (
+          <circle
+            key={b.id} cx="50" cy="50" r={R} fill="none" stroke={BUCKET_HEX[b.id]} strokeWidth="13"
+            strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-acc} transform="rotate(-90 50 50)"
+            style={{ transition: 'stroke-dasharray .8s var(--ease-out)' }}
+          />
+        );
+        acc += len;
+        return seg;
+      })}
+      <text x="50" y="49" textAnchor="middle" className="donut-big">{formatShort(income)}</text>
+      <text x="50" y="62" textAnchor="middle" className="donut-sub">/mo</text>
+    </svg>
   );
 }
 
-const rupeeStr = (paise: number) => (paise > 0 ? String(toRupees(paise)) : '');
-const num = (s: string) => Number(s.replace(/[^\d]/g, '')) || 0;
+/* ---------- coach copy (deterministic, situation-aware) ---------- */
+
+function readSituation(plan: MoneyPlan, t: (e: string, h: string) => string): string {
+  const inc = formatINR(plan.incomePaise);
+  const fixed = formatINR(plan.mandatoryNeedsPaise);
+  const left = formatINR(Math.max(0, plan.disposablePaise));
+  if (plan.disposablePaise <= 0) {
+    return t(`${inc} comes in, but ${fixed} goes to fixed costs — nothing's left to split. Let's ease the pressure first.`, `${inc} aata hai, par ${fixed} zaroori kharche me chala jaata — baantne ko kuch bachta hi nahi. Pehle bojh halka karte hain.`);
+  }
+  return t(`${inc} comes in. ${fixed} is fixed, so ${left} is really in your hands. Here's how I'd use it 👇`, `${inc} aata hai. ${fixed} zaroori hai, matlab ${left} asli tumhare haath me. Main ise aise lagata 👇`);
+}
+
+function bucketWhy(id: BucketId, plan: MoneyPlan, _p: MoneyProfile): [string, string] {
+  switch (id) {
+    case 'needs':
+      return plan.emiTotalPaise > 0
+        ? [`Rent, bills, ration + ${formatINR(plan.emiTotalPaise)} EMI — the roof over everything.`, `Rent, bill, ration + ${formatINR(plan.emiTotalPaise)} EMI — inke bina mahina nahi chalta.`]
+        : ['Rent, bills, ration — these come first, always.', 'Rent, bill, ration — ye pehle, hamesha.'];
+    case 'debt':
+      return ['Extra toward the costly loan — its interest is eating you.', 'Mehnga loan pehle — uska byaaj tumhe kha raha hai.'];
+    case 'emergency':
+      return [`Your cushion for a job loss or a medical shock — building to ${formatINR(plan.emergencyTargetPaise)}.`, `Naukri chhoot jaye ya medical jhatka — uske liye. ${formatINR(plan.emergencyTargetPaise)} tak le jaana hai.`];
+    case 'savings':
+      return ['Now your money grows — invest and chase the goal.', 'Ab paisa badhega — invest aur goal ke liye.'];
+    case 'fun':
+      return ['Life matters too — guilt-free. Just don\'t cross it.', 'Zindagi bhi zaroori — bina guilt. Bas isse upar mat jao.'];
+    case 'buffer':
+      return ['Leftover slack — a little breathing room.', 'Bacha-khucha — thodi saans lene ki jagah.'];
+  }
+}
+
+const FLAG_TEXT: Record<PlanFlag, [string, string]> = {
+  income_below_needs: ["Your income doesn't cover fixed costs yet — cut needs or grow income first.", 'Kamai abhi fixed kharche bhi cover nahi karti — pehle needs ghatao ya kamai badhao.'],
+  high_interest_debt: ['Clear the costly loan first — before saving or investing.', 'Pehle mehnga loan khatam karo — bachat/invest baad me.'],
+  no_health_insurance: ['No health cover is a real risk — sort insurance soon.', 'Health cover nahi — bada risk. Jaldi insurance karao.'],
+  building_emergency: ['Building your safety net first — the goal starts right after.', 'Pehle safety net ban raha hai — goal uske turant baad.'],
+  goal_unrealistic: ["This goal won't hit its deadline on this income — give it more time.", 'Ye goal is kamai pe time pe nahi milega — thoda aur waqt do.'],
+  goal_on_track: ['Your goal is on track — keep going. ✅', 'Goal patri pe hai — aise hi chalte raho. ✅'],
+  golden: ['Low fixed costs, no debt — a great spot to invest aggressively.', 'Kam kharche, koi loan nahi — invest ka badhiya mauka.'],
+  tight_fun: ['Fun is very tight right now — the plan is aggressive.', 'Masti abhi bahut kam hai — plan thoda sakht hai.'],
+};

@@ -8,7 +8,7 @@
 
 import type { CategoryId, Entry, Paise } from './types.js';
 import { categoryMeta } from './categories.js';
-import { cashBalance, monthRange } from './budget.js';
+import { cashBalance, monthRange, isCounted } from './budget.js';
 
 export interface PlanInput {
   monthlyBudgetPaise: Paise;
@@ -168,7 +168,7 @@ function expensesBetween(entries: Entry[], from: Date, to: Date): Entry[] {
   const f = from.getTime();
   const t = to.getTime();
   return entries.filter((e) => {
-    if (e.status !== 'confirmed' || e.type !== 'expense') return false;
+    if (e.status !== 'confirmed' || e.type !== 'expense' || !isCounted(e)) return false;
     const at = new Date(e.occurredAt).getTime();
     return at >= f && at <= t;
   });

@@ -63,16 +63,26 @@ export function safeToSpend(input: BudgetInput): SafeToSpend {
 export function cashBalance(entries: Entry[]): Paise {
   let balance = 0;
   for (const e of entries) {
-    if (e.status !== 'confirmed') continue;
+    if (e.status !== 'confirmed' || !isCounted(e)) continue;
     const cash = e.paidWith === 'cash';
 
     if (e.type === 'cash_in') balance += e.amountPaise;
     else if (e.type === 'expense' && cash) balance -= e.amountPaise;
     else if (e.type === 'income' && cash) balance += e.amountPaise;
+    else if (e.type === 'refund' && cash) balance += e.amountPaise;   // paisa wapas jeb me
     else if (e.type === 'lent' && cash) balance -= e.amountPaise;
     else if (e.type === 'borrowed' && cash) balance += e.amountPaise;
+    // 'transfer' apne hi account me — cash wallet pe koi asar nahi (digital maanke)
   }
   return balance;
+}
+
+/**
+ * Ye entry ginne layak hai? Sirf 'successful' (ya undefined = successful).
+ * failed / pending / reversed transaction ko total me nahi ginte.
+ */
+export function isCounted(e: { txState?: string }): boolean {
+  return e.txState === undefined || e.txState === 'successful';
 }
 
 /* ---------- lena-dena ---------- */
@@ -126,17 +136,22 @@ export function udhaarSummary(entries: Entry[]): UdhaarSummary {
   };
 }
 
-/** Mahine ka kharcha — cash_in aur income isme nahi jate. */
+/**
+ * Mahine ka kharcha. income/cash_in/transfer/udhaar isme nahi jate.
+ * Refund kharche ko GHATATA hai (paisa wapas aaya). failed/pending bhi nahi ginte.
+ */
 export function spentBetween(entries: Entry[], from: Date, to: Date): Paise {
   const f = from.getTime();
   const t = to.getTime();
   let total = 0;
   for (const e of entries) {
-    if (e.status !== 'confirmed' || e.type !== 'expense') continue;
+    if (e.status !== 'confirmed' || !isCounted(e)) continue;
+    if (e.type !== 'expense' && e.type !== 'refund') continue;
     const at = new Date(e.occurredAt).getTime();
-    if (at >= f && at <= t) total += e.amountPaise;
+    if (at < f || at > t) continue;
+    total += e.type === 'refund' ? -e.amountPaise : e.amountPaise;
   }
-  return total;
+  return Math.max(0, total);
 }
 
 export function monthRange(now: Date = new Date()): { from: Date; to: Date } {

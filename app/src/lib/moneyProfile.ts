@@ -4,7 +4,7 @@
  * buildMoneyPlan isi ko padh kar plan banata hai.
  */
 
-import { bucketForCategory, monthRange, type Entry, type MoneyPlan, type MoneyProfile } from '@engine';
+import { bucketForCategory, isCounted, monthRange, type Entry, type MoneyPlan, type MoneyProfile } from '@engine';
 
 const KEY = 'hisaabi-money';
 const GUARD_KEY = 'hisaabi-guardrail';
@@ -58,12 +58,15 @@ export function monthlyBucketSpend(entries: Entry[], now = new Date()): { needs:
   const { from, to } = monthRange(now);
   const out = { needs: 0, fun: 0, other: 0, total: 0 };
   for (const e of entries) {
-    if (e.status !== 'confirmed' || e.type !== 'expense') continue;
+    if (e.status !== 'confirmed') continue;
+    if (e.type !== 'expense' && e.type !== 'refund') continue;
+    if (isCounted(e) === false) continue; // failed/pending nahi ginte
     const at = new Date(e.occurredAt).getTime();
     if (at < from.getTime() || at > to.getTime()) continue;
     const b = bucketForCategory(e.category ?? 'other');
-    out[b] += e.amountPaise;
-    out.total += e.amountPaise;
+    const delta = e.type === 'refund' ? -e.amountPaise : e.amountPaise; // refund kharcha ghatata hai
+    out[b] = Math.max(0, out[b] + delta);
+    out.total = Math.max(0, out.total + delta);
   }
   return out;
 }

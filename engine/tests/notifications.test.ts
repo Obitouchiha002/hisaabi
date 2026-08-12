@@ -71,6 +71,36 @@ describe('parseNotification', () => {
     const draft = parseNotification(ev('Rs.240 paid to Blinkit. UPI Ref no 401234567890'));
     expect(draft?.ref).toBeTruthy();
   });
+
+  it('failed transaction ledger me nahi jata (null)', () => {
+    expect(parseNotification(ev('Your payment of Rs.500 to Blinkit failed'))).toBeNull();
+    expect(parseNotification(ev('Transaction of Rs.500 was declined'))).toBeNull();
+  });
+
+  it('refund ko refund maanta hai, income nahi', () => {
+    const draft = parseNotification(ev('Rs.200 refund credited for your Amazon order'));
+    expect(draft?.type).toBe('refund');
+  });
+
+  it('cashback bhi refund hai', () => {
+    const draft = parseNotification(ev('You received Rs.50 cashback'));
+    expect(draft?.type).toBe('refund');
+  });
+
+  it('wallet me paisa daala to transfer (na kharcha na kamai)', () => {
+    const draft = parseNotification(ev('Rs.1000 added to your Paytm wallet'));
+    expect(draft?.type).toBe('transfer');
+  });
+
+  it('credit card bill payment transfer hai, kharcha nahi', () => {
+    const draft = parseNotification(ev('Rs.5000 paid towards your credit card bill'));
+    expect(draft?.type).toBe('transfer');
+  });
+
+  it('har draft me rawEventIds hota hai (merge ke liye)', () => {
+    const draft = parseNotification(ev('Rs.240 paid to Blinkit'));
+    expect(draft?.rawEventIds).toEqual(['raw_1']);
+  });
 });
 
 describe('scrubPII', () => {

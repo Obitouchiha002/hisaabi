@@ -43,6 +43,8 @@ export function entrySubtitle(type: EntryType, categoryId: CategoryId): string {
     case 'borrowed': return t('To pay back', 'Dena hai');
     case 'cash_in': return t('Cash withdrawn', 'Cash nikala');
     case 'income': return t('Income', 'Aamdani');
+    case 'refund': return t('Refund', 'Paisa wapas');
+    case 'transfer': return t('Transfer', 'Apna transfer');
     default: return catLabel(categoryId);
   }
 }

@@ -67,6 +67,10 @@ export interface MoneyPlan {
   incomePaise: number;
   buckets: Bucket[];                 // sum hamesha = income
   mandatoryNeedsPaise: number;       // needs + saari EMI
+  fixedNeedsPaise: number;           // sirf rent/bill/ration (EMI ke bina)
+  emiTotalPaise: number;             // saari EMI ka jod
+  disposablePaise: number;           // income − mandatory (jo baantne ko bacha)
+  funFloorPaise: number;             // fun ka minimum (zindagi na ruke)
   emergencyTargetPaise: number;
   emergencyFundPaise: number;
   emergencyMonthsToFull: number | null;  // is rate pe kitne mahine me full
@@ -123,6 +127,7 @@ export function buildMoneyPlan(p: MoneyProfile): MoneyPlan {
 
   // Kamai needs bhi cover nahi karti — sabse bada red flag
   const disposable = income - mandatory;
+  const fixedNeeds = Math.round(p.fixedNeedsPaise);
   if (disposable <= 0) {
     flags.push('income_below_needs');
     if (hasHighDebt) flags.push('high_interest_debt');
@@ -130,7 +135,8 @@ export function buildMoneyPlan(p: MoneyProfile): MoneyPlan {
     // jo bacha (agar bacha) buffer me
     buckets.buffer = Math.max(0, disposable);
     return finish(income, buckets, {
-      mandatory, emTarget, emFund: p.emergencyFundPaise, emRate: 0,
+      mandatory, fixedNeeds, emiTotal, disposable: Math.max(0, disposable), funFloor: 0,
+      emTarget, emFund: p.emergencyFundPaise, emRate: 0,
       goalMonthlyNeeded, goalPlanned: 0, needsPct, flags, status: 'red',
     });
   }
@@ -200,7 +206,8 @@ export function buildMoneyPlan(p: MoneyProfile): MoneyPlan {
   else if (flags.includes('goal_unrealistic') || flags.includes('tight_fun')) status = 'tight';
 
   return finish(income, buckets, {
-    mandatory, emTarget, emFund: p.emergencyFundPaise, emRate,
+    mandatory, fixedNeeds, emiTotal, disposable, funFloor,
+    emTarget, emFund: p.emergencyFundPaise, emRate,
     goalMonthlyNeeded, goalPlanned, needsPct, flags, status, goalRealisticMonths,
   });
 }
@@ -209,7 +216,8 @@ function finish(
   income: number,
   b: Record<BucketId, number>,
   x: {
-    mandatory: number; emTarget: number; emFund: number; emRate: number;
+    mandatory: number; fixedNeeds: number; emiTotal: number; disposable: number; funFloor: number;
+    emTarget: number; emFund: number; emRate: number;
     goalMonthlyNeeded: number; goalPlanned: number; needsPct: number;
     flags: PlanFlag[]; status: PlanStatus; goalRealisticMonths?: number | null;
   },
@@ -225,6 +233,10 @@ function finish(
     incomePaise: income,
     buckets,
     mandatoryNeedsPaise: x.mandatory,
+    fixedNeedsPaise: x.fixedNeeds,
+    emiTotalPaise: x.emiTotal,
+    disposablePaise: x.disposable,
+    funFloorPaise: x.funFloor,
     emergencyTargetPaise: x.emTarget,
     emergencyFundPaise: Math.max(0, x.emFund),
     emergencyMonthsToFull,
