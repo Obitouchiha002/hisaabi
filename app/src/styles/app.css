@@ -2184,3 +2184,20 @@ body.sheet-open .navbar { display: none; }
 .mbox.b-day { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
 .mbox.b-day[data-low] { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .mbox.b-day[data-low] .mbox-v { color: var(--bad); }
+
+/* next-salary countdown strip */
+.salary-strip { font-size: 13px; color: var(--ink-2); padding: 9px 12px; margin-bottom: 12px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line); }
+.salary-strip b { color: var(--ink); font-weight: 700; }
+.salary-strip[data-low] { background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); color: var(--ink); }
+.salary-strip[data-low] b { color: var(--bad); }
+
+/* recurring bills (settings) */
+.bill-list { display: grid; gap: 6px; margin-bottom: 12px; }
+.bill-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--surface-2); }
+.bill-row b { display: block; font-size: 14px; font-weight: 600; }
+.bill-row i { display: block; font-size: 12px; color: var(--ink-3); font-style: normal; }
+.bill-x { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--surface); color: var(--bad); font-size: 18px; flex: none; }
+.bill-add { display: grid; gap: 8px; }
+.bill-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+.bill-cat { width: 42px; height: 42px; border-radius: var(--r-sm); border: 1.5px solid var(--line-strong); background: var(--surface); font-size: 20px; }
+.bill-cat[data-on="true"] { border-color: var(--accent); background: var(--accent-soft); }

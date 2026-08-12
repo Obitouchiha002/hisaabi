@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { formatINR, toPaise } from '@engine';
+import { formatINR, toPaise, type CategoryId } from '@engine';
+import { getBills, addBill, removeBill, type Bill } from '@/lib/recurring';
 import { Sheet } from '@/components/ui';
 import { Lock } from '@/screens/Lock';
 import { useStore } from '@/lib/store';
@@ -195,6 +196,9 @@ export function Settings({ onClose }: { onClose(): void }) {
         </>
       )}
 
+      <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Recurring bills', 'Har mahine wale kharche')}</h2></div>
+      <RecurringBills />
+
       <div className="section-title"><h2 style={{ fontSize: 15 }}>{t('Nightly recap', 'Raat ka hisaab')}</h2></div>
       <div className="options">
         <div className="option" style={{ animation: 'none' }}>
@@ -365,4 +369,59 @@ export function Settings({ onClose }: { onClose(): void }) {
 function hourLabel(h: number, lang: 'en' | 'hi'): string {
   const twelve = h % 12 === 0 ? 12 : h % 12;
   return lang === 'hi' ? `${twelve} baje` : `${twelve} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+/* ---------- recurring bills (rent, EMI, Netflix…) ---------- */
+const BILL_CATS: { id: CategoryId; emoji: string }[] = [
+  { id: 'rent', emoji: '🏠' }, { id: 'bills', emoji: '📱' }, { id: 'education', emoji: '🎓' },
+  { id: 'health', emoji: '🩺' }, { id: 'fun', emoji: '🎬' }, { id: 'other', emoji: '➕' },
+];
+
+function RecurringBills() {
+  const t = useT();
+  const [bills, setBills] = useState<Bill[]>(() => getBills());
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [cat, setCat] = useState<CategoryId>('bills');
+  const [day, setDay] = useState('1');
+
+  const amt = Number(amount) || 0;
+  const dayN = Math.min(28, Math.max(1, Number(day) || 1));
+
+  function add() {
+    if (!name.trim() || amt <= 0) return;
+    addBill({ title: name.trim(), amountPaise: toPaise(amt), category: cat, dayOfMonth: dayN });
+    setBills(getBills());
+    setName(''); setAmount('');
+  }
+  function del(id: string) { removeBill(id); setBills(getBills()); }
+
+  return (
+    <div className="options">
+      {bills.length > 0 && (
+        <div className="bill-list">
+          {bills.map((b) => (
+            <div className="bill-row" key={b.id}>
+              <span className="grow"><b>{b.title}</b><i>{formatINR(b.amountPaise)} · {t('day', 'tareekh')} {b.dayOfMonth}</i></span>
+              <button className="bill-x" onClick={() => del(b.id)} aria-label={t('Remove', 'Hatao')}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="bill-add">
+        <input className="text-field" placeholder={t('Name (Rent, Netflix…)', 'Naam (Rent, Netflix…)')} value={name} maxLength={24} onChange={(e) => setName(e.target.value)} />
+        <div className="field-row">
+          <div className="rupee-in"><span>₹</span><input className="text-field num" inputMode="numeric" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))} /></div>
+          <label style={{ maxWidth: 120 }}><span className="f-k">{t('Day', 'Tareekh')}</span><input className="text-field num" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value.replace(/[^\d]/g, ''))} /></label>
+        </div>
+        <div className="bill-cats">
+          {BILL_CATS.map((c) => (
+            <button key={c.id} className="bill-cat" data-on={cat === c.id} onClick={() => setCat(c.id)}>{c.emoji}</button>
+          ))}
+        </div>
+        <button className="btn btn-primary btn-block btn-sm" onClick={add} disabled={!name.trim() || amt <= 0}>{t('Add bill', 'Bill jodo')}</button>
+      </div>
+      <p className="hint-line">{t('On its day, the app logs it for you — once a month.', 'Us tareekh ko app khud log kar deta hai — mahine me ek baar.')}</p>
+    </div>
+  );
 }

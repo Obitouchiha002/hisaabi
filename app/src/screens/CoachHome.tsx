@@ -8,6 +8,7 @@ import { loadMoneyProfile, planPulse, monthlyBucketSpend } from '@/lib/moneyProf
 import { getBalance, setBalance, type Balance } from '@/lib/balance';
 import { peekGap, greetedToday, markActive, markGreeted, getStreak } from '@/lib/streak';
 import { todayQuote } from '@/lib/quotes';
+import { dueBills, markLogged } from '@/lib/recurring';
 import { AddSheet } from './AddEntry';
 import { Settings } from './Settings';
 
@@ -29,6 +30,7 @@ export function CoachHome() {
   const moneyProfile = useMemo(() => loadMoneyProfile(), []);
   const earning = moneyProfile?.incomePaise ?? 0;
   const spent = budget.spentThisMonthPaise;
+  const daysToSalary = moneyProfile?.salaryDay ? daysUntil(moneyProfile.salaryDay) : null;
   const plan = useMemo(() => (moneyProfile ? buildMoneyPlan(moneyProfile) : null), [moneyProfile]);
   const pulse = useMemo(() => (plan ? planPulse(plan, entries) : null), [plan, entries]);
 
@@ -53,6 +55,24 @@ export function CoachHome() {
   }
 
   useEffect(() => { markActive(); }, []);
+
+  // recurring bills — jo is mahine due ho chuke, khud log kar do (ek baar)
+  useEffect(() => {
+    const due = dueBills();
+    if (!due.length) return;
+    const drafts = due.map((b): DraftEntry => ({
+      title: b.title, amountPaise: b.amountPaise, type: 'expense', paidWith: 'unknown',
+      occurredAt: new Date().toISOString(), source: 'manual', category: b.category, confidence: 1, warnings: [],
+    }));
+    void commitDrafts(drafts);
+    due.forEach((b) => markLogged(b.id));
+    const total = due.reduce((s, b) => s + b.amountPaise, 0);
+    const cur = getBalance();
+    if (cur) setBal(setBalance(Math.max(0, cur.paise - total)));
+    const id = setTimeout(() => push({ role: 'coach', text: t(`📌 Auto-logged ${due.length} recurring ${due.length === 1 ? 'bill' : 'bills'} due this month.`, `📌 ${due.length} har-mahine wale bill is mahine ke khud log kar diye.`), sub: `−${formatINR(total)}` }), 120);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // pehla coach message — greeting (streak ke hisaab se)
   useEffect(() => {
@@ -210,6 +230,18 @@ export function CoachHome() {
         </div>
       )}
 
+      {/* next salary countdown — roz kitna safe */}
+      {daysToSalary !== null && (
+        <div className="salary-strip" data-low={bal && daysToSalary > 0 && bal.paise / daysToSalary < 5000 ? '' : undefined}>
+          📅 {daysToSalary === 0
+            ? t('Salary lands today', 'Aaj salary aayegi')
+            : t(`Next salary in ${daysToSalary} ${daysToSalary === 1 ? 'day' : 'days'}`, `Agli salary ${daysToSalary} din me`)}
+          {bal && daysToSalary > 0 && (
+            <b> · {t(`${formatINR(Math.floor(bal.paise / daysToSalary))}/day safe`, `roz ${formatINR(Math.floor(bal.paise / daysToSalary))} safe`)}</b>
+          )}
+        </div>
+      )}
+
       {/* coach chat — main feature */}
       <div className="chome-chat" ref={scrollRef}>
         <div className="chome-quote">
@@ -340,6 +372,14 @@ function spendAdvice(amountPaise: number, plan: MoneyPlan | null, pulse: ReturnT
     ? t(' — the extra comes out of your savings, so your emergency fund slips back.', ' — extra bachat se jayega, matlab emergency fund peeche khisak jayega.')
     : t(' — the extra comes out of your savings.', ' — extra bachat se jayega.');
   return t(`Careful ⚠️ that's ${f(over)} over this month's fun budget (only ${f(funLeft)} left)${emHit} Try the 48-hour rule: wait 2 days — if you still want it, then buy. Today only ${f(safeDay)} is truly safe.`, `Ruk jao ⚠️ ye is mahine ke masti-budget se ${f(over)} zyada hai (sirf ${f(funLeft)} bacha)${emHit} 48-ghante ka niyam: 2 din ruko — phir bhi mann kare to lo. Aaj sirf ${f(safeDay)} tak safe hai.`);
+}
+
+/** Aaj se salary-din tak kitne din (agle mahine wrap). */
+function daysUntil(salaryDay: number, now = new Date()): number {
+  const today = now.getDate();
+  if (salaryDay >= today) return salaryDay - today;
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return daysInMonth - today + salaryDay;
 }
 
 /* ---------- greeting text (streak mood) ---------- */

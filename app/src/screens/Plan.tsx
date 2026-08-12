@@ -64,12 +64,13 @@ export function Plan() {
    ============================================================ */
 
 type StepId =
-  | 'intro' | 'income' | 'needsMode' | 'needs' | 'needsItems' | 'loanHas' | 'loanKind' | 'loanEmi'
+  | 'intro' | 'income' | 'salaryDay' | 'needsMode' | 'needs' | 'needsItems' | 'loanHas' | 'loanKind' | 'loanEmi'
   | 'dependents' | 'stability' | 'insurance' | 'ef'
   | 'goalHas' | 'goalPreset' | 'goalTarget' | 'goalMonths';
 
 interface Answers {
   income: number;        // rupees
+  salaryDay: number;     // mahine ki kaunsi tareekh (1..28)
   needsMode: 'total' | 'items';
   needs: number;         // final fixed-needs total (rupees)
   loanHas: 'yes' | 'no';
@@ -96,6 +97,7 @@ const GOAL_PRESETS: { key: string; emoji: string; label: [string, string] }[] = 
 function defaultAnswers(p: MoneyProfile | null): Answers {
   return {
     income: p ? toRupees(p.incomePaise) : 20000,
+    salaryDay: p?.salaryDay ?? 1,
     needsMode: 'total',
     needs: p ? toRupees(p.fixedNeedsPaise) : 10000,
     loanHas: p && p.loans.length ? 'yes' : 'no',
@@ -114,7 +116,7 @@ function defaultAnswers(p: MoneyProfile | null): Answers {
 }
 
 function activeSteps(a: Answers): StepId[] {
-  const s: StepId[] = ['intro', 'income', 'needsMode'];
+  const s: StepId[] = ['intro', 'income', 'salaryDay', 'needsMode'];
   s.push(a.needsMode === 'items' ? 'needsItems' : 'needs');
   s.push('loanHas');
   if (a.loanHas === 'yes') s.push('loanKind', 'loanEmi');
@@ -225,6 +227,7 @@ function ask(s: StepId, a: Answers, t: (e: string, h: string) => string): string
   switch (s) {
     case 'intro': return t("Hi! I'm your money coach 👋 A few quick taps — no typing — and I'll build a plan just for you.", 'Hi! Main tera paisa-coach 👋 Bas kuch tap — kuch type nahi karna — aur main sirf tere liye plan bana dunga.');
     case 'income': return t('First — how much comes in every month, in hand?', 'Sabse pehle — mahine me haath me kitna aata hai?');
+    case 'salaryDay': return t('Which day of the month does it land?', 'Mahine ki kaunsi tareekh ko aata hai?');
     case 'needsMode': return t('Your fixed monthly costs — tell me one total, or break it down?', 'Mahine ke pakke kharche — ek total bata do, ya ek-ek karke?');
     case 'needs': return t('Roughly how much is fixed every month? Rent, bills, ration, travel.', 'Lagbhag pakka kitna nikal jaata hai? Rent, bill, ration, aana-jaana.');
     case 'needsItems': return t('Set each one — I\'ll add them up for you.', 'Ek-ek set karo — main khud jod dunga.');
@@ -246,6 +249,7 @@ function answerLabel(s: StepId, a: Answers, t: (e: string, h: string) => string)
   switch (s) {
     case 'intro': return null;
     case 'income': return formatINR(toPaise(a.income));
+    case 'salaryDay': return ordinalDay(a.salaryDay);
     case 'needsMode': return a.needsMode === 'items' ? t('Break it down', 'Ek-ek karke') : t('One total', 'Ek total');
     case 'needs': return formatINR(toPaise(a.needs));
     case 'needsItems': return formatINR(toPaise(a.needs));
@@ -290,6 +294,8 @@ function Control({ step, ans, answer, advance, setPaid, onCancel }: {
 
     case 'income':
       return <SliderCtl value={ans.income} min={0} max={200000} step={1000} onNext={(v) => answer('income', v)} okLabel={t('Next →', 'Aage →')} disabled={(v) => v <= 0} />;
+    case 'salaryDay':
+      return <DayCtl value={ans.salaryDay} onNext={(v) => answer('salaryDay', v)} okLabel={t('Next →', 'Aage →')} />;
     case 'needsMode':
       return <Chips options={[[t('💯 Just a total', '💯 Ek total'), 'total'], [t('🧾 Break it down', '🧾 Ek-ek karke'), 'items']]} onPick={(v) => answer('needsMode', v as 'total' | 'items')} />;
     case 'needs':
@@ -356,6 +362,27 @@ function SliderCtl({ value, min, max, step, onNext, okLabel, disabled }: {
         <button className="step-b" onClick={() => setV(Math.min(max, v + step))} aria-label="+">+</button>
       </div>
       <button className="btn btn-primary btn-block" disabled={blocked} onClick={() => onNext(v)}>{okLabel}</button>
+    </div>
+  );
+}
+
+function ordinalDay(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function DayCtl({ value, onNext, okLabel }: { value: number; onNext(v: number): void; okLabel: string }) {
+  const [v, setV] = useState(value);
+  return (
+    <div className="slider-ctl">
+      <div className="slider-val"><span className="sv-input num" style={{ borderBottom: 'none', width: 'auto' }}>{ordinalDay(v)}</span></div>
+      <div className="slider-wrap">
+        <button className="step-b" onClick={() => setV(Math.max(1, v - 1))} aria-label="−">−</button>
+        <input className="slider" type="range" min={1} max={28} step={1} value={v}
+               style={{ ['--pct' as string]: `${((v - 1) / 27) * 100}%` }} onChange={(e) => setV(Number(e.target.value))} />
+        <button className="step-b" onClick={() => setV(Math.min(28, v + 1))} aria-label="+">+</button>
+      </div>
+      <button className="btn btn-primary btn-block" onClick={() => onNext(v)}>{okLabel}</button>
     </div>
   );
 }
@@ -443,6 +470,7 @@ function toProfile(a: Answers): MoneyProfile {
     incomeStability: a.stability,
     hasHealthInsurance: a.insurance === 'yes',
     emergencyFundPaise: toPaise(a.ef),
+    salaryDay: a.salaryDay,
     goal: a.goalHas === 'yes' && a.goalTarget > 0
       ? { name: preset ? preset.label[0] : undefined, targetPaise: toPaise(a.goalTarget), savedPaise: 0, deadlineMonths: a.goalMonths }
       : undefined,
