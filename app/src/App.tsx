@@ -9,6 +9,7 @@ import { TripDetail } from '@/screens/TripDetail';
 import { History } from '@/screens/History';
 import { Plan } from '@/screens/Plan';
 import { Report } from '@/screens/Report';
+import { Advice } from '@/screens/Advice';
 import { NavBar } from '@/components/Nav';
 import type { Profile } from '@/lib/profile';
 import { isDemo } from '@/lib/demo';
@@ -30,7 +31,7 @@ function Shell({ screen, nav, children }: { screen: string; nav?: boolean; child
   return <div className="app" data-screen={screen} data-nav={nav ? 'true' : undefined}>{children}</div>;
 }
 
-const NAV_ROUTES = new Set(['home', 'plan', 'history', 'report']);
+const NAV_ROUTES = new Set(['home', 'plan', 'advice', 'report', 'history']);
 
 const LOCK_OFFERED = 'hisaabi-lock-offered';
 
@@ -105,6 +106,7 @@ function Flow() {
         : route === 'history' ? <History />
         : route === 'plan' ? <Plan />
         : route === 'report' ? <Report />
+        : route === 'advice' ? <Advice />
         : <CoachHome />}
       {NAV_ROUTES.has(route) && <NavBar />}
     </Shell>

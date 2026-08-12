@@ -2118,3 +2118,18 @@ body.sheet-open .navbar { display: none; }
 /* itemized needs: ho-chuka / hoga toggle */
 .ir-done.seg { margin-top: 8px; padding: 2px; }
 .ir-done.seg button { padding: 7px 8px; font-size: 12.5px; font-weight: 600; }
+
+/* ============================================================
+   ADVICE — personalized "make the most of it" tips
+   ============================================================ */
+.adv-list { display: grid; gap: 10px; }
+.adv-card { display: flex; gap: 12px; align-items: flex-start; padding: 15px 16px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); animation: bubble-in .4s var(--ease-out) both; }
+.adv-card .adv-ico { font-size: 24px; flex: none; line-height: 1.1; }
+.adv-card b { display: block; font-size: 15.5px; letter-spacing: -.01em; }
+.adv-card p { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; margin-top: 4px; }
+.adv-card.tone-bad { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); background: color-mix(in srgb, var(--bad) 8%, var(--surface)); }
+.adv-card.tone-warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); }
+.adv-card.tone-good { border-color: color-mix(in srgb, var(--good) 42%, var(--line)); background: color-mix(in srgb, var(--good) 7%, var(--surface)); }
+.adv-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 40px 20px; }
+.adv-empty .ae-ico { font-size: 44px; }
+.adv-empty p { font-size: 15px; color: var(--ink-2); line-height: 1.5; max-width: 300px; }
