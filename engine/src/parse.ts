@@ -11,7 +11,7 @@ import { cleanTitle, normalize, splitSegments, titleCase } from './normalize.js'
 import { toPaise } from './money.js';
 import { extractWhen, resolveWhen, stripWhen, type WhenHit } from './when.js';
 
-const INCOME_RE = /\b(mila|mili|milay|aaya|aayi|salary|tankhwah|income|credited|credit|received|refund)\b/i;
+const INCOME_RE = /\b(mila|mili|mile|milay|aaya|aayi|aaye|salary|tankhwah|income|credited|credit|received|refund)\b/i;
 
 /* ---------- lena-dena ----------
    "Rahul ko 500 diye"   → lent     (paisa gaya, wapas milna hai)

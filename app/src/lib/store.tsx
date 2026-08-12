@@ -60,7 +60,7 @@ interface Store {
   reload(): Promise<void>;
 }
 
-export type Route = 'home' | 'review' | 'trips' | 'trip' | 'history' | 'plan' | 'report' | 'advice';
+export type Route = 'home' | 'review' | 'trips' | 'trip' | 'history' | 'plan' | 'report' | 'advice' | 'book';
 
 const Ctx = createContext<Store | null>(null);
 

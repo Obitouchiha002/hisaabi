@@ -6,8 +6,8 @@ const TABS: { route: Route; emoji: string; label: [string, string] }[] = [
   { route: 'home', emoji: '🏠', label: ['Home', 'Home'] },
   { route: 'plan', emoji: '🎯', label: ['Coach', 'Coach'] },
   { route: 'advice', emoji: '💡', label: ['Advice', 'Salah'] },
+  { route: 'book', emoji: '📒', label: ['Book', 'Book'] },
   { route: 'report', emoji: '📊', label: ['Report', 'Report'] },
-  { route: 'history', emoji: '🧾', label: ['History', 'Hisaab'] },
 ];
 
 export function NavBar() {

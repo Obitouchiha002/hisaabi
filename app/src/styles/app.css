@@ -2133,3 +2133,42 @@ body.sheet-open .navbar { display: none; }
 .adv-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 40px 20px; }
 .adv-empty .ae-ico { font-size: 44px; }
 .adv-empty p { font-size: 15px; color: var(--ink-2); line-height: 1.5; max-width: 300px; }
+
+/* ============================================================
+   PASSBOOK — cash book / journal
+   ============================================================ */
+.pb-totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.pbt { display: flex; flex-direction: column; gap: 3px; padding: 12px 12px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line); }
+.pbt-k { font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
+.pbt .num { font-size: 17px; font-weight: 800; font-family: var(--font-display); }
+.pbt .num.good { color: var(--good); }
+.pbt .num.bad { color: var(--bad); }
+
+.pb-recon { padding: 13px 15px; border-radius: var(--r-md); margin-bottom: 16px; border: 1px solid var(--line); background: var(--surface); }
+.pb-recon.off { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+.pb-recon.ok { border-color: color-mix(in srgb, var(--good) 40%, var(--line)); background: color-mix(in srgb, var(--good) 7%, var(--surface)); }
+.pb-recon p { font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+.pb-recon p b { color: var(--bad); font-family: var(--font-display); }
+.pb-recon .btn { margin-top: 10px; }
+
+.pb-journal { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+.pbj-head, .pbj-row { display: grid; grid-template-columns: 1.5fr .8fr .8fr .9fr; align-items: center; gap: 6px; }
+.pbj-head { padding: 9px 12px; background: var(--surface-2); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); font-weight: 700; }
+.pbj-head span:not(:first-child) { text-align: right; }
+.pbj-row { width: 100%; padding: 10px 12px; border-top: 1px solid var(--line); background: none; text-align: left; cursor: pointer; }
+.pbj-row:active { background: var(--surface-2); }
+.pbj-part { display: flex; gap: 9px; align-items: center; min-width: 0; }
+.pbj-ico { font-size: 18px; flex: none; }
+.pbj-part b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pbj-part i { display: block; font-size: 11px; color: var(--ink-3); font-style: normal; }
+.pbj-row .num { text-align: right; font-size: 13px; font-weight: 600; font-family: var(--font-display); }
+.pbj-row .num.good { color: var(--good); }
+.pbj-row .num.bad { color: var(--bad); }
+.pbj-bal { font-weight: 800 !important; }
+.pbj-bal[data-neg] { color: var(--bad); }
+.pb-see-all { display: block; width: 100%; text-align: center; padding: 12px; margin-top: 12px; color: var(--accent); font-weight: 700; font-size: 13.5px; }
+
+/* daily money quote — home */
+.chome-quote { border-left: 3px solid var(--accent); padding: 6px 0 6px 12px; margin-bottom: 6px; }
+.chome-quote p { font-size: 14px; line-height: 1.5; color: var(--ink); font-family: var(--font-serif); font-style: italic; }
+.chome-quote .cq-author { display: block; font-size: 12px; color: var(--ink-3); font-weight: 600; margin-top: 4px; }

@@ -7,6 +7,7 @@ import { addressWord } from '@/lib/profile';
 import { loadMoneyProfile, planPulse } from '@/lib/moneyProfile';
 import { getBalance, setBalance, type Balance } from '@/lib/balance';
 import { peekGap, greetedToday, markActive, markGreeted, getStreak } from '@/lib/streak';
+import { todayQuote } from '@/lib/quotes';
 import { AddSheet } from './AddEntry';
 import { Settings } from './Settings';
 
@@ -86,13 +87,23 @@ export function CoachHome() {
       const res = await engine.handle(text, entries, { source: 'manual' });
       if (res.intent === 'expense' && res.drafts.length) {
         await commitDrafts(res.drafts);
-        const total = res.drafts.reduce((s: number, d: DraftEntry) => s + (d.type === 'expense' ? d.amountPaise : 0), 0);
+        const inFlow = res.drafts.filter((d) => d.type === 'income' || d.type === 'cash_in' || d.type === 'refund' || d.type === 'borrowed').reduce((s, d) => s + d.amountPaise, 0);
+        const outFlow = res.drafts.filter((d) => d.type === 'expense' || d.type === 'lent').reduce((s, d) => s + d.amountPaise, 0);
         const names = res.drafts.map((d: DraftEntry) => d.title).join(', ');
-        const newBal = applyToBalance(res.drafts);   // jeb se minus/plus
-        push({ role: 'coach', text: t(`Logged ✅ ${names}`, `Likh liya ✅ ${names}`), sub: total > 0 ? formatINR(total) : undefined });
+        const newBal = applyToBalance(res.drafts);   // jeb + aaya − gaya
+
+        if (inFlow > 0 && outFlow === 0) {
+          push({ role: 'coach', text: t(`Nice — +${formatINR(inFlow)} in · ${names}`, `Badhiya — +${formatINR(inFlow)} aaya · ${names}`) });
+        } else {
+          push({ role: 'coach', text: t(`Logged ✅ ${names}`, `Likh liya ✅ ${names}`), sub: outFlow > 0 ? `−${formatINR(outFlow)}` : undefined });
+        }
+        // passbook — har baar running balance
         if (newBal !== null) {
-          if (newBal <= 0) push({ role: 'coach', text: t("😬 That's it — nothing left in hand. Add cash before you spend more.", '😬 Bas — jeb khaali. Aur kharch se pehle cash daalo.') });
-          else if (newBal < LOW_PAISE) push({ role: 'coach', text: t(`⚠️ Only ${formatINR(newBal)} left in hand — go easy now.`, `⚠️ Jeb me sirf ${formatINR(newBal)} bacha — ab sambhal ke.`) });
+          push({ role: 'coach', text: t(`In hand now: ${formatINR(newBal)}`, `Ab jeb me: ${formatINR(newBal)}`) });
+          if (newBal <= 0) push({ role: 'coach', text: t("😬 Nothing left in hand — add cash before spending more.", '😬 Jeb khaali — aur kharch se pehle cash daalo.') });
+          else if (newBal < LOW_PAISE) push({ role: 'coach', text: t(`⚠️ Only ${formatINR(newBal)} left — go easy now.`, `⚠️ Sirf ${formatINR(newBal)} bacha — ab sambhal ke.`) });
+        } else {
+          push({ role: 'coach', text: t('Tip: set your cash in hand (tap 💰 up top) and I\'ll keep a running total like a passbook.', 'Tip: apna cash in hand set karo (upar 💰 tap) — main passbook jaisa running total rakhunga.') });
         }
       } else if (res.intent === 'question') {
         push({ role: 'coach', text: res.answer?.answer ?? t("I didn't get that — try again.", 'Samajh nahi aaya — dobara likho.') });
@@ -112,8 +123,8 @@ export function CoachHome() {
     if (!bal) return null;
     let delta = 0;
     for (const d of drafts) {
-      if (d.type === 'expense') delta -= d.amountPaise;
-      else if (d.type === 'income' || d.type === 'refund' || d.type === 'cash_in') delta += d.amountPaise;
+      if (d.type === 'expense' || d.type === 'lent') delta -= d.amountPaise;         // paisa jeb se gaya
+      else if (d.type === 'income' || d.type === 'refund' || d.type === 'cash_in' || d.type === 'borrowed') delta += d.amountPaise;  // jeb me aaya
     }
     if (delta === 0) return bal.paise;
     const next = Math.max(0, bal.paise + delta);
@@ -123,6 +134,7 @@ export function CoachHome() {
 
   const lowHand = bal !== null && bal.paise < LOW_PAISE;
   const funPct = earning > 0 ? Math.min(100, (spent / earning) * 100) : 0;
+  const quote = useMemo(() => todayQuote(), []);
 
   return (
     <div className="screen chome">
@@ -164,6 +176,10 @@ export function CoachHome() {
 
       {/* coach chat — main feature */}
       <div className="chome-chat" ref={scrollRef}>
+        <div className="chome-quote">
+          <p>“{quote.text}”</p>
+          <span className="cq-author">— {quote.author}</span>
+        </div>
         {msgs.map((m) => (
           <div className={`bubble b-${m.role === 'coach' ? 'coach' : 'me'} b-fresh`} key={m.id}>
             {m.role === 'coach' && <span className="b-face">🦉</span>}
