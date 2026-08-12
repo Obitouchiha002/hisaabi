@@ -40,6 +40,7 @@ export interface MoneyProfile {
   incomeStability: IncomeStability;  // salary (stable) ya freelance/dukaan (irregular)
   hasHealthInsurance: boolean;
   emergencyFundPaise: number;        // abhi emergency fund me kitna
+  salaryDay?: number;                // mahine ki kaunsi tareekh ko salary aati hai (1..28)
   goal?: Goal;
 }
 

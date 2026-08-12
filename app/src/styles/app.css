@@ -2172,3 +2172,15 @@ body.sheet-open .navbar { display: none; }
 .chome-quote { border-left: 3px solid var(--accent); padding: 6px 0 6px 12px; margin-bottom: 6px; }
 .chome-quote p { font-size: 14px; line-height: 1.5; color: var(--ink); font-family: var(--font-serif); font-style: italic; }
 .chome-quote .cq-author { display: block; font-size: 12px; color: var(--ink-3); font-weight: 600; margin-top: 4px; }
+
+/* 3-box envelope — salary boxes */
+.box-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.mbox { display: flex; flex-direction: column; gap: 2px; padding: 11px 11px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); }
+.mbox .mbox-k { font-size: 11px; color: var(--ink-3); font-weight: 600; }
+.mbox .mbox-v { font-size: 16px; font-weight: 800; font-family: var(--font-display); letter-spacing: -.01em; }
+.mbox .mbox-s { font-size: 10px; color: var(--ink-3); }
+.mbox.b-em { background: color-mix(in srgb, #35c4e8 8%, var(--surface)); border-color: color-mix(in srgb, #35c4e8 25%, var(--line)); }
+.mbox.b-fix { background: color-mix(in srgb, #6b7cff 8%, var(--surface)); border-color: color-mix(in srgb, #6b7cff 25%, var(--line)); }
+.mbox.b-day { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+.mbox.b-day[data-low] { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+.mbox.b-day[data-low] .mbox-v { color: var(--bad); }

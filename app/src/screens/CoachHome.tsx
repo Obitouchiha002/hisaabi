@@ -4,7 +4,7 @@ import { Icon, Sheet, useToast } from '@/components/ui';
 import { useStore } from '@/lib/store';
 import { useT } from '@/lib/i18n';
 import { addressWord } from '@/lib/profile';
-import { loadMoneyProfile, planPulse } from '@/lib/moneyProfile';
+import { loadMoneyProfile, planPulse, monthlyBucketSpend } from '@/lib/moneyProfile';
 import { getBalance, setBalance, type Balance } from '@/lib/balance';
 import { peekGap, greetedToday, markActive, markGreeted, getStreak } from '@/lib/streak';
 import { todayQuote } from '@/lib/quotes';
@@ -136,6 +136,21 @@ export function CoachHome() {
   const funPct = earning > 0 ? Math.min(100, (spent / earning) * 100) : 0;
   const quote = useMemo(() => todayQuote(), []);
 
+  // 3-box envelope — salary ka bantwara: emergency / fixed / daily+fun
+  const spendBuckets = useMemo(() => monthlyBucketSpend(entries), [entries]);
+  const boxes = useMemo(() => {
+    if (!plan) return null;
+    const sum = (ids: string[]) => plan.buckets.filter((b) => ids.includes(b.id)).reduce((s, b) => s + b.allocatedPaise, 0);
+    const emergency = sum(['emergency', 'savings', 'debt']);
+    const fixed = plan.buckets.find((b) => b.id === 'needs')?.allocatedPaise ?? 0;
+    const daily = sum(['fun', 'buffer']);
+    return {
+      emergency,
+      fixed, fixedLeft: Math.max(0, fixed - spendBuckets.needs),
+      daily, dailyLeft: Math.max(0, daily - spendBuckets.fun - spendBuckets.other),
+    };
+  }, [plan, spendBuckets]);
+
   return (
     <div className="screen chome">
       {/* header */}
@@ -173,6 +188,27 @@ export function CoachHome() {
         </button>
         {earning > 0 && <div className="pos-bar"><i style={{ width: `${funPct}%` }} data-tone={budget.status === 'over' ? 'bad' : undefined} /></div>}
       </div>
+
+      {/* 3-box envelope — salary ka bantwara */}
+      {boxes && (
+        <div className="box-row">
+          <div className="mbox b-em">
+            <span className="mbox-k">🛟 {t('Emergency', 'Emergency')}</span>
+            <span className="mbox-v num">{formatINR(boxes.emergency)}</span>
+            <span className="mbox-s">{t('saved / mo', 'bachat / mah')}</span>
+          </div>
+          <div className="mbox b-fix">
+            <span className="mbox-k">🏠 {t('Fixed', 'Zaroori')}</span>
+            <span className="mbox-v num">{formatINR(boxes.fixedLeft)}</span>
+            <span className="mbox-s">{t(`of ${formatINR(boxes.fixed)}`, `${formatINR(boxes.fixed)} me se`)}</span>
+          </div>
+          <div className="mbox b-day" data-low={boxes.dailyLeft < LOW_PAISE ? '' : undefined}>
+            <span className="mbox-k">🎉 {t('Daily + fun', 'Rozana')}</span>
+            <span className="mbox-v num">{formatINR(boxes.dailyLeft)}</span>
+            <span className="mbox-s">{t(`of ${formatINR(boxes.daily)}`, `${formatINR(boxes.daily)} me se`)}</span>
+          </div>
+        </div>
+      )}
 
       {/* coach chat — main feature */}
       <div className="chome-chat" ref={scrollRef}>
