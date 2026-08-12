@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildMoneyPlan, formatINR, formatShort, toPaise, toRupees,
-  type BucketId, type Loan, type MoneyPlan, type MoneyProfile, type PlanFlag,
+  type BucketId, type Loan, type MoneyPlan, type MoneyProfile,
 } from '@engine';
 import { Icon } from '@/components/ui';
 import { useStore } from '@/lib/store';
@@ -464,15 +464,6 @@ function CoachView({ plan, profile, spend, pulse }: {
         <p>{readSituation(plan, t)}</p>
       </div>
 
-      {/* verdict lines */}
-      {plan.flags.length > 0 && (
-        <div className="cv-verdict">
-          {plan.flags.filter((f) => FLAG_TEXT[f]).map((f) => (
-            <p key={f}><span className="dot" />{t(FLAG_TEXT[f][0], FLAG_TEXT[f][1])}</p>
-          ))}
-        </div>
-      )}
-
       {/* salary graph — donut */}
       <div className="salary-graph">
         <Donut buckets={plan.buckets} income={income} />
@@ -486,51 +477,43 @@ function CoachView({ plan, profile, spend, pulse }: {
           ))}
         </div>
       </div>
-      <div className="split-legend">{t(`${formatINR(income)} a month, split like this:`, `${formatINR(income)} mahina — aise baata:`)}</div>
+      <div className="split-legend">{t(`${formatINR(income)}/month, split like this:`, `${formatINR(income)}/mahina — aise baata:`)}</div>
 
-      {/* buckets with WHY */}
-      <div className="cv-buckets">
-        {plan.buckets.map((b, i) => {
+      {/* compact split */}
+      <div className="cv-split">
+        {plan.buckets.map((b) => {
           const used = b.id === 'needs' ? spend.needs : b.id === 'fun' ? spend.fun : null;
           const over = used !== null && used > b.allocatedPaise;
           return (
-            <div className="cvb" key={b.id} style={{ animationDelay: `${i * 70}ms` }}>
-              <span className={`cvb-dot seg-${b.id}`} />
-              <div className="grow">
-                <div className="cvb-top">
-                  <span className="cvb-name">{BUCKET_EMOJI[b.id]} {t(...BUCKET_LABEL[b.id])}</span>
-                  <span className="cvb-amt num">{formatINR(b.allocatedPaise)}</span>
-                </div>
-                <p className="cvb-why">{t(...bucketWhy(b.id, plan, profile))}</p>
-                {used !== null && (
-                  <div className="cvb-track" data-tone={over ? 'bad' : undefined}>
-                    <div className="cvb-fill" style={{ width: `${Math.min(100, (used / Math.max(1, b.allocatedPaise)) * 100)}%` }} />
-                    <span>{t(`${formatINR(used)} spent of ${formatINR(b.allocatedPaise)}`, `${formatINR(used)} kharch / ${formatINR(b.allocatedPaise)}`)}{over ? t(' · over!', ' · zyada!') : ''}</span>
-                  </div>
-                )}
-              </div>
+            <div className="csr" key={b.id}>
+              <span className={`csr-dot seg-${b.id}`} />
+              <span className="csr-name">{BUCKET_EMOJI[b.id]} {t(...BUCKET_LABEL[b.id])}</span>
+              {used !== null && <span className="csr-used num" data-tone={over ? 'bad' : undefined}>{formatINR(used)}</span>}
+              <span className="csr-amt num">{formatINR(b.allocatedPaise)}</span>
             </div>
           );
         })}
-
-        {/* locked invest row */}
         {investLocked && (
-          <div className="cvb cvb-locked" style={{ animationDelay: `${plan.buckets.length * 70}ms` }}>
-            <span className="cvb-dot seg-savings" />
-            <div className="grow">
-              <div className="cvb-top">
-                <span className="cvb-name">📈 {t('Invest / goal', 'Invest / goal')}</span>
-                <span className="cvb-amt">🔒</span>
-              </div>
-              <p className="cvb-why">
-                {plan.flags.includes('high_interest_debt')
-                  ? t('Unlocks after the costly loan is cleared.', 'Mehnga loan khatam hote hi khulega.')
-                  : t('Unlocks once your emergency fund is full.', 'Emergency fund poora hote hi khulega.')}
-              </p>
-            </div>
+          <div className="csr csr-lock">
+            <span className="csr-dot seg-savings" />
+            <span className="csr-name">📈 {t('Invest / goal', 'Invest / goal')}</span>
+            <span className="csr-amt">🔒</span>
           </div>
         )}
       </div>
+
+      {/* why — chhupa hua, tap karke dekho */}
+      <details className="cv-why">
+        <summary>{t('Why this split?', 'Ye split kyun?')}</summary>
+        {plan.buckets.map((b) => (
+          <p key={b.id}><b>{BUCKET_EMOJI[b.id]} {t(...BUCKET_LABEL[b.id])}</b> — {t(...bucketWhy(b.id, plan, profile))}</p>
+        ))}
+        {investLocked && (
+          <p><b>📈 {t('Invest / goal', 'Invest / goal')}</b> — {plan.flags.includes('high_interest_debt')
+            ? t('unlocks after the costly loan is cleared.', 'mehnga loan khatam hote hi khulega.')
+            : t('unlocks once your emergency fund is full.', 'emergency fund poora hote hi khulega.')}</p>
+        )}
+      </details>
 
       {/* aaj ka rule */}
       {pulse && funAlloc > 0 && (
@@ -674,13 +657,3 @@ function bucketWhy(id: BucketId, plan: MoneyPlan, _p: MoneyProfile): [string, st
   }
 }
 
-const FLAG_TEXT: Record<PlanFlag, [string, string]> = {
-  income_below_needs: ["Your income doesn't cover fixed costs yet — cut needs or grow income first.", 'Kamai abhi fixed kharche bhi cover nahi karti — pehle needs ghatao ya kamai badhao.'],
-  high_interest_debt: ['Clear the costly loan first — before saving or investing.', 'Pehle mehnga loan khatam karo — bachat/invest baad me.'],
-  no_health_insurance: ['No health cover is a real risk — sort insurance soon.', 'Health cover nahi — bada risk. Jaldi insurance karao.'],
-  building_emergency: ['Building your safety net first — the goal starts right after.', 'Pehle safety net ban raha hai — goal uske turant baad.'],
-  goal_unrealistic: ["This goal won't hit its deadline on this income — give it more time.", 'Ye goal is kamai pe time pe nahi milega — thoda aur waqt do.'],
-  goal_on_track: ['Your goal is on track — keep going. ✅', 'Goal patri pe hai — aise hi chalte raho. ✅'],
-  golden: ['Low fixed costs, no debt — a great spot to invest aggressively.', 'Kam kharche, koi loan nahi — invest ka badhiya mauka.'],
-  tight_fun: ['Fun is very tight right now — the plan is aggressive.', 'Masti abhi bahut kam hai — plan thoda sakht hai.'],
-};
