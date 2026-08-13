@@ -14,7 +14,7 @@ import {
   askNudgePermission, cancelNightlySummary, nudgeSettings, nudgeStatus,
   saveNudgeSettings, scheduleNightlySummary, type NudgeStatus,
 } from '@/lib/nudge';
-import { buildBackup, downloadCsv, lastBackupAt, parseBackup, saveBackup } from '@/lib/backup';
+import { buildBackup, downloadCsv, lastBackupAt, parseBackup, restoreLocal, saveBackup } from '@/lib/backup';
 
 const ACCENTS = [
   { id: 'nimbu', color: '#D6FF3D', name: 'Nimbu' },
@@ -103,6 +103,7 @@ export function Settings({ onClose }: { onClose(): void }) {
     if (fresh.length) await db.putEntries(fresh);
     if (data.profile && !profile) await db.setMeta('profile', data.profile);
     for (const tr of data.trips ?? []) await db.putTrip(tr);
+    restoreLocal(data.local);   // money plan, cash, bills, chat, streak wapas
 
     await reload();
     setRestoreMsg(fresh.length

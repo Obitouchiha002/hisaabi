@@ -22,6 +22,36 @@ export interface BackupData {
   profile: Profile | null;
   entries: Entry[];
   trips: Trip[];
+  /** money plan, cash-in-hand, bills, chat, streak, prefs — sab localStorage data */
+  local?: Record<string, string>;
+}
+
+// backup se hatane wale keys (PIN security, ya transient)
+const LOCAL_SKIP = new Set(['hisaabi-lock', 'hisaabi-last-backup', 'hisaabi-lock-offered']);
+
+/** Saara hisaabi-* localStorage — reinstall pe money/bills/chat sab wapas aaye. */
+export function collectLocal(): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith('hisaabi-') || LOCAL_SKIP.has(k)) continue;
+      const v = localStorage.getItem(k);
+      if (v !== null) out[k] = v;
+    }
+  } catch { /* private mode */ }
+  return out;
+}
+
+/** Restore pe wapas likho — sirf wahi jo abhi phone me nahi hai (apna data na mite). */
+export function restoreLocal(local: Record<string, string> | undefined): void {
+  if (!local) return;
+  try {
+    for (const [k, v] of Object.entries(local)) {
+      if (LOCAL_SKIP.has(k)) continue;
+      if (localStorage.getItem(k) === null) localStorage.setItem(k, v);
+    }
+  } catch { /* private mode */ }
 }
 
 export function lastBackupAt(): Date | null {
@@ -50,8 +80,8 @@ export function needsBackup(entryCount: number): boolean {
   return Date.now() - last.getTime() > WEEK_MS;
 }
 
-export function buildBackup(data: Omit<BackupData, 'app' | 'version' | 'savedAt'>): BackupData {
-  return { app: 'hisaabi', version: 1, savedAt: new Date().toISOString(), ...data };
+export function buildBackup(data: Omit<BackupData, 'app' | 'version' | 'savedAt' | 'local'>): BackupData {
+  return { app: 'hisaabi', version: 1, savedAt: new Date().toISOString(), local: collectLocal(), ...data };
 }
 
 /**

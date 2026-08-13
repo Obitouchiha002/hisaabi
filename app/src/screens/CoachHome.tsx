@@ -87,6 +87,8 @@ export function CoachHome() {
     const g = greetText(gapRef.current, getStreak(), profile ? addressWord(profile) : 'dost', t, !greetedToday());
     markGreeted();
     push({ role: 'coach', text: g });
+    const ins = pickProactive();   // ek sabse zaroori proactive baat
+    if (ins) setTimeout(() => push({ role: 'coach', text: ins }), 500);
   }, [profile, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -178,6 +180,18 @@ export function CoachHome() {
   }
   function recentHistory(): string {
     return msgs.slice(-6).map((m) => `${m.role === 'coach' ? 'Coach' : 'User'}: ${m.text}`).join('\n');
+  }
+
+  /** Proactive — coach khud sabse zaroori baat bole (din me ek baar). */
+  function pickProactive(): string | null {
+    const streak = getStreak();
+    if (pulse && pulse.overspentPaise > 0) return t(`⚠️ You're ${formatINR(pulse.overspentPaise)} over your fun budget this month — ease up so the goal stays on track.`, `⚠️ Is mahine masti-budget se ${formatINR(pulse.overspentPaise)} upar ho — thoda dhyan, goal patri pe rahe.`);
+    if (boxes && boxes.daily > 0 && boxes.dailyLeft < 10000) return t(`👛 Only ${formatINR(boxes.dailyLeft)} left in your daily+fun box — go easy till payday.`, `👛 Daily+fun box me sirf ${formatINR(boxes.dailyLeft)} bacha — salary tak sambhal ke.`);
+    if (daysToSalary !== null && daysToSalary > 3 && bal && bal.paise / daysToSalary < 5000) return t(`📅 ${daysToSalary} days till salary and ${formatINR(bal.paise)} in hand — about ${formatINR(Math.floor(bal.paise / daysToSalary))}/day. Tight; plan carefully.`, `📅 Salary ${daysToSalary} din door, jeb me ${formatINR(bal.paise)} — roz ~${formatINR(Math.floor(bal.paise / daysToSalary))}. Tight hai, dhyan se.`);
+    if (streak >= 3) return t(`🔥 ${streak}-day logging streak — you're building a real habit. Keep it up!`, `🔥 ${streak} din se lagataar likh rahe ho — aadat ban rahi hai. Aise hi chalo!`);
+    if (spendBuckets.fun + spendBuckets.other > 20000) return t(`👀 Flexible spend (fun/other) is ${formatINR(spendBuckets.fun + spendBuckets.other)} this month — the easiest place to save.`, `👀 Is mahine flexible kharcha ${formatINR(spendBuckets.fun + spendBuckets.other)} — yahi se bachat sabse aasaan.`);
+    if (moneyProfile?.goal && plan && plan.goalMonthlyPlannedPaise > 0) return t(`🎯 On track for your goal — ${formatINR(plan.goalMonthlyPlannedPaise)} going in this month.`, `🎯 Goal patri pe — is mahine ${formatINR(plan.goalMonthlyPlannedPaise)} ja raha.`);
+    return null;
   }
 
   const lowHand = bal !== null && bal.paise < LOW_PAISE;
