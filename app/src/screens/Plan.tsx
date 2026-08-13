@@ -517,6 +517,8 @@ function CoachView({ plan, profile, spend, pulse }: {
         <p>{readSituation(plan, t)}</p>
       </div>
 
+      <AffordCheck plan={plan} pulse={pulse} />
+
       {/* salary graph — donut */}
       <div className="salary-graph">
         <Donut buckets={plan.buckets} income={income} />
@@ -643,6 +645,31 @@ function CoachView({ plan, profile, spend, pulse }: {
       )}
 
       <p className="plan-foot">{t('This is guidance from simple money rules — not licensed financial advice.', 'Ye seedhe paise-niyam se salah hai — koi licensed financial advice nahi.')}</p>
+    </div>
+  );
+}
+
+/* ---------- can I afford it? — quick planner ---------- */
+function AffordCheck({ plan, pulse }: { plan: MoneyPlan; pulse: ReturnType<typeof planPulse> | null }) {
+  const t = useT();
+  const [amt, setAmt] = useState(0);
+  const funMo = plan.buckets.find((b) => b.id === 'fun')?.allocatedPaise ?? 0;
+  const funLeft = pulse?.funLeftPaise ?? 0;
+  const target = toPaise(amt);
+  let verdict: string | null = null;
+  if (amt > 0) {
+    if (target <= funLeft) verdict = t(`✅ Yes — fits in this month's fun money (${formatINR(funLeft)} left).`, `✅ Haan — is mahine ke masti-paise me aa jayega (${formatINR(funLeft)} bacha).`);
+    else if (funMo > 0) { const m = Math.ceil(target / funMo); verdict = t(`Put ${formatINR(funMo)}/mo aside → ready in about ${m} ${m === 1 ? 'month' : 'months'}.`, `${formatINR(funMo)}/mahina side rakho → ~${m} mahine me ho jayega.`); }
+    else verdict = t('Set a fun budget first.', 'Pehle masti budget set karo.');
+  }
+  return (
+    <div className="afford-card">
+      <span className="ac-k">🛒 {t('Can I afford it?', 'Le sakta hu?')}</span>
+      <label className="rupee-in"><span>₹</span>
+        <input className="text-field num" inputMode="numeric" placeholder={t('how much?', 'kitne ka?')} value={amt || ''}
+               onChange={(e) => setAmt(Number(e.target.value.replace(/[^\d]/g, '')) || 0)} />
+      </label>
+      {verdict && <p className="ac-v">{verdict}</p>}
     </div>
   );
 }

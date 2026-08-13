@@ -2201,3 +2201,9 @@ body.sheet-open .navbar { display: none; }
 .bill-cats { display: flex; gap: 6px; flex-wrap: wrap; }
 .bill-cat { width: 42px; height: 42px; border-radius: var(--r-sm); border: 1.5px solid var(--line-strong); background: var(--surface); font-size: 20px; }
 .bill-cat[data-on="true"] { border-color: var(--accent); background: var(--accent-soft); }
+
+/* can-I-afford card (coach tab) */
+.afford-card { border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); border-radius: var(--r-md); background: linear-gradient(120deg, var(--accent-soft), transparent 70%), var(--surface); padding: 14px 16px; margin-bottom: 16px; }
+.afford-card .ac-k { display: block; font-size: 14px; font-weight: 700; margin-bottom: 9px; }
+.afford-card .rupee-in { max-width: 200px; }
+.afford-card .ac-v { font-size: 13.5px; color: var(--ink); line-height: 1.5; margin-top: 10px; font-weight: 500; }
