@@ -134,6 +134,18 @@ SIRF ek JSON QueryPlan return karo — koi number, koi jawab nahi. Total databas
 Categories: food, grocery, travel, bills, shopping, health, rent, education, fun, other, income.
 Samajh na aaye to {"metric":"sum","filter":{"type":"expense"},"range":{"label":"this_month"}}.`;
 
+const COACH_SYSTEM = `Tum "Hisaabi" ke paisa-coach ho — ek samajhdaar, seedha-saada dost jaisa. User apne paise ke baare me kuch bhi bol ya poochh sakta hai (trip jaana hai, kharcha karu ya nahi, tension hai, kaise bachaun...).
+
+Neeche user ka ASLI hisaab diya hai. Tumhe uske hisaab ke SAATH jawab dena hai — general gyaan nahi, uske apne numbers pe.
+
+Andaaz:
+- Hinglish (Roman script), dost jaisa, CHHOTA — 2 se 4 line. Thoda emoji theek hai.
+- Seedhi baat: "haan" ya "nahi", wajah ke saath, uske numbers use karke.
+- Koi cheez/trip afford kar sakta hai ya nahi — saaf batao. Nahi to ek raasta do (kitne mahine lagenge, kahan se kaate, ya thoda ruko).
+- Kabhi jhoothi tasalli mat do — sach bolo. Par sakht-dil mat bano, supportive raho, ek chhota next-step do.
+- Sirf paise/budget/plan ki baat. Koi aur cheez (medical, legal, personal) poochhe to pyaar se paise pe le aao.
+- Koi heading, koi list, koi JSON nahi — bas seedhi baat-cheet, jaise WhatsApp pe dost.`;
+
 export default async function handler(req, res) {
   if (cors(req, res)) return;
 
@@ -156,12 +168,13 @@ export default async function handler(req, res) {
   }
 
   const body = typeof req.body === 'string' ? safeJson(req.body) : req.body;
-  const task = body?.task === 'ask' ? 'ask' : 'parse';
+  const task = body?.task === 'ask' ? 'ask' : body?.task === 'coach' ? 'coach' : 'parse';
   const text = String(body?.text ?? '').slice(0, MAX_INPUT).trim();
   if (!text) return res.status(400).json({ error: 'empty_text' });
 
-  const system = task === 'ask' ? ASK_SYSTEM : PARSE_SYSTEM;
+  const system = task === 'coach' ? COACH_SYSTEM : task === 'ask' ? ASK_SYSTEM : PARSE_SYSTEM;
   const user = buildUser(task, text, body?.context);
+  const wantsJson = task !== 'coach';   // coach seedha text deta hai
 
   // Pehla provider fail ho (rate limit, downtime, kharab jawab) to agla try karo.
   // Dono keys hain to app kabhi bina AI ke nahi rehti.
@@ -173,7 +186,12 @@ export default async function handler(req, res) {
 
     for (let attempt = 1; attempt <= tries; attempt++) {
       try {
-        const raw = await withTimeout(provider.call(system, user), TIMEOUT_MS);
+        const raw = await withTimeout(provider.call(system, user, wantsJson), TIMEOUT_MS);
+        if (!wantsJson) {
+          const reply = String(raw ?? '').trim();
+          if (!reply) throw new Error('empty output');
+          return res.status(200).json({ provider: provider.name, task, result: reply });
+        }
         const parsed = extractJson(raw);
         if (!parsed) throw new Error('bad output');
 
@@ -207,7 +225,7 @@ function providerChain() {
   return chain;
 }
 
-async function callGroq(system, user) {
+async function callGroq(system, user, wantsJson = true) {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -216,11 +234,11 @@ async function callGroq(system, user) {
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
-      temperature: 0,
-      max_tokens: 700,
-      response_format: { type: 'json_object' },
+      temperature: wantsJson ? 0 : 0.6,
+      max_tokens: wantsJson ? 700 : 320,
+      ...(wantsJson ? { response_format: { type: 'json_object' } } : {}),
       messages: [
-        { role: 'system', content: `${system}\n\nJawab ek JSON object me do: {"items": <array>} parse ke liye, ya plan object ask ke liye.` },
+        { role: 'system', content: wantsJson ? `${system}\n\nJawab ek JSON object me do: {"items": <array>} parse ke liye, ya plan object ask ke liye.` : system },
         { role: 'user', content: user },
       ],
     }),
@@ -231,7 +249,7 @@ async function callGroq(system, user) {
   return json.choices?.[0]?.message?.content ?? '';
 }
 
-async function callGemini(system, user) {
+async function callGemini(system, user, wantsJson = true) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
   const res = await fetch(url, {
@@ -240,7 +258,7 @@ async function callGemini(system, user) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts: [{ text: user }] }],
-      generationConfig: { temperature: 0, maxOutputTokens: 700, responseMimeType: 'application/json' },
+      generationConfig: { temperature: wantsJson ? 0 : 0.6, maxOutputTokens: wantsJson ? 700 : 320, ...(wantsJson ? { responseMimeType: 'application/json' } : {}) },
     }),
   });
 
@@ -252,6 +270,13 @@ async function callGemini(system, user) {
 /* ---------- helpers ---------- */
 
 function buildUser(task, text, context) {
+  if (task === 'coach') {
+    const lines = [`User ne kaha/poochha: "${text}"`, ''];
+    if (context?.snapshot) lines.push('User ka abhi ka hisaab:', String(context.snapshot).slice(0, 1200));
+    if (context?.history) lines.push('', 'Pichhli baat-cheet (context):', String(context.history).slice(0, 800));
+    lines.push('', 'Ab dost jaisa, chhota, uske numbers pe jawab do:');
+    return lines.join('\n');
+  }
   const lines = [task === 'ask' ? `Sawaal: "${text}"` : `Text: "${text}"`];
   if (context?.today) lines.push(`Aaj ki date: ${context.today}`);
   if (Array.isArray(context?.knownMerchants) && context.knownMerchants.length) {

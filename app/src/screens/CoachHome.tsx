@@ -9,6 +9,8 @@ import { getBalance, setBalance, type Balance } from '@/lib/balance';
 import { peekGap, greetedToday, markActive, markGreeted, getStreak } from '@/lib/streak';
 import { todayQuote } from '@/lib/quotes';
 import { dueBills, markLogged } from '@/lib/recurring';
+import { coachReply } from '@/lib/ai';
+import { loadChat, saveChat } from '@/lib/chatlog';
 import { AddSheet } from './AddEntry';
 import { Settings } from './Settings';
 
@@ -39,12 +41,15 @@ export function CoachHome() {
   const [sheet, setSheet] = useState<'type' | 'voice' | 'settings' | null>(null);
   const toast = useToast();
 
-  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [msgs, setMsgs] = useState<Msg[]>(() => loadChat().map((m, i) => ({ ...m, id: i + 1 })));
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const seedRef = useRef(false);
   const gapRef = useRef<number | null>(peekGap());
+
+  // chat history save (reload/reinstall pe bani rahe)
+  useEffect(() => { saveChat(msgs.map(({ role, text, sub }) => ({ role, text, sub }))); }, [msgs]);
 
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') ?? 'dark');
   function toggleTheme() {
@@ -74,20 +79,21 @@ export function CoachHome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // pehla coach message — greeting (streak ke hisaab se)
+  // greeting — sirf agar aaj greet nahi hua (warna purani chat bani rahe)
   useEffect(() => {
     if (seedRef.current) return;
     seedRef.current = true;
+    if (greetedToday() && msgs.length > 0) return;   // continuity: purani baat rakho
     const g = greetText(gapRef.current, getStreak(), profile ? addressWord(profile) : 'dost', t, !greetedToday());
     markGreeted();
-    setMsgs([{ id: 1, role: 'coach', text: g }]);
-  }, [profile, t]);
+    push({ role: 'coach', text: g });
+  }, [profile, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [msgs, busy]);
 
-  const nextId = useRef(2);
+  const nextId = useRef(loadChat().length + 1);
   function push(m: Omit<Msg, 'id'>) { setMsgs((cur) => [...cur, { ...m, id: nextId.current++ }]); }
 
   async function send(raw?: string) {
@@ -125,12 +131,12 @@ export function CoachHome() {
         } else {
           push({ role: 'coach', text: t('Tip: set your cash in hand (tap 💰 up top) and I\'ll keep a running total like a passbook.', 'Tip: apna cash in hand set karo (upar 💰 tap) — main passbook jaisa running total rakhunga.') });
         }
-      } else if (res.intent === 'question') {
-        push({ role: 'coach', text: res.answer?.answer ?? t("I didn't get that — try again.", 'Samajh nahi aaya — dobara likho.') });
-      } else if (res.intent === 'trip') {
-        push({ role: 'coach', text: t('For a group trip, open the Trips section.', 'Group trip ke liye Trips section kholo.') });
+      } else if (res.intent === 'question' && res.answer) {
+        push({ role: 'coach', text: res.answer.answer });
       } else {
-        push({ role: 'coach', text: t("I didn't catch a spend or a question there.", 'Usme koi kharcha ya sawaal samajh nahi aaya.') });
+        // baaki sab (baat-cheet, salah, "trip jaana hai", "tang aa gaya") → AI coach, tumhare hisaab pe
+        const reply = await coachReply(text, buildSnapshot(), recentHistory());
+        push({ role: 'coach', text: reply ?? t("I didn't catch a spend or question. Try again, or make a plan so I can advise.", 'Kuch samajh nahi aaya. Dobara likho, ya plan banao taaki salah du.') });
       }
     } catch {
       push({ role: 'coach', text: t('Something went wrong — try once more.', 'Kuch gadbad ho gayi — ek baar aur.') });
@@ -150,6 +156,28 @@ export function CoachHome() {
     const next = Math.max(0, bal.paise + delta);
     setBal(setBalance(next));
     return next;
+  }
+
+  /** AI coach ko dene ke liye user ka asli hisaab (amount+category, koi naam nahi). */
+  function buildSnapshot(): string {
+    const L: string[] = [];
+    if (earning > 0) L.push(`Monthly income: ${formatINR(earning)}${moneyProfile?.salaryDay ? `, salary day ${moneyProfile.salaryDay}${daysToSalary !== null ? ` (next salary in ${daysToSalary} days)` : ''}` : ''}`);
+    L.push(`Cash in hand right now: ${bal ? formatINR(bal.paise) : 'not set yet'}`);
+    L.push(`Spent so far this month: ${formatINR(spent)}`);
+    if (plan) {
+      const nd = plan.buckets.find((b) => b.id === 'needs')?.allocatedPaise ?? 0;
+      const fn = plan.buckets.find((b) => b.id === 'fun')?.allocatedPaise ?? 0;
+      L.push(`Monthly plan: needs ${formatINR(nd)}, fun ${formatINR(fn)}, emergency+savings ${formatINR(boxes?.emergency ?? 0)}`);
+      L.push(`Emergency fund: ${formatINR(plan.emergencyFundPaise)} of ${formatINR(plan.emergencyTargetPaise)}`);
+    }
+    if (boxes) L.push(`Left this month: fixed box ${formatINR(boxes.fixedLeft)}, daily+fun box ${formatINR(boxes.dailyLeft)}`);
+    if (pulse && (plan?.buckets.find((b) => b.id === 'fun')?.allocatedPaise ?? 0) > 0) L.push(`Fun money left: ${formatINR(pulse.funLeftPaise)} for ${pulse.daysLeft} days (${formatINR(pulse.safePerDayPaise)}/day safe)`);
+    if (moneyProfile?.goal) L.push(`Goal: ${moneyProfile.goal.name ?? 'a saving goal'} — ${formatINR(moneyProfile.goal.savedPaise)} of ${formatINR(moneyProfile.goal.targetPaise)} in ${moneyProfile.goal.deadlineMonths} months`);
+    L.push(`Spend split this month: needs ${formatINR(spendBuckets.needs)}, fun ${formatINR(spendBuckets.fun)}, other ${formatINR(spendBuckets.other)}`);
+    return L.join('\n');
+  }
+  function recentHistory(): string {
+    return msgs.slice(-6).map((m) => `${m.role === 'coach' ? 'Coach' : 'User'}: ${m.text}`).join('\n');
   }
 
   const lowHand = bal !== null && bal.paise < LOW_PAISE;

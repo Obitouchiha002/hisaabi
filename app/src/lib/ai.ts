@@ -35,7 +35,7 @@ export async function checkAi(): Promise<{ status: AiStatus; provider: string | 
   return { status: cachedStatus, provider: statusProvider };
 }
 
-async function call(task: 'parse' | 'ask', text: string, context: Record<string, unknown>): Promise<unknown> {
+async function call(task: 'parse' | 'ask' | 'coach', text: string, context: Record<string, unknown>): Promise<unknown> {
   const res = await fetch(ENDPOINT, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -65,6 +65,23 @@ export const remoteAi: AiAdapter = {
     return isPlan(result) ? normalisePlan(result) : null;
   },
 };
+
+/**
+ * AI coach — user ke asli hisaab (snapshot) + pichhli baat (history) dekh kar
+ * dost jaisa jawab. Text milta hai, JSON nahi. AI band/net na ho to null.
+ */
+export async function coachReply(message: string, snapshot: string, history?: string): Promise<string | null> {
+  try {
+    const result = await call('coach', message, {
+      snapshot: scrubPII(snapshot),
+      history: history ? scrubPII(history) : undefined,
+    });
+    const reply = typeof result === 'string' ? result.trim() : '';
+    return reply || null;
+  } catch {
+    return null;
+  }
+}
 
 /* ---------- AI ka JSON → engine ka type ---------- */
 
